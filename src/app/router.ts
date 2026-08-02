@@ -1,9 +1,6 @@
 import { getSession } from '../auth/auth';
 import { renderHubScreen } from '../ui/hubScreen';
 import { renderLoginScreen } from '../ui/loginScreen';
-import { clear, el } from '../ui/dom';
-
-export type Screen = 'login' | 'hub' | 'game';
 
 export class Router {
   private root: HTMLElement;
@@ -44,18 +41,6 @@ export class Router {
         this.onStartGame?.(user, mode);
       },
       () => this.showLogin(),
-    );
-  }
-
-  showGameStub(): void {
-    clear(this.root);
-    const back = el('button', { type: 'button', className: 'btn' }, ['Volver al hub']);
-    back.addEventListener('click', () => this.showHub());
-    this.root.append(
-      el('section', { className: 'screen', id: 'game-root' }, [
-        el('p', {}, ['Pronto']),
-        back,
-      ]),
     );
   }
 }

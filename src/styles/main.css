@@ -132,3 +132,202 @@ input {
 .hiscore {
   margin: 0;
 }
+
+.btn-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.game-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.canvas-host {
+  position: absolute;
+  inset: 0;
+}
+
+.canvas-host canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.hud-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+.hud-item {
+  background: rgba(0, 0, 0, 0.55);
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.hud-banner {
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 800;
+  text-shadow: 0 2px 8px #000;
+  min-height: 2rem;
+}
+
+.hud-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0.75rem;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.hud-actions,
+.stick-zone,
+.look-zone,
+.touch-btn,
+.fire-btn {
+  pointer-events: auto;
+}
+
+.hud-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.touch-btn {
+  min-width: 96px;
+}
+
+.fire-btn {
+  min-height: 72px;
+  background: #b33;
+  border-color: #e66;
+}
+
+.stick-zone {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  position: relative;
+  touch-action: none;
+}
+
+.stick-knob {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin: -24px 0 0 -24px;
+}
+
+.look-zone {
+  width: 140px;
+  height: 140px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 2px dashed rgba(255, 255, 255, 0.25);
+  touch-action: none;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  padding: 1rem;
+  pointer-events: auto;
+}
+
+.overlay-card {
+  width: min(480px, 100%);
+  max-height: 90%;
+  overflow: auto;
+  background: #15241c;
+  border: 2px solid #4a6b58;
+  border-radius: 16px;
+  padding: 1.25rem;
+}
+
+.shop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.shop-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 12px;
+}
+
+.earn-btn {
+  width: 100%;
+  font-size: 1.1rem;
+}
+
+.quiz-entry {
+  font-size: 2rem;
+  text-align: center;
+  min-height: 2.5rem;
+  margin: 0.5rem 0;
+  letter-spacing: 0.1em;
+}
+
+.numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.num-btn {
+  min-height: 56px;
+}
+
+.reward {
+  font-weight: 700;
+  color: #ffe08a;
+}
+
+.quiz-actions {
+  margin-top: 0.75rem;
+}
+
+@media (min-width: 900px) {
+  .stick-zone,
+  .look-zone {
+    opacity: 0.35;
+  }
+}
