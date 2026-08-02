@@ -143,7 +143,7 @@ export function renderTopicPicker(
     b.addEventListener('click', () => onPick(t.id));
     list.append(b);
   }
-  const cancel = el('button', { type: 'button', className: 'btn' }, ['Cancelar']);
+  const cancel = el('button', { type: 'button', className: 'btn topic-cancel' }, ['Cancelar']);
   cancel.addEventListener('click', onCancel);
   root.append(
     el('section', { className: 'screen' }, [

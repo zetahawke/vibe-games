@@ -140,6 +140,10 @@ input {
   margin-top: 1rem;
 }
 
+.topic-cancel {
+  margin-top: 1.25rem;
+}
+
 .game-wrap {
   position: relative;
   width: 100%;
