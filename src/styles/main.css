@@ -200,6 +200,42 @@ input {
   pointer-events: none;
 }
 
+.hud-desktop-actions {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  pointer-events: auto;
+}
+
+.hud-desktop-actions .touch-btn {
+  min-height: 40px;
+  min-width: auto;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.9rem;
+}
+
+.hud-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 0.75rem;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.45);
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  opacity: 0.85;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.hud-desktop .stick-zone,
+.hud-desktop .look-zone,
+.hud-desktop .fire-btn {
+  display: none !important;
+}
+
 .hud-actions,
 .stick-zone,
 .look-zone,
@@ -325,9 +361,3 @@ input {
   margin-top: 0.75rem;
 }
 
-@media (min-width: 900px) {
-  .stick-zone,
-  .look-zone {
-    opacity: 0.35;
-  }
-}

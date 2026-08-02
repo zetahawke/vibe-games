@@ -1,3 +1,4 @@
+import { isTouchPrimary } from '../input/device';
 import { Phase } from '../save/save';
 import { clear, el } from './dom';
 
@@ -29,6 +30,7 @@ export class Hud {
   private scoreEl: HTMLElement;
   private bannerEl: HTMLElement;
   private phaseEl: HTMLElement;
+  readonly touchMode: boolean;
 
   readonly shopBtn: HTMLButtonElement;
   readonly pauseBtn: HTMLButtonElement;
@@ -37,7 +39,10 @@ export class Hud {
   readonly lookZone: HTMLElement;
 
   constructor(parent: HTMLElement) {
-    this.root = el('div', { className: 'hud' });
+    this.touchMode = isTouchPrimary();
+    this.root = el('div', {
+      className: this.touchMode ? 'hud hud-touch' : 'hud hud-desktop',
+    });
     this.coinsEl = el('div', { className: 'hud-item' });
     this.livesEl = el('div', { className: 'hud-item' });
     this.waveEl = el('div', { className: 'hud-item' });
@@ -61,6 +66,12 @@ export class Hud {
     ]);
     this.lookZone = el('div', { className: 'look-zone', id: 'look-zone' });
 
+    const hint = this.touchMode
+      ? null
+      : el('div', { className: 'hud-hint' }, [
+          'WASD mover · Mouse mirar · Clic disparar · E tienda · Esc pausa',
+        ]);
+
     this.root.append(
       el('div', { className: 'hud-top' }, [
         this.coinsEl,
@@ -72,12 +83,28 @@ export class Hud {
         this.scoreEl,
       ]),
       this.bannerEl,
-      el('div', { className: 'hud-bottom' }, [
-        this.stickZone,
-        el('div', { className: 'hud-actions' }, [this.shopBtn, this.pauseBtn, this.fireBtn]),
-        this.lookZone,
-      ]),
     );
+
+    if (this.touchMode) {
+      this.root.append(
+        el('div', { className: 'hud-bottom' }, [
+          this.stickZone,
+          el('div', { className: 'hud-actions' }, [this.shopBtn, this.pauseBtn, this.fireBtn]),
+          this.lookZone,
+        ]),
+      );
+    } else {
+      this.root.append(
+        el('div', { className: 'hud-desktop-actions' }, [this.shopBtn, this.pauseBtn]),
+      );
+      if (hint) this.root.append(hint);
+      // Keep nodes for GameSession wiring, but hidden
+      this.fireBtn.hidden = true;
+      this.stickZone.hidden = true;
+      this.lookZone.hidden = true;
+      this.root.append(this.fireBtn, this.stickZone, this.lookZone);
+    }
+
     parent.append(this.root);
   }
 

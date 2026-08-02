@@ -1,17 +1,38 @@
 import * as THREE from 'three';
 import { Phase } from '../save/save';
-import { WeaponDef } from '../weapons/weapons';
-import { zombieHpForWave } from '../weapons/weapons';
+import { WeaponDef, zombieHpForWave } from '../weapons/weapons';
 import { zombiesToSpawnForWave } from '../waves/waveLogic';
 import { InputState } from '../input/InputManager';
 import { aabbFromCenter, overlaps } from './aabb';
+import {
+  makeClothTexture,
+  makeGrassTexture,
+  makeSkinTexture,
+  makeSkyTexture,
+  makeWoodTexture,
+  makeZombieTexture,
+} from './textures';
 
 export type WorldEvents = { kills: number; fortBreached: boolean };
 
 interface Zombie {
-  mesh: THREE.Mesh;
+  root: THREE.Group;
+  leftArm: THREE.Object3D;
+  rightArm: THREE.Object3D;
+  leftLeg: THREE.Object3D;
+  rightLeg: THREE.Object3D;
   hp: number;
   speed: number;
+  walkPhase: number;
+}
+
+interface PlayerRig {
+  root: THREE.Group;
+  leftArm: THREE.Object3D;
+  rightArm: THREE.Object3D;
+  leftLeg: THREE.Object3D;
+  rightLeg: THREE.Object3D;
+  weapon: THREE.Object3D;
 }
 
 const ARENA = 40;
@@ -23,22 +44,28 @@ export class World {
   readonly renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
   private camera: THREE.PerspectiveCamera;
-  private player = new THREE.Group();
+  private playerRig: PlayerRig;
   private yaw = 0;
   private pitch = 0.25;
   private zombies: Zombie[] = [];
   private spawnAcc = 0;
   private fireCooldown = 0;
+  private attackAnim = 0;
+  private walkPhase = 0;
   private paused = false;
   private phase: Phase = 'wave';
   private wave = 1;
   private toSpawn = 0;
-  private fortMesh: THREE.Group;
+  private textures: THREE.Texture[] = [];
+  private materials: THREE.Material[] = [];
 
   constructor(private container: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(container.clientWidth, container.clientHeight);
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.append(this.renderer.domElement);
 
     this.camera = new THREE.PerspectiveCamera(
@@ -48,41 +75,46 @@ export class World {
       200,
     );
 
-    this.scene.background = new THREE.Color(0x87a0b8);
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-    const sun = new THREE.DirectionalLight(0xfff2cc, 0.9);
-    sun.position.set(20, 30, 10);
-    this.scene.add(sun);
+    const skyTex = makeSkyTexture();
+    this.textures.push(skyTex);
+    this.scene.background = skyTex;
+    this.scene.fog = new THREE.Fog(0xb8d4e8, 35, 95);
 
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(ARENA * 2, ARENA * 2),
-      new THREE.MeshStandardMaterial({ color: 0x3d6b3a }),
-    );
+    this.scene.add(new THREE.AmbientLight(0xbdd4ff, 0.45));
+    const sun = new THREE.DirectionalLight(0xfff0d0, 1.15);
+    sun.position.set(25, 40, 18);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.camera.left = -45;
+    sun.shadow.camera.right = 45;
+    sun.shadow.camera.top = 45;
+    sun.shadow.camera.bottom = -45;
+    this.scene.add(sun);
+    this.scene.add(new THREE.HemisphereLight(0x9ecbff, 0x3d5c2e, 0.35));
+
+    const grass = makeGrassTexture();
+    this.textures.push(grass);
+    const groundMat = new THREE.MeshStandardMaterial({ map: grass, roughness: 0.95 });
+    this.materials.push(groundMat);
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(ARENA * 2, ARENA * 2), groundMat);
     ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
     this.scene.add(ground);
 
-    this.fortMesh = this.buildFort();
-    this.scene.add(this.fortMesh);
-
-    const body = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1.4, 1),
-      new THREE.MeshStandardMaterial({ color: 0x2f6fed }),
-    );
-    body.position.y = 0.9;
-    const head = new THREE.Mesh(
-      new THREE.BoxGeometry(0.7, 0.7, 0.7),
-      new THREE.MeshStandardMaterial({ color: 0xffcc99 }),
-    );
-    head.position.y = 1.9;
-    this.player.add(body, head);
-    this.player.position.set(0, 0, 8);
-    this.scene.add(this.player);
+    this.scene.add(this.buildFort());
+    this.playerRig = this.buildPlayer();
+    this.playerRig.root.position.set(0, 0, 8);
+    this.scene.add(this.playerRig.root);
 
     window.addEventListener('resize', this.onResize);
   }
 
   get canvas(): HTMLCanvasElement {
     return this.renderer.domElement;
+  }
+
+  get player(): THREE.Group {
+    return this.playerRig.root;
   }
 
   setPaused(p: boolean): void {
@@ -105,7 +137,7 @@ export class World {
   }
 
   clearZombies(): void {
-    for (const z of this.zombies) this.scene.remove(z.mesh);
+    for (const z of this.zombies) this.scene.remove(z.root);
     this.zombies = [];
   }
 
@@ -125,24 +157,37 @@ export class World {
     move.addScaledVector(right, input.moveX);
     move.addScaledVector(forward, -input.moveZ);
     if (move.lengthSq() > 1) move.normalize();
-    this.player.position.addScaledVector(move, PLAYER_SPEED * dt);
-    this.player.position.x = THREE.MathUtils.clamp(this.player.position.x, -ARENA + 1, ARENA - 1);
-    this.player.position.z = THREE.MathUtils.clamp(this.player.position.z, -ARENA + 1, ARENA - 1);
-    this.player.rotation.y = this.yaw;
+    const moving = move.lengthSq() > 0.01;
+    this.playerRig.root.position.addScaledVector(move, PLAYER_SPEED * dt);
+    this.playerRig.root.position.x = THREE.MathUtils.clamp(
+      this.playerRig.root.position.x,
+      -ARENA + 1,
+      ARENA - 1,
+    );
+    this.playerRig.root.position.z = THREE.MathUtils.clamp(
+      this.playerRig.root.position.z,
+      -ARENA + 1,
+      ARENA - 1,
+    );
+    this.playerRig.root.rotation.y = this.yaw;
 
-    const camOffset = new THREE.Vector3(0, 3.2, 6.5);
+    if (moving) this.walkPhase += dt * 9;
+    this.animatePlayer(moving, dt, equipped);
+
+    const camOffset = new THREE.Vector3(0, 3.4, 6.8);
     camOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
-    this.camera.position.copy(this.player.position).add(camOffset);
+    this.camera.position.copy(this.playerRig.root.position).add(camOffset);
     this.camera.position.y += Math.sin(this.pitch) * 2;
     this.camera.lookAt(
-      this.player.position.x - Math.sin(this.yaw) * 8,
-      1.5,
-      this.player.position.z - Math.cos(this.yaw) * 8,
+      this.playerRig.root.position.x - Math.sin(this.yaw) * 8,
+      1.6,
+      this.playerRig.root.position.z - Math.cos(this.yaw) * 8,
     );
 
     this.fireCooldown = Math.max(0, this.fireCooldown - dt * 1000);
     if (input.fire && this.fireCooldown <= 0) {
       this.fireCooldown = equipped.cooldownMs;
+      this.attackAnim = 1;
       events.kills += this.tryFire(equipped);
     }
 
@@ -156,10 +201,17 @@ export class World {
 
       const fortAabb = aabbFromCenter(0, 0, FORT_HALF);
       for (const z of this.zombies) {
-        const dir = new THREE.Vector3(-z.mesh.position.x, 0, -z.mesh.position.z);
+        const dir = new THREE.Vector3(-z.root.position.x, 0, -z.root.position.z);
         if (dir.lengthSq() > 0.001) dir.normalize();
-        z.mesh.position.addScaledVector(dir, z.speed * dt);
-        const zab = aabbFromCenter(z.mesh.position.x, z.mesh.position.z, 0.7);
+        z.root.position.addScaledVector(dir, z.speed * dt);
+        z.root.rotation.y = Math.atan2(dir.x, dir.z);
+        z.walkPhase += dt * (6 + z.speed);
+        const swing = Math.sin(z.walkPhase) * 0.55;
+        z.leftLeg.rotation.x = swing;
+        z.rightLeg.rotation.x = -swing;
+        z.leftArm.rotation.x = -swing * 0.8;
+        z.rightArm.rotation.x = swing * 0.8;
+        const zab = aabbFromCenter(z.root.position.x, z.root.position.z, 0.7);
         if (overlaps(zab, fortAabb)) {
           events.fortBreached = true;
           break;
@@ -175,12 +227,44 @@ export class World {
   dispose(): void {
     window.removeEventListener('resize', this.onResize);
     this.clearZombies();
+    for (const t of this.textures) t.dispose();
+    for (const m of this.materials) m.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }
 
+  private animatePlayer(moving: boolean, dt: number, equipped: WeaponDef): void {
+    const swing = moving ? Math.sin(this.walkPhase) * 0.65 : 0;
+    this.playerRig.leftLeg.rotation.x = swing;
+    this.playerRig.rightLeg.rotation.x = -swing;
+    this.playerRig.leftArm.rotation.x = -swing * 0.7;
+
+    if (this.attackAnim > 0) {
+      this.attackAnim = Math.max(0, this.attackAnim - dt * 4);
+      const t = this.attackAnim;
+      if (equipped.isMelee) {
+        this.playerRig.rightArm.rotation.x = -1.2 * t;
+        this.playerRig.rightArm.rotation.z = -0.6 * t;
+      } else {
+        this.playerRig.rightArm.rotation.x = -0.5 * t;
+        this.playerRig.weapon.position.z = -0.35 - 0.15 * (1 - t);
+      }
+    } else {
+      this.playerRig.rightArm.rotation.x = swing * 0.7;
+      this.playerRig.rightArm.rotation.z = 0;
+      this.playerRig.weapon.position.z = -0.35;
+    }
+
+    // show knife vs gun shape roughly
+    this.playerRig.weapon.scale.set(
+      equipped.isMelee ? 0.7 : 1,
+      equipped.isMelee ? 1.2 : 0.7,
+      equipped.isMelee ? 0.35 : 1.1,
+    );
+  }
+
   private tryFire(equipped: WeaponDef): number {
-    const origin = this.player.position.clone();
+    const origin = this.playerRig.root.position.clone();
     origin.y = 1.2;
     const dir = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw)).normalize();
     let kills = 0;
@@ -188,7 +272,7 @@ export class World {
     let bestDist = Infinity;
 
     for (const z of this.zombies) {
-      const toZ = z.mesh.position.clone().sub(origin);
+      const toZ = z.root.position.clone().sub(origin);
       toZ.y = 0;
       const dist = toZ.length();
       if (dist > equipped.range) continue;
@@ -208,7 +292,7 @@ export class World {
     if (best) {
       best.hp -= equipped.damage;
       if (best.hp <= 0) {
-        this.scene.remove(best.mesh);
+        this.scene.remove(best.root);
         this.zombies = this.zombies.filter((z) => z !== best);
         kills = 1;
       }
@@ -218,37 +302,174 @@ export class World {
 
   private spawnZombie(): void {
     const angle = Math.random() * Math.PI * 2;
-    const mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(1.1, 1.6, 1.1),
-      new THREE.MeshStandardMaterial({ color: 0x4a7a32 }),
+    const z = this.buildZombie();
+    z.root.position.set(Math.cos(angle) * SPAWN_RADIUS, 0, Math.sin(angle) * SPAWN_RADIUS);
+    this.scene.add(z.root);
+    z.hp = zombieHpForWave(this.wave);
+    z.speed = 2.2 + this.wave * 0.12;
+    this.zombies.push(z);
+  }
+
+  private buildPlayer(): PlayerRig {
+    const skinTex = makeSkinTexture();
+    const shirtTex = makeClothTexture('#2f6fed', '#2558c4');
+    const pantsTex = makeClothTexture('#2a3a55', '#1d2a3f');
+    this.textures.push(skinTex, shirtTex, pantsTex);
+
+    const skin = new THREE.MeshStandardMaterial({ map: skinTex, roughness: 0.7 });
+    const shirt = new THREE.MeshStandardMaterial({ map: shirtTex, roughness: 0.85 });
+    const pants = new THREE.MeshStandardMaterial({ map: pantsTex, roughness: 0.9 });
+    this.materials.push(skin, shirt, pants);
+
+    const root = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.05, 0.5), shirt);
+    body.position.y = 1.35;
+    body.castShadow = true;
+
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.55, 0.55), skin);
+    head.position.y = 2.15;
+    head.castShadow = true;
+
+    const hair = new THREE.Mesh(
+      new THREE.BoxGeometry(0.58, 0.18, 0.58),
+      new THREE.MeshStandardMaterial({ color: 0x3b2414, roughness: 0.95 }),
     );
-    mesh.position.set(Math.cos(angle) * SPAWN_RADIUS, 0.8, Math.sin(angle) * SPAWN_RADIUS);
-    this.scene.add(mesh);
-    this.zombies.push({
-      mesh,
-      hp: zombieHpForWave(this.wave),
-      speed: 2.2 + this.wave * 0.12,
-    });
+    hair.position.y = 2.42;
+
+    const leftArm = new THREE.Group();
+    leftArm.position.set(-0.55, 1.7, 0);
+    const la = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.9, 0.28), skin);
+    la.position.y = -0.35;
+    la.castShadow = true;
+    leftArm.add(la);
+
+    const rightArm = new THREE.Group();
+    rightArm.position.set(0.55, 1.7, 0);
+    const ra = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.9, 0.28), skin);
+    ra.position.y = -0.35;
+    ra.castShadow = true;
+    const weapon = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, 0.12, 0.7),
+      new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.6, roughness: 0.35 }),
+    );
+    weapon.position.set(0, -0.7, -0.35);
+    weapon.castShadow = true;
+    rightArm.add(ra, weapon);
+
+    const leftLeg = new THREE.Group();
+    leftLeg.position.set(-0.22, 0.85, 0);
+    const ll = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.85, 0.35), pants);
+    ll.position.y = -0.4;
+    ll.castShadow = true;
+    leftLeg.add(ll);
+
+    const rightLeg = new THREE.Group();
+    rightLeg.position.set(0.22, 0.85, 0);
+    const rl = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.85, 0.35), pants);
+    rl.position.y = -0.4;
+    rl.castShadow = true;
+    rightLeg.add(rl);
+
+    root.add(body, head, hair, leftArm, rightArm, leftLeg, rightLeg);
+    return { root, leftArm, rightArm, leftLeg, rightLeg, weapon };
+  }
+
+  private buildZombie(): Zombie {
+    const tex = makeZombieTexture();
+    this.textures.push(tex);
+    const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 });
+    this.materials.push(mat);
+    const dark = new THREE.MeshStandardMaterial({ color: 0x2f3d28, roughness: 0.95 });
+    this.materials.push(dark);
+
+    const root = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 0.5), mat);
+    body.position.y = 1.35;
+    body.castShadow = true;
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.55, 0.55), mat);
+    head.position.y = 2.15;
+    head.castShadow = true;
+
+    const leftArm = new THREE.Group();
+    leftArm.position.set(-0.55, 1.75, 0);
+    const la = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.95, 0.26), mat);
+    la.position.y = -0.4;
+    leftArm.add(la);
+
+    const rightArm = new THREE.Group();
+    rightArm.position.set(0.55, 1.75, 0);
+    const ra = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.95, 0.26), mat);
+    ra.position.y = -0.4;
+    rightArm.add(ra);
+
+    const leftLeg = new THREE.Group();
+    leftLeg.position.set(-0.22, 0.85, 0);
+    const ll = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.85, 0.32), dark);
+    ll.position.y = -0.4;
+    leftLeg.add(ll);
+
+    const rightLeg = new THREE.Group();
+    rightLeg.position.set(0.22, 0.85, 0);
+    const rl = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.85, 0.32), dark);
+    rl.position.y = -0.4;
+    rightLeg.add(rl);
+
+    root.add(body, head, leftArm, rightArm, leftLeg, rightLeg);
+    return {
+      root,
+      leftArm,
+      rightArm,
+      leftLeg,
+      rightLeg,
+      hp: 1,
+      speed: 2,
+      walkPhase: Math.random() * Math.PI * 2,
+    };
   }
 
   private buildFort(): THREE.Group {
     const g = new THREE.Group();
-    const mat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b });
-    const wall = (x: number, z: number, w: number, d: number) => {
-      const m = new THREE.Mesh(new THREE.BoxGeometry(w, 2.2, d), mat);
-      m.position.set(x, 1.1, z);
+    const woodTex = makeWoodTexture();
+    this.textures.push(woodTex);
+    const mat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.85 });
+    this.materials.push(mat);
+
+    const wall = (x: number, z: number, w: number, d: number, h = 2.4) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+      m.position.set(x, h / 2, z);
+      m.castShadow = true;
+      m.receiveShadow = true;
       g.add(m);
     };
-    wall(0, -FORT_HALF, FORT_HALF * 2, 1);
-    wall(0, FORT_HALF, FORT_HALF * 2, 1);
-    wall(-FORT_HALF, 0, 1, FORT_HALF * 2);
-    wall(FORT_HALF, 0, 1, FORT_HALF * 2);
-    const flag = new THREE.Mesh(
-      new THREE.BoxGeometry(0.4, 3, 0.4),
-      new THREE.MeshStandardMaterial({ color: 0xc0392b }),
+    wall(0, -FORT_HALF, FORT_HALF * 2.2, 0.85);
+    wall(0, FORT_HALF, FORT_HALF * 2.2, 0.85);
+    wall(-FORT_HALF, 0, 0.85, FORT_HALF * 2.2);
+    wall(FORT_HALF, 0, 0.85, FORT_HALF * 2.2);
+
+    // corner posts
+    for (const [x, z] of [
+      [-FORT_HALF, -FORT_HALF],
+      [FORT_HALF, -FORT_HALF],
+      [-FORT_HALF, FORT_HALF],
+      [FORT_HALF, FORT_HALF],
+    ] as const) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 3.1, 8), mat);
+      post.position.set(x, 1.55, z);
+      post.castShadow = true;
+      g.add(post);
+    }
+
+    const pole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.1, 3.4, 8),
+      new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.8 }),
     );
-    flag.position.set(0, 1.5, 0);
-    g.add(flag);
+    pole.position.set(0, 1.7, 0);
+    const flag = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.2, 0.7),
+      new THREE.MeshStandardMaterial({ color: 0xd64545, side: THREE.DoubleSide, roughness: 0.7 }),
+    );
+    flag.position.set(0.6, 3.0, 0);
+    g.add(pole, flag);
     return g;
   }
 
