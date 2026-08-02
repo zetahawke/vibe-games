@@ -7,5 +7,128 @@ body,
 #app {
   margin: 0;
   height: 100%;
-  font-family: system-ui, sans-serif;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: linear-gradient(160deg, #1a3a2a 0%, #0f1f18 45%, #1b2838 100%);
+  color: #f3f6f2;
+}
+
+.screen {
+  min-height: 100%;
+  padding: 1.5rem;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.login-screen,
+.hub-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.subtitle,
+.muted {
+  opacity: 0.75;
+}
+
+label {
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 2px solid #3d5c4a;
+  background: #0c1611;
+  color: inherit;
+  font-size: 1.1rem;
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.btn {
+  min-height: 48px;
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  border: 2px solid #4a6b58;
+  background: #243d30;
+  color: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: #3f8f5b;
+  border-color: #56b877;
+  font-weight: 700;
+}
+
+.btn.ghost {
+  background: transparent;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #ffb4b4;
+  min-height: 1.25rem;
+}
+
+.hub-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1.25rem;
+}
+
+.game-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.game-card {
+  position: relative;
+  padding: 1.25rem;
+  border-radius: 16px;
+  background: rgba(20, 36, 28, 0.9);
+  border: 2px solid #3d5c4a;
+}
+
+.game-card.locked {
+  filter: grayscale(0.85);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.coming-soon {
+  margin-top: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.hiscore {
+  margin: 0;
 }
