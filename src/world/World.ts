@@ -6,6 +6,7 @@ import { InputState } from '../input/InputManager';
 import { aabbFromCenter, overlaps } from './aabb';
 import {
   makeClothTexture,
+  makeDirtTexture,
   makeGrassTexture,
   makeSkinTexture,
   makeSkyTexture,
@@ -35,18 +36,21 @@ interface PlayerRig {
   weapon: THREE.Object3D;
 }
 
-const ARENA = 40;
+/** Fort at -Z, path runs toward +Z, zombies spawn at the far end and walk to the fort. */
 const FORT_HALF = 3.5;
+const PATH_HALF_W = 5;
+const PATH_END_Z = 52;
 const PLAYER_SPEED = 8;
-const SPAWN_RADIUS = 34;
+const BASE_ZOMBIE_SPEED = 2.15;
 
 export class World {
   readonly renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
   private camera: THREE.PerspectiveCamera;
   private playerRig: PlayerRig;
-  private yaw = 0;
-  private pitch = 0.25;
+  /** Face +Z (down the path toward zombies). */
+  private yaw = Math.PI;
+  private pitch = 0.2;
   private zombies: Zombie[] = [];
   private spawnAcc = 0;
   private fireCooldown = 0;
@@ -72,38 +76,31 @@ export class World {
       60,
       container.clientWidth / Math.max(container.clientHeight, 1),
       0.1,
-      200,
+      220,
     );
 
     const skyTex = makeSkyTexture();
     this.textures.push(skyTex);
     this.scene.background = skyTex;
-    this.scene.fog = new THREE.Fog(0xb8d4e8, 35, 95);
+    this.scene.fog = new THREE.Fog(0xb8d4e8, 40, 110);
 
     this.scene.add(new THREE.AmbientLight(0xbdd4ff, 0.45));
     const sun = new THREE.DirectionalLight(0xfff0d0, 1.15);
-    sun.position.set(25, 40, 18);
+    sun.position.set(18, 42, 30);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
-    sun.shadow.camera.left = -45;
-    sun.shadow.camera.right = 45;
-    sun.shadow.camera.top = 45;
-    sun.shadow.camera.bottom = -45;
+    sun.shadow.camera.left = -55;
+    sun.shadow.camera.right = 55;
+    sun.shadow.camera.top = 55;
+    sun.shadow.camera.bottom = -55;
     this.scene.add(sun);
     this.scene.add(new THREE.HemisphereLight(0x9ecbff, 0x3d5c2e, 0.35));
 
-    const grass = makeGrassTexture();
-    this.textures.push(grass);
-    const groundMat = new THREE.MeshStandardMaterial({ map: grass, roughness: 0.95 });
-    this.materials.push(groundMat);
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(ARENA * 2, ARENA * 2), groundMat);
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-    this.scene.add(ground);
-
+    this.buildGroundAndPath();
     this.scene.add(this.buildFort());
     this.playerRig = this.buildPlayer();
     this.playerRig.root.position.set(0, 0, 8);
+    this.playerRig.root.rotation.y = this.yaw;
     this.scene.add(this.playerRig.root);
 
     window.addEventListener('resize', this.onResize);
@@ -151,6 +148,7 @@ export class World {
     this.yaw -= input.lookDx * 0.0025;
     this.pitch = Math.min(0.8, Math.max(-0.2, this.pitch - input.lookDy * 0.002));
 
+    // Facing: yaw=π → +Z (path / zombies)
     const forward = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
     const right = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
     const move = new THREE.Vector3();
@@ -161,13 +159,13 @@ export class World {
     this.playerRig.root.position.addScaledVector(move, PLAYER_SPEED * dt);
     this.playerRig.root.position.x = THREE.MathUtils.clamp(
       this.playerRig.root.position.x,
-      -ARENA + 1,
-      ARENA - 1,
+      -PATH_HALF_W - 1.5,
+      PATH_HALF_W + 1.5,
     );
     this.playerRig.root.position.z = THREE.MathUtils.clamp(
       this.playerRig.root.position.z,
-      -ARENA + 1,
-      ARENA - 1,
+      -FORT_HALF + 0.5,
+      PATH_END_Z - 3,
     );
     this.playerRig.root.rotation.y = this.yaw;
 
@@ -201,9 +199,14 @@ export class World {
 
       const fortAabb = aabbFromCenter(0, 0, FORT_HALF);
       for (const z of this.zombies) {
-        const dir = new THREE.Vector3(-z.root.position.x, 0, -z.root.position.z);
+        // March down the path toward the fort (mostly -Z)
+        const target = new THREE.Vector3(0, 0, 0);
+        const dir = target.clone().sub(z.root.position);
+        dir.y = 0;
         if (dir.lengthSq() > 0.001) dir.normalize();
         z.root.position.addScaledVector(dir, z.speed * dt);
+        // Keep loosely on the path
+        z.root.position.x = THREE.MathUtils.clamp(z.root.position.x, -PATH_HALF_W + 0.8, PATH_HALF_W - 0.8);
         z.root.rotation.y = Math.atan2(dir.x, dir.z);
         z.walkPhase += dt * (6 + z.speed);
         const swing = Math.sin(z.walkPhase) * 0.55;
@@ -243,23 +246,23 @@ export class World {
       this.attackAnim = Math.max(0, this.attackAnim - dt * 4);
       const t = this.attackAnim;
       if (equipped.isMelee) {
-        this.playerRig.rightArm.rotation.x = -1.2 * t;
-        this.playerRig.rightArm.rotation.z = -0.6 * t;
+        // Positive X swings the arm toward local -Z (character forward)
+        this.playerRig.rightArm.rotation.x = 1.35 * t;
+        this.playerRig.rightArm.rotation.z = 0.25 * t;
       } else {
-        this.playerRig.rightArm.rotation.x = -0.5 * t;
-        this.playerRig.weapon.position.z = -0.35 - 0.15 * (1 - t);
+        this.playerRig.rightArm.rotation.x = 0.35 * t;
+        this.playerRig.weapon.position.z = -0.45 - 0.12 * t;
       }
     } else {
       this.playerRig.rightArm.rotation.x = swing * 0.7;
       this.playerRig.rightArm.rotation.z = 0;
-      this.playerRig.weapon.position.z = -0.35;
+      this.playerRig.weapon.position.z = -0.45;
     }
 
-    // show knife vs gun shape roughly
     this.playerRig.weapon.scale.set(
-      equipped.isMelee ? 0.7 : 1,
-      equipped.isMelee ? 1.2 : 0.7,
-      equipped.isMelee ? 0.35 : 1.1,
+      equipped.isMelee ? 0.55 : 1,
+      equipped.isMelee ? 0.55 : 0.7,
+      equipped.isMelee ? 1.35 : 1.1,
     );
   }
 
@@ -279,7 +282,7 @@ export class World {
       const aligned = toZ.clone().normalize().dot(dir);
       const lateral = Math.abs(toZ.clone().normalize().cross(dir).y);
       if (equipped.isMelee) {
-        if (dist <= equipped.range && aligned > 0.2 && dist < bestDist) {
+        if (dist <= equipped.range && aligned > 0.15 && dist < bestDist) {
           best = z;
           bestDist = dist;
         }
@@ -301,13 +304,61 @@ export class World {
   }
 
   private spawnZombie(): void {
-    const angle = Math.random() * Math.PI * 2;
     const z = this.buildZombie();
-    z.root.position.set(Math.cos(angle) * SPAWN_RADIUS, 0, Math.sin(angle) * SPAWN_RADIUS);
+    const lane = (Math.random() * 2 - 1) * (PATH_HALF_W - 1.2);
+    z.root.position.set(lane, 0, PATH_END_Z + Math.random() * 2);
     this.scene.add(z.root);
     z.hp = zombieHpForWave(this.wave);
-    z.speed = 2.2 + this.wave * 0.12;
+    // Small speed variation (±~10%)
+    const waveBoost = 1 + (this.wave - 1) * 0.04;
+    z.speed = BASE_ZOMBIE_SPEED * waveBoost * (0.9 + Math.random() * 0.2);
     this.zombies.push(z);
+  }
+
+  private buildGroundAndPath(): void {
+    const grass = makeGrassTexture();
+    const dirt = makeDirtTexture();
+    this.textures.push(grass, dirt);
+
+    const grassMat = new THREE.MeshStandardMaterial({ map: grass, roughness: 0.95 });
+    const dirtMat = new THREE.MeshStandardMaterial({ map: dirt, roughness: 1 });
+    this.materials.push(grassMat, dirtMat);
+
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(70, PATH_END_Z + 30), grassMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.z = PATH_END_Z / 2 - 4;
+    ground.receiveShadow = true;
+    this.scene.add(ground);
+
+    const pathLen = PATH_END_Z + FORT_HALF + 2;
+    const path = new THREE.Mesh(
+      new THREE.PlaneGeometry(PATH_HALF_W * 2, pathLen),
+      dirtMat,
+    );
+    path.rotation.x = -Math.PI / 2;
+    path.position.y = 0.02;
+    path.position.z = pathLen / 2 - FORT_HALF;
+    path.receiveShadow = true;
+    this.scene.add(path);
+
+    // Simple roadside rocks for depth
+    const rockMat = new THREE.MeshStandardMaterial({ color: 0x6a6a62, roughness: 0.95 });
+    this.materials.push(rockMat);
+    for (let i = 0; i < 14; i++) {
+      const side = i % 2 === 0 ? 1 : -1;
+      const rock = new THREE.Mesh(
+        new THREE.SphereGeometry(0.35 + Math.random() * 0.35, 6, 5),
+        rockMat,
+      );
+      rock.position.set(
+        side * (PATH_HALF_W + 1.2 + Math.random()),
+        0.2,
+        6 + i * 3.2 + Math.random(),
+      );
+      rock.scale.y = 0.55;
+      rock.castShadow = true;
+      this.scene.add(rock);
+    }
   }
 
   private buildPlayer(): PlayerRig {
@@ -349,10 +400,11 @@ export class World {
     ra.position.y = -0.35;
     ra.castShadow = true;
     const weapon = new THREE.Mesh(
-      new THREE.BoxGeometry(0.12, 0.12, 0.7),
+      new THREE.BoxGeometry(0.12, 0.12, 0.75),
       new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.6, roughness: 0.35 }),
     );
-    weapon.position.set(0, -0.7, -0.35);
+    // Extend in local -Z (character forward when yaw faces path)
+    weapon.position.set(0, -0.75, -0.45);
     weapon.castShadow = true;
     rightArm.add(ra, weapon);
 
@@ -422,7 +474,7 @@ export class World {
       leftLeg,
       rightLeg,
       hp: 1,
-      speed: 2,
+      speed: BASE_ZOMBIE_SPEED,
       walkPhase: Math.random() * Math.PI * 2,
     };
   }
@@ -441,12 +493,15 @@ export class World {
       m.receiveShadow = true;
       g.add(m);
     };
+
+    // Back + sides; open toward +Z (path / zombies)
     wall(0, -FORT_HALF, FORT_HALF * 2.2, 0.85);
-    wall(0, FORT_HALF, FORT_HALF * 2.2, 0.85);
     wall(-FORT_HALF, 0, 0.85, FORT_HALF * 2.2);
     wall(FORT_HALF, 0, 0.85, FORT_HALF * 2.2);
+    // Front gate posts (opening in the middle)
+    wall(-FORT_HALF + 0.7, FORT_HALF, 1.6, 0.85);
+    wall(FORT_HALF - 0.7, FORT_HALF, 1.6, 0.85);
 
-    // corner posts
     for (const [x, z] of [
       [-FORT_HALF, -FORT_HALF],
       [FORT_HALF, -FORT_HALF],
@@ -463,12 +518,12 @@ export class World {
       new THREE.CylinderGeometry(0.08, 0.1, 3.4, 8),
       new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.8 }),
     );
-    pole.position.set(0, 1.7, 0);
+    pole.position.set(0, 1.7, -1);
     const flag = new THREE.Mesh(
       new THREE.PlaneGeometry(1.2, 0.7),
       new THREE.MeshStandardMaterial({ color: 0xd64545, side: THREE.DoubleSide, roughness: 0.7 }),
     );
-    flag.position.set(0.6, 3.0, 0);
+    flag.position.set(0.6, 3.0, -1);
     g.add(pole, flag);
     return g;
   }

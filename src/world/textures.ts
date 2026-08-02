@@ -48,6 +48,31 @@ export function makeGrassTexture(): THREE.CanvasTexture {
   );
 }
 
+export function makeDirtTexture(): THREE.CanvasTexture {
+  return canvasTexture(
+    128,
+    (ctx, size) => {
+      ctx.fillStyle = '#8a6a3d';
+      ctx.fillRect(0, 0, size, size);
+      for (let i = 0; i < 700; i++) {
+        const shade = 90 + Math.floor(Math.random() * 50);
+        ctx.fillStyle = `rgb(${shade}, ${shade - 25}, ${shade - 45})`;
+        ctx.fillRect(Math.random() * size, Math.random() * size, 2 + Math.random() * 3, 2);
+      }
+      ctx.strokeStyle = 'rgba(60, 40, 20, 0.25)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 10; i++) {
+        const y = (i / 10) * size;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(size, y + Math.sin(i) * 4);
+        ctx.stroke();
+      }
+    },
+    4,
+  );
+}
+
 export function makeWoodTexture(): THREE.CanvasTexture {
   return canvasTexture(
     128,
