@@ -172,8 +172,12 @@ export class GameSession {
   private requestShop(): void {
     if (!this.waves || this.waves.status === 'gameover') return;
     if (this.shopOverlay || this.quizOverlay) return;
+    if (!this.world?.isPlayerInFort()) {
+      this.showBanner('Entra al fuerte para abrir la tienda');
+      return;
+    }
     this.uiBlocking = true;
-    this.world?.setPaused(true);
+    this.world.setPaused(true);
     this.shopOverlay = renderShopOverlay(
       this.wrap,
       this.save,

@@ -121,6 +121,13 @@ export class World {
     return this.playerRig.root;
   }
 
+  /** Shop only works while standing inside the fort footprint. */
+  isPlayerInFort(): boolean {
+    const { x, z } = this.playerRig.root.position;
+    const h = this.fortHalf;
+    return Math.abs(x) <= h && Math.abs(z) <= h;
+  }
+
   setPaused(p: boolean): void {
     this.paused = p;
   }
