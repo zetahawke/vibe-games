@@ -60,7 +60,6 @@ export async function register(
 
   accounts.users[name] = { passwordHash: await hashPassword(password) };
   writeAccounts(accounts);
-  sessionStorage.setItem(SESSION_KEY, name);
   return { ok: true };
 }
 
