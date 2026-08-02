@@ -160,7 +160,7 @@ export class World {
     }
 
     this.yaw -= input.lookDx * 0.0025;
-    this.pitch = Math.min(0.8, Math.max(-0.2, this.pitch - input.lookDy * 0.002));
+    this.pitch = Math.min(0.8, Math.max(-0.2, this.pitch + input.lookDy * 0.002));
 
     // Facing: yaw=π → +Z (path / zombies)
     const forward = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
