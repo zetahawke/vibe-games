@@ -86,7 +86,7 @@ export class GameSession {
 
     const canvasHost = el('div', { className: 'canvas-host' });
     this.wrap.append(canvasHost);
-    this.world = new World(canvasHost);
+    this.world = new World(canvasHost, save.pathHalfW);
     this.input = new InputManager(this.world.canvas);
     this.hud = new Hud(this.wrap);
     this.wireHud();

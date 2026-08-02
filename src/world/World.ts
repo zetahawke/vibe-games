@@ -5,6 +5,12 @@ import { zombiesToSpawnForWave } from '../waves/waveLogic';
 import { InputState } from '../input/InputManager';
 import { aabbFromCenter, overlaps } from './aabb';
 import {
+  FORT_HALF,
+  FORT_HEIGHT,
+  PATH_END_Z,
+  rollPathHalfWidth,
+} from './layout';
+import {
   makeClothTexture,
   makeDirtTexture,
   makeGrassTexture,
@@ -36,10 +42,6 @@ interface PlayerRig {
   weapon: THREE.Object3D;
 }
 
-/** Fort at -Z, path runs toward +Z, zombies spawn at the far end and walk to the fort. */
-const FORT_HALF = 3.5;
-const PATH_HALF_W = 5;
-const PATH_END_Z = 52;
 const PLAYER_SPEED = 8;
 const BASE_ZOMBIE_SPEED = 2.15;
 
@@ -62,8 +64,13 @@ export class World {
   private toSpawn = 0;
   private textures: THREE.Texture[] = [];
   private materials: THREE.Material[] = [];
+  private readonly pathHalfW: number;
+  private readonly pathEndZ = PATH_END_Z;
+  private readonly fortHalf = FORT_HALF;
+  private readonly fortHeight = FORT_HEIGHT;
 
-  constructor(private container: HTMLElement) {
+  constructor(private container: HTMLElement, pathHalfW: number = rollPathHalfWidth()) {
+    this.pathHalfW = pathHalfW;
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(container.clientWidth, container.clientHeight);
@@ -76,13 +83,13 @@ export class World {
       60,
       container.clientWidth / Math.max(container.clientHeight, 1),
       0.1,
-      220,
+      280,
     );
 
     const skyTex = makeSkyTexture();
     this.textures.push(skyTex);
     this.scene.background = skyTex;
-    this.scene.fog = new THREE.Fog(0xb8d4e8, 40, 110);
+    this.scene.fog = new THREE.Fog(0xb8d4e8, 55, 140);
 
     this.scene.add(new THREE.AmbientLight(0xbdd4ff, 0.45));
     const sun = new THREE.DirectionalLight(0xfff0d0, 1.15);
@@ -159,13 +166,13 @@ export class World {
     this.playerRig.root.position.addScaledVector(move, PLAYER_SPEED * dt);
     this.playerRig.root.position.x = THREE.MathUtils.clamp(
       this.playerRig.root.position.x,
-      -PATH_HALF_W - 1.5,
-      PATH_HALF_W + 1.5,
+      -this.pathHalfW - 1.5,
+      this.pathHalfW + 1.5,
     );
     this.playerRig.root.position.z = THREE.MathUtils.clamp(
       this.playerRig.root.position.z,
-      -FORT_HALF + 0.5,
-      PATH_END_Z - 3,
+      -this.fortHalf + 0.5,
+      this.pathEndZ - 3,
     );
     this.playerRig.root.rotation.y = this.yaw;
 
@@ -197,7 +204,7 @@ export class World {
         this.toSpawn -= 1;
       }
 
-      const fortAabb = aabbFromCenter(0, 0, FORT_HALF);
+      const fortAabb = aabbFromCenter(0, 0, this.fortHalf);
       for (const z of this.zombies) {
         // March down the path toward the fort (mostly -Z)
         const target = new THREE.Vector3(0, 0, 0);
@@ -206,7 +213,11 @@ export class World {
         if (dir.lengthSq() > 0.001) dir.normalize();
         z.root.position.addScaledVector(dir, z.speed * dt);
         // Keep loosely on the path
-        z.root.position.x = THREE.MathUtils.clamp(z.root.position.x, -PATH_HALF_W + 0.8, PATH_HALF_W - 0.8);
+        z.root.position.x = THREE.MathUtils.clamp(
+          z.root.position.x,
+          -this.pathHalfW + 0.8,
+          this.pathHalfW - 0.8,
+        );
         z.root.rotation.y = Math.atan2(dir.x, dir.z);
         z.walkPhase += dt * (6 + z.speed);
         const swing = Math.sin(z.walkPhase) * 0.55;
@@ -305,8 +316,8 @@ export class World {
 
   private spawnZombie(): void {
     const z = this.buildZombie();
-    const lane = (Math.random() * 2 - 1) * (PATH_HALF_W - 1.2);
-    z.root.position.set(lane, 0, PATH_END_Z + Math.random() * 2);
+    const lane = (Math.random() * 2 - 1) * (this.pathHalfW - 1.2);
+    z.root.position.set(lane, 0, this.pathEndZ + Math.random() * 2);
     this.scene.add(z.root);
     z.hp = zombieHpForWave(this.wave);
     // Small speed variation (±~10%)
@@ -324,36 +335,40 @@ export class World {
     const dirtMat = new THREE.MeshStandardMaterial({ map: dirt, roughness: 1 });
     this.materials.push(grassMat, dirtMat);
 
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(70, PATH_END_Z + 30), grassMat);
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(90, this.pathEndZ + 40),
+      grassMat,
+    );
     ground.rotation.x = -Math.PI / 2;
-    ground.position.z = PATH_END_Z / 2 - 4;
+    ground.position.z = this.pathEndZ / 2 - 4;
     ground.receiveShadow = true;
     this.scene.add(ground);
 
-    const pathLen = PATH_END_Z + FORT_HALF + 2;
+    const pathLen = this.pathEndZ + this.fortHalf + 2;
     const path = new THREE.Mesh(
-      new THREE.PlaneGeometry(PATH_HALF_W * 2, pathLen),
+      new THREE.PlaneGeometry(this.pathHalfW * 2, pathLen),
       dirtMat,
     );
     path.rotation.x = -Math.PI / 2;
     path.position.y = 0.02;
-    path.position.z = pathLen / 2 - FORT_HALF;
+    path.position.z = pathLen / 2 - this.fortHalf;
     path.receiveShadow = true;
     this.scene.add(path);
 
     // Simple roadside rocks for depth
     const rockMat = new THREE.MeshStandardMaterial({ color: 0x6a6a62, roughness: 0.95 });
     this.materials.push(rockMat);
-    for (let i = 0; i < 14; i++) {
+    const rockCount = Math.floor(18 * (this.pathEndZ / 52));
+    for (let i = 0; i < rockCount; i++) {
       const side = i % 2 === 0 ? 1 : -1;
       const rock = new THREE.Mesh(
         new THREE.SphereGeometry(0.35 + Math.random() * 0.35, 6, 5),
         rockMat,
       );
       rock.position.set(
-        side * (PATH_HALF_W + 1.2 + Math.random()),
+        side * (this.pathHalfW + 1.2 + Math.random()),
         0.2,
-        6 + i * 3.2 + Math.random(),
+        6 + i * ((this.pathEndZ - 8) / rockCount) + Math.random(),
       );
       rock.scale.y = 0.55;
       rock.castShadow = true;
@@ -485,8 +500,11 @@ export class World {
     this.textures.push(woodTex);
     const mat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.85 });
     this.materials.push(mat);
+    const h = this.fortHeight;
+    const half = this.fortHalf;
+    const thick = 1.1;
 
-    const wall = (x: number, z: number, w: number, d: number, h = 2.4) => {
+    const wall = (x: number, z: number, w: number, d: number) => {
       const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
       m.position.set(x, h / 2, z);
       m.castShadow = true;
@@ -495,35 +513,62 @@ export class World {
     };
 
     // Back + sides; open toward +Z (path / zombies)
-    wall(0, -FORT_HALF, FORT_HALF * 2.2, 0.85);
-    wall(-FORT_HALF, 0, 0.85, FORT_HALF * 2.2);
-    wall(FORT_HALF, 0, 0.85, FORT_HALF * 2.2);
-    // Front gate posts (opening in the middle)
-    wall(-FORT_HALF + 0.7, FORT_HALF, 1.6, 0.85);
-    wall(FORT_HALF - 0.7, FORT_HALF, 1.6, 0.85);
+    wall(0, -half, half * 2 + thick, thick);
+    wall(-half, 0, thick, half * 2 + thick);
+    wall(half, 0, thick, half * 2 + thick);
+
+    // Front gate: opening matches path/entrance width
+    const openHalf = this.pathHalfW;
+    const sideSpan = half - openHalf;
+    if (sideSpan > 0.4) {
+      wall(-(openHalf + sideSpan / 2), half, sideSpan, thick);
+      wall(openHalf + sideSpan / 2, half, sideSpan, thick);
+    }
 
     for (const [x, z] of [
-      [-FORT_HALF, -FORT_HALF],
-      [FORT_HALF, -FORT_HALF],
-      [-FORT_HALF, FORT_HALF],
-      [FORT_HALF, FORT_HALF],
+      [-half, -half],
+      [half, -half],
+      [-half, half],
+      [half, half],
     ] as const) {
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 3.1, 8), mat);
-      post.position.set(x, 1.55, z);
+      const post = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.35, 0.42, h + 0.8, 8),
+        mat,
+      );
+      post.position.set(x, (h + 0.8) / 2, z);
       post.castShadow = true;
       g.add(post);
     }
 
+    // Roof / techo
+    const roof = new THREE.Mesh(
+      new THREE.BoxGeometry(half * 2 + thick * 2, 0.55, half * 2 + thick * 2),
+      mat,
+    );
+    roof.position.set(0, h + 0.2, 0);
+    roof.castShadow = true;
+    roof.receiveShadow = true;
+    g.add(roof);
+
+    // Slight peak for silhouette
+    const peak = new THREE.Mesh(
+      new THREE.BoxGeometry(half * 1.2, 0.45, half * 1.2),
+      mat,
+    );
+    peak.position.set(0, h + 0.7, 0);
+    peak.castShadow = true;
+    g.add(peak);
+
     const pole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.08, 0.1, 3.4, 8),
+      new THREE.CylinderGeometry(0.1, 0.12, h * 0.55, 8),
       new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.8 }),
     );
-    pole.position.set(0, 1.7, -1);
+    pole.position.set(0, h + 0.55 + (h * 0.55) / 2, -half * 0.35);
     const flag = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.2, 0.7),
+      new THREE.PlaneGeometry(1.6, 0.9),
       new THREE.MeshStandardMaterial({ color: 0xd64545, side: THREE.DoubleSide, roughness: 0.7 }),
     );
-    flag.position.set(0.6, 3.0, -1);
+    flag.position.set(0.85, h + 0.55 + h * 0.4, -half * 0.35);
     g.add(pole, flag);
     return g;
   }

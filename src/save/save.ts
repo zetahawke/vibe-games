@@ -1,5 +1,6 @@
 import { MAX_LIVES, MathTopic, STORAGE_PREFIX, WAVE_DURATION_MS } from '../config/gameConfig';
 import { WeaponId } from '../weapons/weapons';
+import { rollPathHalfWidth } from '../world/layout';
 
 export type Phase = 'wave' | 'rest';
 
@@ -13,6 +14,8 @@ export interface GameSave {
   equippedWeapon: WeaponId;
   mathTopic: MathTopic;
   quizDifficulty: number;
+  /** Path/entrance half-width for this match (rolled ±20% at nueva partida). */
+  pathHalfW: number;
 }
 
 function saveKey(username: string): string {
@@ -34,6 +37,7 @@ export function defaultSave(topic: MathTopic): GameSave {
     equippedWeapon: 'cuchillo',
     mathTopic: topic,
     quizDifficulty: 1,
+    pathHalfW: rollPathHalfWidth(),
   };
 }
 
@@ -41,7 +45,11 @@ export function loadSave(username: string): GameSave | null {
   const raw = localStorage.getItem(saveKey(username));
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as GameSave;
+    const save = JSON.parse(raw) as GameSave;
+    if (!Number.isFinite(save.pathHalfW)) {
+      save.pathHalfW = rollPathHalfWidth();
+    }
+    return save;
   } catch {
     return null;
   }
