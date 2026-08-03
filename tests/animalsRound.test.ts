@@ -24,4 +24,25 @@ describe('catalog', () => {
   it('names perro in Spanish', () => {
     expect(animalName('perro')).toBe('Perro');
   });
+
+  it('includes jungle, sea, farm and dinosaur animals', () => {
+    expect(ANIMAL_IDS).toEqual(expect.arrayContaining([
+      'delfin',
+      'tiburon',
+      'tortuga',
+      'toro',
+      'caballo',
+      'tiranosaurio',
+      'triceratops',
+      'leon',
+      'mono',
+      'cebra',
+      'jirafa',
+      'elefante',
+      'hipopotamo',
+    ]));
+    expect(ANIMAL_IDS.length).toBeGreaterThanOrEqual(21);
+    expect(animalName('jirafa')).toBe('Jirafa');
+    expect(animalName('tiranosaurio')).toBe('Tiranosaurio');
+  });
 });
