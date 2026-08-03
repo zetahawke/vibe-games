@@ -41,6 +41,9 @@ export class IdentifySession {
           html: `<span class="identify-glyph">${glyphLabel(item.id)}</span>`,
         };
       },
+      onPick: (item) => {
+        speakEs(spokenLabel(theme, item.id));
+      },
       onSuccess: (item) => {
         speakEs(spokenLabel(theme, item.id));
       },

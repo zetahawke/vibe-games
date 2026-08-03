@@ -30,6 +30,14 @@ function playSuccessPing(): void {
   setTimeout(() => playTone(720, 140, 'sine'), 90);
 }
 
+function shuffleItems<T>(items: T[]): T[] {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [items[i], items[j]] = [items[j]!, items[i]!];
+  }
+  return items;
+}
+
 export class MatchSession {
   private root: HTMLElement;
   private screen: HTMLElement;
@@ -42,6 +50,7 @@ export class MatchSession {
   private readonly dropMode: DropMode;
   private readonly pickRound: () => MatchItem[];
   private readonly renderArt: MatchSessionOptions['renderArt'];
+  private readonly onPick?: (item: MatchItem) => void;
   private readonly onSuccess?: (item: MatchItem) => void;
   private readonly onExit: () => void;
   private readonly celebrateMessage: string;
@@ -51,6 +60,7 @@ export class MatchSession {
     this.dropMode = options.dropMode;
     this.pickRound = options.pickRound;
     this.renderArt = options.renderArt;
+    this.onPick = options.onPick;
     this.onSuccess = options.onSuccess;
     this.onExit = options.onExit;
     this.celebrateMessage = options.celebrateMessage;
@@ -88,6 +98,7 @@ export class MatchSession {
     clear(this.shadowsRow);
     clear(this.piecesRow);
     this.round = this.pickRound();
+    const pieceOrder = shuffleItems([...this.round]);
 
     for (const item of this.round) {
       const shadow = el('div', {
@@ -100,7 +111,9 @@ export class MatchSession {
       shadowArt.innerHTML = shadowArtSpec.html;
       shadow.append(shadowArt, el('span', { className: 'match-label' }, [item.label]));
       this.shadowsRow.append(shadow);
+    }
 
+    for (const item of pieceOrder) {
       const piece = el('button', {
         type: 'button',
         className: 'match-piece',
@@ -125,6 +138,7 @@ export class MatchSession {
       if (this.placed.has(item.id) || this.disposed) return;
       e.preventDefault();
       dragging = true;
+      this.onPick?.(item);
       piece.setPointerCapture(e.pointerId);
       piece.classList.add('dragging');
       const r = piece.getBoundingClientRect();

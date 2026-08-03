@@ -18,6 +18,7 @@ export interface MatchSessionOptions {
   celebrateMessage: string;
   pickRound: () => MatchItem[];
   renderArt: (item: MatchItem, variant: 'color' | 'shadow') => MatchArt;
+  onPick?: (item: MatchItem) => void;
   onSuccess?: (item: MatchItem) => void;
   onExit: () => void;
 }

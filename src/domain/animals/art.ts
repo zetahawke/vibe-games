@@ -8,17 +8,16 @@ export function animalPhotoUrl(id: AnimalId): string {
 }
 
 /**
- * Markup for the animal art slot: SVG (dibujado) or <img> (realista).
- * Shadow variant for photos uses the same PNG + CSS filter on the container.
+ * Markup for the animal art slot.
+ * Realista pieces use PNG; shadows always use SVG silhouette so there is a shape to match.
  */
 export function animalArtHtml(
   id: AnimalId,
   style: GraphicsStyle,
   variant: 'color' | 'shadow',
 ): string {
-  if (style === 'realista') {
-    const alt = variant === 'shadow' ? '' : id;
-    return `<img src="${animalPhotoUrl(id)}" alt="${alt}" draggable="false" />`;
+  if (style === 'realista' && variant === 'color') {
+    return `<img src="${animalPhotoUrl(id)}" alt="${id}" draggable="false" />`;
   }
   return animalSvg(id, variant);
 }
