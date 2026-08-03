@@ -90,21 +90,26 @@ export class AnimalsSession {
     this.round = pickRound();
 
     for (const id of this.round) {
+      const name = animalName(id);
       const shadow = el('div', {
         className: 'animal-shadow',
         'data-shadow-id': id,
-        title: animalName(id),
+        title: name,
       });
-      shadow.innerHTML = animalSvg(id, 'shadow');
+      const shadowArt = el('div', { className: 'animal-art' });
+      shadowArt.innerHTML = animalSvg(id, 'shadow');
+      shadow.append(shadowArt, el('span', { className: 'animal-label' }, [name]));
       this.shadowsRow.append(shadow);
 
       const piece = el('button', {
         type: 'button',
         className: 'animal-piece',
         'data-animal-id': id,
-        'aria-label': animalName(id),
+        'aria-label': name,
       }) as HTMLButtonElement;
-      piece.innerHTML = animalSvg(id, 'color');
+      const pieceArt = el('div', { className: 'animal-art' });
+      pieceArt.innerHTML = animalSvg(id, 'color');
+      piece.append(pieceArt, el('span', { className: 'animal-label' }, [name]));
       this.animalsRow.append(piece);
       this.bindDrag(piece, id);
     }
@@ -177,7 +182,8 @@ export class AnimalsSession {
         piece.style.width = '';
         piece.style.height = '';
         piece.style.zIndex = '';
-        shadowEl.innerHTML = animalSvg(id, 'color');
+        const art = shadowEl.querySelector('.animal-art');
+        if (art) art.innerHTML = animalSvg(id, 'color');
         piece.remove();
         if (this.placed.size === this.round.length) this.showCelebrate();
         return;

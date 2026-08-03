@@ -492,33 +492,57 @@ input {
 .animals-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: clamp(0.75rem, 2.5vmin, 1.5rem);
   justify-content: center;
-  align-items: center;
+  align-items: flex-end;
   min-height: 120px;
 }
 
 .shadows-row {
-  padding: 1rem;
+  padding: clamp(0.75rem, 2vmin, 1.25rem);
   background: rgba(255, 255, 255, 0.25);
   border-radius: 20px;
 }
 
 .animal-piece,
 .animal-shadow {
-  width: 96px;
-  height: 96px;
+  --animal-size: clamp(104px, 22vmin, 200px);
+  width: var(--animal-size);
   border: none;
   background: transparent;
-  padding: 0;
+  padding: 0.35rem 0.4rem 0.5rem;
   touch-action: none;
   user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  box-sizing: border-box;
+}
+
+.animal-art {
+  width: 100%;
+  aspect-ratio: 1;
+  flex-shrink: 0;
+}
+
+.animal-label {
+  font-size: clamp(1.05rem, 3.6vmin, 1.75rem);
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+  color: #16301a;
+  letter-spacing: 0.01em;
+}
+
+.animal-shadow .animal-label {
+  color: rgba(22, 48, 26, 0.75);
 }
 
 .animal-piece {
   cursor: grab;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.55);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.65);
   box-shadow: 0 4px 0 rgba(0, 0, 0, 0.12);
 }
 
@@ -536,7 +560,7 @@ input {
 }
 
 .animal-shadow {
-  border-radius: 16px;
+  border-radius: 18px;
   background: rgba(0, 0, 0, 0.08);
   outline: 3px dashed rgba(0, 0, 0, 0.2);
 }
@@ -544,7 +568,11 @@ input {
 .animal-shadow.filled {
   outline-style: solid;
   outline-color: rgba(40, 120, 50, 0.45);
-  background: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.animal-shadow.filled .animal-label {
+  color: #16301a;
 }
 
 .animal-piece.shake {
