@@ -1,6 +1,7 @@
 import './styles/main.css';
 import { Router } from './app/router';
 import { AnimalsSession } from './game/animals/AnimalsSession';
+import { IdentifySession } from './game/identify/IdentifySession';
 import { GameSession } from './game/GameSession';
 
 const app = document.querySelector('#app');
@@ -19,6 +20,12 @@ router.setGameStarter((username, mode) => {
 
 router.setAnimalsStarter((username, dropMode, graphicsStyle) => {
   new AnimalsSession(root, username, dropMode, graphicsStyle, () => {
+    router.showHub();
+  });
+});
+
+router.setIdentifyStarter((username, theme, dropMode) => {
+  new IdentifySession(root, username, theme, dropMode, () => {
     router.showHub();
   });
 });

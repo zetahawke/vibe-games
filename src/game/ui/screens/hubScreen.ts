@@ -4,8 +4,14 @@ import {
   type DropMode,
   type GraphicsStyle,
 } from '@/domain/animals';
+import {
+  getIdentifySettings,
+  themeTitle,
+  type IdentifyTheme,
+} from '@/domain/identify';
 import { getHighScore, loadSave } from '@/domain/save/save';
 import { renderAnimalsSettingsOverlay } from '@/game/ui/overlays/animalsSettingsOverlay';
+import { renderIdentifySettingsOverlay } from '@/game/ui/overlays/identifySettingsOverlay';
 import { clear, el } from '@/shared/dom';
 
 export function renderHubScreen(
@@ -13,12 +19,14 @@ export function renderHubScreen(
   username: string,
   onPlayShooter: (mode: 'new' | 'continue') => void,
   onPlayAnimals: (dropMode: DropMode, graphicsStyle: GraphicsStyle) => void,
+  onPlayIdentify: (theme: IdentifyTheme, dropMode: DropMode) => void,
   onLogout: () => void,
 ): void {
   clear(root);
   const save = loadSave(username);
   const highScore = getHighScore(username);
   const animalsSettings = getAnimalsSettings(username);
+  const identifySettings = getIdentifySettings(username);
 
   const continueBtn = el(
     'button',
@@ -48,14 +56,14 @@ export function renderHubScreen(
     'Jugar',
   ]) as HTMLButtonElement;
   animalsPlay.addEventListener('click', () => {
-    renderAnimalsSettingsOverlay(
-      root,
-      username,
-      (dropMode, graphicsStyle) => onPlayAnimals(dropMode, graphicsStyle),
-      () => {
-        /* stay on hub */
-      },
-    );
+    renderAnimalsSettingsOverlay(root, username, onPlayAnimals, () => undefined);
+  });
+
+  const identifyPlay = el('button', { type: 'button', className: 'btn primary' }, [
+    'Jugar',
+  ]) as HTMLButtonElement;
+  identifyPlay.addEventListener('click', () => {
+    renderIdentifySettingsOverlay(root, username, onPlayIdentify, () => undefined);
   });
 
   root.append(
@@ -81,6 +89,14 @@ export function renderHubScreen(
             `Modo: ${labelMode(animalsSettings.dropMode)} · Gráficos: ${labelGraphics(animalsSettings.graphicsStyle)}`,
           ]),
           el('div', { className: 'card-actions' }, [animalsPlay]),
+        ]),
+        el('article', { className: 'game-card' }, [
+          el('h2', {}, ['Identificar']),
+          el('p', {}, ['Vocales, números y abecedario con voz.']),
+          el('p', { className: 'muted' }, [
+            `Tema: ${themeTitle(identifySettings.theme)} · Modo: ${labelMode(identifySettings.dropMode)}`,
+          ]),
+          el('div', { className: 'card-actions' }, [identifyPlay]),
         ]),
       ]),
     ]),
