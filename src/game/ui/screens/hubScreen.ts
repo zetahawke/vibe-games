@@ -1,5 +1,9 @@
 import { logout } from '@/domain/auth/auth';
-import { getDropMode, type DropMode } from '@/domain/animals';
+import {
+  getAnimalsSettings,
+  type DropMode,
+  type GraphicsStyle,
+} from '@/domain/animals';
 import { getHighScore, loadSave } from '@/domain/save/save';
 import { renderAnimalsSettingsOverlay } from '@/game/ui/overlays/animalsSettingsOverlay';
 import { clear, el } from '@/shared/dom';
@@ -8,12 +12,13 @@ export function renderHubScreen(
   root: HTMLElement,
   username: string,
   onPlayShooter: (mode: 'new' | 'continue') => void,
-  onPlayAnimals: (mode: DropMode) => void,
+  onPlayAnimals: (dropMode: DropMode, graphicsStyle: GraphicsStyle) => void,
   onLogout: () => void,
 ): void {
   clear(root);
   const save = loadSave(username);
   const highScore = getHighScore(username);
+  const animalsSettings = getAnimalsSettings(username);
 
   const continueBtn = el(
     'button',
@@ -46,7 +51,7 @@ export function renderHubScreen(
     renderAnimalsSettingsOverlay(
       root,
       username,
-      (mode) => onPlayAnimals(mode),
+      (dropMode, graphicsStyle) => onPlayAnimals(dropMode, graphicsStyle),
       () => {
         /* stay on hub */
       },
@@ -72,7 +77,9 @@ export function renderHubScreen(
         el('article', { className: 'game-card' }, [
           el('h2', {}, ['Animales']),
           el('p', {}, ['Arrastra animales a su sombra.']),
-          el('p', { className: 'muted' }, [`Modo: ${labelMode(getDropMode(username))}`]),
+          el('p', { className: 'muted' }, [
+            `Modo: ${labelMode(animalsSettings.dropMode)} · Gráficos: ${labelGraphics(animalsSettings.graphicsStyle)}`,
+          ]),
           el('div', { className: 'card-actions' }, [animalsPlay]),
         ]),
       ]),
@@ -84,4 +91,8 @@ function labelMode(mode: DropMode): string {
   if (mode === 'libre') return 'Libre';
   if (mode === 'suave') return 'Suave';
   return 'Guiado';
+}
+
+function labelGraphics(style: GraphicsStyle): string {
+  return style === 'realista' ? 'Realista' : 'Dibujado';
 }

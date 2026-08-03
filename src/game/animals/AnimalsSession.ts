@@ -1,10 +1,11 @@
 import {
+  animalArtHtml,
   animalName,
-  animalSvg,
   pickRound,
   resolveDrop,
   type AnimalId,
   type DropMode,
+  type GraphicsStyle,
 } from '@/domain/animals';
 import { clear, el } from '@/shared/dom';
 
@@ -50,6 +51,7 @@ export class AnimalsSession {
     private root: HTMLElement,
     _username: string,
     private dropMode: DropMode,
+    private graphicsStyle: GraphicsStyle,
     private onExit: () => void,
   ) {
     clear(this.root);
@@ -96,8 +98,11 @@ export class AnimalsSession {
         'data-shadow-id': id,
         title: name,
       });
-      const shadowArt = el('div', { className: 'animal-art' });
-      shadowArt.innerHTML = animalSvg(id, 'shadow');
+      const shadowArt = el('div', {
+        className:
+          this.graphicsStyle === 'realista' ? 'animal-art animal-art-photo animal-art-shadow' : 'animal-art',
+      });
+      shadowArt.innerHTML = animalArtHtml(id, this.graphicsStyle, 'shadow');
       shadow.append(shadowArt, el('span', { className: 'animal-label' }, [name]));
       this.shadowsRow.append(shadow);
 
@@ -107,8 +112,10 @@ export class AnimalsSession {
         'data-animal-id': id,
         'aria-label': name,
       }) as HTMLButtonElement;
-      const pieceArt = el('div', { className: 'animal-art' });
-      pieceArt.innerHTML = animalSvg(id, 'color');
+      const pieceArt = el('div', {
+        className: this.graphicsStyle === 'realista' ? 'animal-art animal-art-photo' : 'animal-art',
+      });
+      pieceArt.innerHTML = animalArtHtml(id, this.graphicsStyle, 'color');
       piece.append(pieceArt, el('span', { className: 'animal-label' }, [name]));
       this.animalsRow.append(piece);
       this.bindDrag(piece, id);
@@ -183,7 +190,10 @@ export class AnimalsSession {
         piece.style.height = '';
         piece.style.zIndex = '';
         const art = shadowEl.querySelector('.animal-art');
-        if (art) art.innerHTML = animalSvg(id, 'color');
+        if (art) {
+          art.classList.remove('animal-art-shadow');
+          art.innerHTML = animalArtHtml(id, this.graphicsStyle, 'color');
+        }
         piece.remove();
         if (this.placed.size === this.round.length) this.showCelebrate();
         return;

@@ -17,8 +17,8 @@ router.setGameStarter((username, mode) => {
   });
 });
 
-router.setAnimalsStarter((username, mode) => {
-  new AnimalsSession(root, username, mode, () => {
+router.setAnimalsStarter((username, dropMode, graphicsStyle) => {
+  new AnimalsSession(root, username, dropMode, graphicsStyle, () => {
     router.showHub();
   });
 });

@@ -1,5 +1,5 @@
 import { getSession } from '@/domain/auth/auth';
-import type { DropMode } from '@/domain/animals';
+import type { DropMode, GraphicsStyle } from '@/domain/animals';
 import { renderHubScreen } from '@/game/ui/screens/hubScreen';
 import { renderLoginScreen } from '@/game/ui/screens/loginScreen';
 
@@ -7,7 +7,9 @@ export class Router {
   private root: HTMLElement;
   private username: string | null = getSession();
   private onStartGame: ((username: string, mode: 'new' | 'continue') => void) | null = null;
-  private onStartAnimals: ((username: string, mode: DropMode) => void) | null = null;
+  private onStartAnimals:
+    | ((username: string, dropMode: DropMode, graphicsStyle: GraphicsStyle) => void)
+    | null = null;
 
   constructor(root: HTMLElement) {
     this.root = root;
@@ -17,7 +19,9 @@ export class Router {
     this.onStartGame = handler;
   }
 
-  setAnimalsStarter(handler: (username: string, mode: DropMode) => void): void {
+  setAnimalsStarter(
+    handler: (username: string, dropMode: DropMode, graphicsStyle: GraphicsStyle) => void,
+  ): void {
     this.onStartAnimals = handler;
   }
 
@@ -46,8 +50,8 @@ export class Router {
       (mode) => {
         this.onStartGame?.(user, mode);
       },
-      (dropMode) => {
-        this.onStartAnimals?.(user, dropMode);
+      (dropMode, graphicsStyle) => {
+        this.onStartAnimals?.(user, dropMode, graphicsStyle);
       },
       () => this.showLogin(),
     );
