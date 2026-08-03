@@ -5,10 +5,10 @@ export type DropFeedback = 'none' | 'success' | 'softFail';
 
 export function resolveDrop(
   mode: DropMode,
-  animalId: AnimalId,
-  targetId: AnimalId | null,
+  itemId: string,
+  targetId: string | null,
 ): { accept: boolean; feedback: DropFeedback } {
-  if (targetId === animalId) {
+  if (targetId === itemId) {
     return { accept: true, feedback: 'success' };
   }
   if (mode === 'suave') {
@@ -16,3 +16,6 @@ export function resolveDrop(
   }
   return { accept: false, feedback: 'none' };
 }
+
+/** @deprecated prefer string ids; kept for typed animal call sites */
+export type { AnimalId };

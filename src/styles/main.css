@@ -461,20 +461,29 @@ input {
   margin-top: 0.75rem;
 }
 
-/* ——— Animales ——— */
+/* ——— Match games (Animales / Identificar) ——— */
 
-.animals-screen {
+.match-screen,
+.animals-screen,
+.identify-screen {
   min-height: 100%;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
   padding: 1rem 1.25rem 2rem;
-  background:
-    linear-gradient(180deg, #87c8ef 0%, #b8e0a8 55%, #6faf5a 100%);
   color: #1a2a1a;
   position: relative;
 }
 
+.animals-screen {
+  background: linear-gradient(180deg, #87c8ef 0%, #b8e0a8 55%, #6faf5a 100%);
+}
+
+.identify-screen {
+  background: linear-gradient(180deg, #f7e7a0 0%, #f0c878 45%, #e8a050 100%);
+}
+
+.match-header,
 .animals-header {
   display: flex;
   align-items: center;
@@ -482,12 +491,15 @@ input {
   gap: 1rem;
 }
 
+.match-header h1,
 .animals-header h1 {
   margin: 0;
   font-size: clamp(1.6rem, 4vw, 2.2rem);
   color: #16301a;
 }
 
+.match-shadows-row,
+.match-pieces-row,
 .shadows-row,
 .animals-row {
   display: flex;
@@ -498,16 +510,19 @@ input {
   min-height: 120px;
 }
 
+.match-shadows-row,
 .shadows-row {
   padding: clamp(0.75rem, 2vmin, 1.25rem);
   background: rgba(255, 255, 255, 0.25);
   border-radius: 20px;
 }
 
+.match-piece,
+.match-shadow,
 .animal-piece,
 .animal-shadow {
-  --animal-size: clamp(104px, 22vmin, 200px);
-  width: var(--animal-size);
+  --match-size: clamp(104px, 22vmin, 200px);
+  width: var(--match-size);
   border: none;
   background: transparent;
   padding: 0.35rem 0.4rem 0.5rem;
@@ -520,7 +535,9 @@ input {
   box-sizing: border-box;
 }
 
-.animal-art {
+.match-art,
+.animal-art,
+.identify-art {
   width: 100%;
   aspect-ratio: 1;
   flex-shrink: 0;
@@ -528,6 +545,7 @@ input {
   border-radius: 14px;
 }
 
+.match-art img,
 .animal-art img {
   width: 100%;
   height: 100%;
@@ -541,6 +559,28 @@ input {
   opacity: 0.38;
 }
 
+.identify-art {
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.identify-art.identify-art-shadow {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.identify-glyph {
+  font-size: clamp(2.4rem, 14vmin, 5.5rem);
+  font-weight: 900;
+  line-height: 1;
+  color: #1a2a1a;
+}
+
+.identify-art-shadow .identify-glyph {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.match-label,
 .animal-label {
   font-size: clamp(1.05rem, 3.6vmin, 1.75rem);
   font-weight: 800;
@@ -550,10 +590,12 @@ input {
   letter-spacing: 0.01em;
 }
 
+.match-shadow .match-label,
 .animal-shadow .animal-label {
   color: rgba(22, 48, 26, 0.75);
 }
 
+.match-piece,
 .animal-piece {
   cursor: grab;
   border-radius: 18px;
@@ -561,11 +603,15 @@ input {
   box-shadow: 0 4px 0 rgba(0, 0, 0, 0.12);
 }
 
+.match-piece:active,
+.match-piece.dragging,
 .animal-piece:active,
 .animal-piece.dragging {
   cursor: grabbing;
 }
 
+.match-piece svg,
+.match-shadow svg,
 .animal-piece svg,
 .animal-shadow svg {
   width: 100%;
@@ -574,22 +620,26 @@ input {
   pointer-events: none;
 }
 
+.match-shadow,
 .animal-shadow {
   border-radius: 18px;
   background: rgba(0, 0, 0, 0.08);
   outline: 3px dashed rgba(0, 0, 0, 0.2);
 }
 
+.match-shadow.filled,
 .animal-shadow.filled {
   outline-style: solid;
   outline-color: rgba(40, 120, 50, 0.45);
   background: rgba(255, 255, 255, 0.55);
 }
 
+.match-shadow.filled .match-label,
 .animal-shadow.filled .animal-label {
   color: #16301a;
 }
 
+.match-piece.shake,
 .animal-piece.shake {
   animation: animals-shake 0.35s ease;
 }
@@ -607,7 +657,8 @@ input {
   }
 }
 
-.animals-celebrate {
+.animals-celebrate,
+.match-celebrate {
   position: absolute;
   inset: 0;
   display: grid;
@@ -617,7 +668,8 @@ input {
   padding: 1rem;
 }
 
-.animals-celebrate-card {
+.animals-celebrate-card,
+.match-celebrate-card {
   background: #fff8e8;
   color: #1a2a1a;
   border-radius: 24px;
@@ -632,12 +684,14 @@ input {
   animation: animals-pop 0.45s ease;
 }
 
-.animals-celebrate-card h2 {
+.animals-celebrate-card h2,
+.match-celebrate-card h2 {
   margin: 0;
   font-size: 2rem;
 }
 
-.animals-again {
+.animals-again,
+.match-again {
   min-height: 64px;
   font-size: 1.25rem;
 }
