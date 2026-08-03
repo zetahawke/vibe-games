@@ -16,6 +16,9 @@ export interface PlayerRig {
 }
 
 export const PLAYER_SPEED = 8;
+export const PLAYER_JUMP_SPEED = 9;
+export const PLAYER_GRAVITY = 24;
+export const PLAYER_GROUND_Y = 0;
 
 export function buildPlayer(
   trackTexture: (t: THREE.Texture) => void,
@@ -63,7 +66,8 @@ export function buildPlayer(
   ra.position.y = -0.35;
   ra.castShadow = true;
   const weaponSlot = new THREE.Group();
-  weaponSlot.position.set(0, -0.35, -0.2);
+  // At the hand (end of the 0.9-tall arm mesh centered at y=-0.35).
+  weaponSlot.position.set(0, -0.8, 0);
   rightArm.add(ra, weaponSlot);
 
   const leftLeg = new THREE.Group();
@@ -92,9 +96,22 @@ export function syncWeaponModel(
   if (currentId === nextId) return currentId;
   slot.clear();
   const model = createWeaponModel(nextId);
-  model.position.set(0, -0.55, -0.15);
+  model.position.set(0, 0, 0);
   slot.add(model);
   return nextId;
+}
+
+/** Shortest-path angle blend for body facing. */
+export function lerpAngle(from: number, to: number, t: number): number {
+  let d = to - from;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  return from + d * t;
+}
+
+/** Yaw so local −Z faces the given horizontal move vector. */
+export function yawFacingMove(moveX: number, moveZ: number): number {
+  return Math.atan2(-moveX, -moveZ);
 }
 
 export function animatePlayer(
@@ -102,13 +119,26 @@ export function animatePlayer(
   walkPhase: number,
   attackAnim: number,
   moving: boolean,
+  grounded: boolean,
   dt: number,
   equipped: WeaponDef,
 ): number {
-  const swing = moving ? Math.sin(walkPhase) * 0.65 : 0;
-  rig.leftLeg.rotation.x = swing;
-  rig.rightLeg.rotation.x = -swing;
-  rig.leftArm.rotation.x = -swing * 0.7;
+  const swing = moving && grounded ? Math.sin(walkPhase) * 0.65 : 0;
+  if (grounded) {
+    rig.leftLeg.rotation.x = swing;
+    rig.rightLeg.rotation.x = -swing;
+  } else {
+    // Light tuck while airborne
+    rig.leftLeg.rotation.x = -0.35;
+    rig.rightLeg.rotation.x = -0.2;
+  }
+  rig.leftArm.rotation.x = grounded ? -swing * 0.7 : -0.4;
+
+  // Raise arm forward (~horizontal) and rotate the slot so the barrel
+  // points along the arm (models are built with barrel on local −Z).
+  const aimForward = 1.45;
+  const aimTuck = -0.25; // right arm slightly toward center, not out to the side
+  const gunSlotRot = -Math.PI / 2;
 
   let nextAttack = attackAnim;
   if (nextAttack > 0) {
@@ -117,14 +147,24 @@ export function animatePlayer(
     if (equipped.isMelee) {
       rig.rightArm.rotation.x = 1.35 * t;
       rig.rightArm.rotation.z = 0.25 * t;
+      rig.weaponSlot.rotation.set(0, 0, 0);
+      rig.weaponSlot.position.set(0, -0.8, 0);
     } else {
-      rig.rightArm.rotation.x = -0.45 * t;
-      rig.weaponSlot.position.z = 0.08 * t;
+      rig.rightArm.rotation.x = aimForward - 0.25 * t;
+      rig.rightArm.rotation.z = aimTuck;
+      rig.weaponSlot.rotation.set(gunSlotRot, 0, 0);
+      rig.weaponSlot.position.set(0, -0.78, 0.02);
     }
-  } else {
+  } else if (equipped.isMelee) {
     rig.rightArm.rotation.x = swing * 0.7;
     rig.rightArm.rotation.z = 0;
-    rig.weaponSlot.position.z = 0;
+    rig.weaponSlot.rotation.set(0, 0, 0);
+    rig.weaponSlot.position.set(0, -0.8, 0);
+  } else {
+    rig.rightArm.rotation.x = aimForward + swing * 0.08;
+    rig.rightArm.rotation.z = aimTuck;
+    rig.weaponSlot.rotation.set(gunSlotRot, 0, 0);
+    rig.weaponSlot.position.set(0, -0.78, 0.02);
   }
   return nextAttack;
 }
@@ -135,6 +175,42 @@ export function aimDirection(yaw: number, pitch: number): THREE.Vector3 {
     Math.sin(pitch),
     -Math.cos(yaw) * Math.cos(pitch),
   ).normalize();
+}
+
+/** World point under the crosshair (same target the camera looks at). */
+export function getCrosshairAimPoint(
+  playerRoot: THREE.Object3D,
+  yaw: number,
+  pitch: number,
+  distance = 40,
+): THREE.Vector3 {
+  const look = aimDirection(yaw, pitch);
+  const shoulder = playerRoot.position.clone().add(new THREE.Vector3(0, 1.35, 0));
+  return shoulder.clone().addScaledVector(look, distance).add(new THREE.Vector3(0, 0.55, 0));
+}
+
+/** Barrel tip in weapon-slot local space (after aim slot rotation −π/2, barrel is −Y). */
+const MUZZLE_LOCAL = new THREE.Vector3(0, -0.85, 0);
+
+/** World position of the equipped weapon muzzle (right arm). */
+export function getMuzzleWorldPosition(rig: PlayerRig): THREE.Vector3 {
+  rig.root.updateWorldMatrix(true, true);
+  return MUZZLE_LOCAL.clone().applyMatrix4(rig.weaponSlot.matrixWorld);
+}
+
+/**
+ * Direction from muzzle toward the crosshair aim point so shots
+ * visually leave the gun but fly true to the mira.
+ */
+export function muzzleAimDirection(
+  rig: PlayerRig,
+  yaw: number,
+  pitch: number,
+): { origin: THREE.Vector3; direction: THREE.Vector3 } {
+  const origin = getMuzzleWorldPosition(rig);
+  const target = getCrosshairAimPoint(rig.root, yaw, pitch);
+  const direction = target.sub(origin).normalize();
+  return { origin, direction };
 }
 
 export function updateThirdPersonCamera(
@@ -151,7 +227,7 @@ export function updateThirdPersonCamera(
     .clone()
     .addScaledVector(look, -6.4)
     .add(new THREE.Vector3(0, 2.35, 0));
-  const aimPoint = shoulder.clone().addScaledVector(look, 20).add(new THREE.Vector3(0, 0.55, 0));
+  const aimPoint = getCrosshairAimPoint(playerRoot, yaw, pitch, 20);
   camera.position.copy(camPos);
   camera.lookAt(aimPoint);
 }

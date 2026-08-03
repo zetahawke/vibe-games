@@ -40,6 +40,7 @@ export class Hud {
   readonly shopBtn: HTMLButtonElement;
   readonly pauseBtn: HTMLButtonElement;
   readonly fireBtn: HTMLButtonElement;
+  readonly jumpBtn: HTMLButtonElement;
   readonly stickZone: HTMLElement;
   readonly lookZone: HTMLElement;
 
@@ -68,6 +69,9 @@ export class Hud {
     this.fireBtn = el('button', { type: 'button', className: 'btn touch-btn fire-btn' }, [
       'Disparar',
     ]) as HTMLButtonElement;
+    this.jumpBtn = el('button', { type: 'button', className: 'btn touch-btn jump-btn' }, [
+      'Saltar',
+    ]) as HTMLButtonElement;
     this.stickZone = el('div', { className: 'stick-zone', id: 'stick-zone' }, [
       el('div', { className: 'stick-knob', id: 'stick-knob' }),
     ]);
@@ -76,7 +80,7 @@ export class Hud {
     const hint = this.touchMode
       ? null
       : el('div', { className: 'hud-hint' }, [
-          'WASD mover · Mouse mirar · Clic disparar · E tienda · Esc pausa',
+          'WASD mover · Espacio saltar · Mouse mirar · Clic disparar · E tienda · Esc pausa',
         ]);
 
     this.root.append(
@@ -98,7 +102,12 @@ export class Hud {
       this.root.append(
         el('div', { className: 'hud-bottom' }, [
           this.stickZone,
-          el('div', { className: 'hud-actions' }, [this.shopBtn, this.pauseBtn, this.fireBtn]),
+          el('div', { className: 'hud-actions' }, [
+            this.shopBtn,
+            this.pauseBtn,
+            this.jumpBtn,
+            this.fireBtn,
+          ]),
           this.lookZone,
         ]),
       );
@@ -109,9 +118,10 @@ export class Hud {
       if (hint) this.root.append(hint);
       // Keep nodes for GameSession wiring, but hidden
       this.fireBtn.hidden = true;
+      this.jumpBtn.hidden = true;
       this.stickZone.hidden = true;
       this.lookZone.hidden = true;
-      this.root.append(this.fireBtn, this.stickZone, this.lookZone);
+      this.root.append(this.fireBtn, this.jumpBtn, this.stickZone, this.lookZone);
     }
 
     parent.append(this.root);

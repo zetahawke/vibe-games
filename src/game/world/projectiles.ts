@@ -15,11 +15,11 @@ export function spawnProjectiles(
   aim: THREE.Vector3,
   equipped: WeaponDef,
 ): Projectile[] {
-  const count = equipped.id === 'escopeta' ? 5 : 1;
-  const spread = equipped.id === 'escopeta' ? 0.12 : 0.01;
-  const speed = equipped.id === 'rifle' ? 55 : equipped.id === 'escopeta' ? 42 : 48;
-  const pelletDamage =
-    equipped.id === 'escopeta' ? Math.ceil(equipped.damage / count) : equipped.damage;
+  const kind = equipped.kind;
+  const count = kind === 'escopeta' ? 5 : 1;
+  const spread = kind === 'escopeta' ? 0.12 : 0.01;
+  const speed = kind === 'rifle' ? 55 : kind === 'escopeta' ? 42 : 48;
+  const pelletDamage = kind === 'escopeta' ? Math.ceil(equipped.damage / count) : equipped.damage;
   const created: Projectile[] = [];
 
   for (let i = 0; i < count; i++) {
@@ -29,15 +29,16 @@ export function spawnProjectiles(
     dir.z += (Math.random() - 0.5) * spread;
     dir.normalize();
     const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(equipped.id === 'escopeta' ? 0.08 : 0.07, 6, 6),
+      new THREE.SphereGeometry(kind === 'escopeta' ? 0.08 : 0.07, 6, 6),
       new THREE.MeshStandardMaterial({
-        color: equipped.id === 'rifle' ? 0xffe066 : 0xffcc33,
+        color: kind === 'rifle' ? 0xffe066 : 0xffcc33,
         emissive: 0xaa7700,
         metalness: 0.2,
         roughness: 0.4,
       }),
     );
-    mesh.position.copy(origin).addScaledVector(dir, 1.2);
+    // Start at the muzzle; tiny forward nudge avoids clipping into the arm mesh.
+    mesh.position.copy(origin).addScaledVector(dir, 0.25);
     scene.add(mesh);
     created.push({
       mesh,

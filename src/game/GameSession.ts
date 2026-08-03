@@ -110,6 +110,10 @@ export class GameSession {
     });
     hud.fireBtn.addEventListener('pointerup', () => input.pressFire(false));
     hud.fireBtn.addEventListener('pointerleave', () => input.pressFire(false));
+    hud.jumpBtn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      input.pressJump();
+    });
 
     this.bindStick(hud.stickZone);
     this.bindLook(hud.lookZone);
@@ -278,7 +282,7 @@ export class GameSession {
     const events = this.world!.update(
       dt,
       this.uiBlocking || this.paused
-        ? { moveX: 0, moveZ: 0, lookDx: 0, lookDy: 0, fire: false, shop: false, pause: false }
+        ? { moveX: 0, moveZ: 0, lookDx: 0, lookDy: 0, fire: false, jump: false, shop: false, pause: false }
         : input,
       equipped,
     );

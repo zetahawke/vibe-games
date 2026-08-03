@@ -11,9 +11,15 @@ import {
   aimDirection,
   animatePlayer,
   buildPlayer,
+  lerpAngle,
+  muzzleAimDirection,
+  PLAYER_GRAVITY,
+  PLAYER_GROUND_Y,
+  PLAYER_JUMP_SPEED,
   PLAYER_SPEED,
   syncWeaponModel,
   updateThirdPersonCamera,
+  yawFacingMove,
   type PlayerRig,
 } from './player';
 import {
@@ -33,11 +39,14 @@ export class World {
   private camera: THREE.PerspectiveCamera;
   private playerRig: PlayerRig;
   private yaw = Math.PI;
+  /** Body facing (can differ from camera yaw while strafing). */
+  private bodyYaw = Math.PI;
   private pitch = 0.2;
   private zombies: Zombie[] = [];
   private fireCooldown = 0;
   private attackAnim = 0;
   private walkPhase = 0;
+  private vy = 0;
   private paused = false;
   private phase: Phase = 'rest';
   private wave = 0;
@@ -73,17 +82,17 @@ export class World {
     const skyTex = makeSkyTexture();
     this.textures.push(skyTex);
     this.scene.background = skyTex;
-    this.scene.fog = new THREE.Fog(0xb8d4e8, 55, 140);
+    this.scene.fog = new THREE.Fog(0xa8c4a8, 45, 125);
 
     this.scene.add(new THREE.AmbientLight(0xbdd4ff, 0.45));
     const sun = new THREE.DirectionalLight(0xfff0d0, 1.15);
     sun.position.set(18, 42, 30);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
-    sun.shadow.camera.left = -55;
-    sun.shadow.camera.right = 55;
-    sun.shadow.camera.top = 55;
-    sun.shadow.camera.bottom = -55;
+    sun.shadow.camera.left = -70;
+    sun.shadow.camera.right = 70;
+    sun.shadow.camera.top = 70;
+    sun.shadow.camera.bottom = -70;
     this.scene.add(sun);
     this.scene.add(new THREE.HemisphereLight(0x9ecbff, 0x3d5c2e, 0.35));
 
@@ -172,6 +181,18 @@ export class World {
     if (move.lengthSq() > 1) move.normalize();
     const moving = move.lengthSq() > 0.01;
     this.playerRig.root.position.addScaledVector(move, PLAYER_SPEED * dt);
+
+    if (input.jump && this.playerRig.root.position.y <= PLAYER_GROUND_Y + 0.001) {
+      this.vy = PLAYER_JUMP_SPEED;
+    }
+    this.vy -= PLAYER_GRAVITY * dt;
+    this.playerRig.root.position.y += this.vy * dt;
+    if (this.playerRig.root.position.y <= PLAYER_GROUND_Y) {
+      this.playerRig.root.position.y = PLAYER_GROUND_Y;
+      this.vy = 0;
+    }
+    const grounded = this.playerRig.root.position.y <= PLAYER_GROUND_Y + 0.001;
+
     this.playerRig.root.position.x = THREE.MathUtils.clamp(
       this.playerRig.root.position.x,
       -this.pathHalfW - 1.5,
@@ -182,14 +203,22 @@ export class World {
       -this.fortHalf + 0.5,
       this.pathEndZ - 3,
     );
-    this.playerRig.root.rotation.y = this.yaw;
 
-    if (moving) this.walkPhase += dt * 9;
+    // Face movement direction (W/A/S/D); when idle, ease toward camera look.
+    const turnSpeed = moving ? 14 : 6;
+    const targetBodyYaw = moving
+      ? yawFacingMove(move.x, move.z)
+      : this.yaw;
+    this.bodyYaw = lerpAngle(this.bodyYaw, targetBodyYaw, Math.min(1, dt * turnSpeed));
+    this.playerRig.root.rotation.y = this.bodyYaw;
+
+    if (moving && grounded) this.walkPhase += dt * 9;
     this.attackAnim = animatePlayer(
       this.playerRig,
       this.walkPhase,
       this.attackAnim,
       moving,
+      grounded,
       dt,
       equipped,
     );
@@ -202,9 +231,13 @@ export class World {
       if (equipped.isMelee) {
         events.kills += this.tryMelee(equipped);
       } else {
-        const origin = this.playerRig.root.position.clone().add(new THREE.Vector3(0, 1.45, 0));
+        const { origin, direction } = muzzleAimDirection(
+          this.playerRig,
+          this.yaw,
+          this.pitch,
+        );
         this.projectiles.push(
-          ...spawnProjectiles(this.scene, origin, aimDirection(this.yaw, this.pitch), equipped),
+          ...spawnProjectiles(this.scene, origin, direction, equipped),
         );
       }
     }

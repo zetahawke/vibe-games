@@ -133,6 +133,13 @@ input {
   margin: 0;
 }
 
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
 .btn-col {
   display: flex;
   flex-direction: column;
@@ -322,7 +329,8 @@ input {
 
 .hud-desktop .stick-zone,
 .hud-desktop .look-zone,
-.hud-desktop .fire-btn {
+.hud-desktop .fire-btn,
+.hud-desktop .jump-btn {
   display: none !important;
 }
 
@@ -348,6 +356,12 @@ input {
   min-height: 72px;
   background: #b33;
   border-color: #e66;
+}
+
+.jump-btn {
+  min-height: 56px;
+  background: #2a6a9e;
+  border-color: #5aa0d4;
 }
 
 .stick-zone {
@@ -419,10 +433,6 @@ input {
   border-radius: 12px;
 }
 
-.earn-btn {
-  width: 100%;
-  font-size: 1.1rem;
-}
 
 .quiz-entry {
   font-size: 2rem;

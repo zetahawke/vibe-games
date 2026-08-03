@@ -1,7 +1,17 @@
-export type WeaponId = 'cuchillo' | 'pistola' | 'escopeta' | 'rifle';
+export type WeaponKind = 'cuchillo' | 'pistola' | 'escopeta' | 'rifle';
+
+export type WeaponId =
+  | 'cuchillo'
+  | 'pistola'
+  | 'pistola_mejorada'
+  | 'escopeta'
+  | 'escopeta_mejorada'
+  | 'rifle'
+  | 'rifle_mejorada';
 
 export interface WeaponDef {
   id: WeaponId;
+  kind: WeaponKind;
   name: string;
   price: number;
   damage: number;
@@ -10,9 +20,21 @@ export interface WeaponDef {
   isMelee: boolean;
 }
 
+/** Shop / inventory display order. */
+export const WEAPON_IDS: WeaponId[] = [
+  'cuchillo',
+  'pistola',
+  'pistola_mejorada',
+  'escopeta',
+  'escopeta_mejorada',
+  'rifle',
+  'rifle_mejorada',
+];
+
 export const WEAPONS: Record<WeaponId, WeaponDef> = {
   cuchillo: {
     id: 'cuchillo',
+    kind: 'cuchillo',
     name: 'Cuchillo',
     price: 0,
     damage: 10,
@@ -22,6 +44,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
   },
   pistola: {
     id: 'pistola',
+    kind: 'pistola',
     name: 'Pistola',
     price: 15,
     damage: 30,
@@ -29,8 +52,19 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     range: 40,
     isMelee: false,
   },
+  pistola_mejorada: {
+    id: 'pistola_mejorada',
+    kind: 'pistola',
+    name: 'Pistola mejorada',
+    price: 45,
+    damage: 55,
+    cooldownMs: 320,
+    range: 42,
+    isMelee: false,
+  },
   escopeta: {
     id: 'escopeta',
+    kind: 'escopeta',
     name: 'Escopeta',
     price: 40,
     damage: 150,
@@ -38,13 +72,34 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     range: 20,
     isMelee: false,
   },
+  escopeta_mejorada: {
+    id: 'escopeta_mejorada',
+    kind: 'escopeta',
+    name: 'Escopeta mejorada',
+    price: 110,
+    damage: 260,
+    cooldownMs: 850,
+    range: 22,
+    isMelee: false,
+  },
   rifle: {
     id: 'rifle',
+    kind: 'rifle',
     name: 'Rifle',
     price: 70,
     damage: 60,
     cooldownMs: 180,
     range: 50,
+    isMelee: false,
+  },
+  rifle_mejorada: {
+    id: 'rifle_mejorada',
+    kind: 'rifle',
+    name: 'Rifle mejorado',
+    price: 180,
+    damage: 110,
+    cooldownMs: 160,
+    range: 55,
     isMelee: false,
   },
 };
@@ -58,7 +113,9 @@ export function zombieHpForWave(wave: number): number {
   const w = Math.max(1, Math.floor(wave));
   if (w <= 5) {
     const t = (w - 1) / 4;
-    return Math.round(WEAPONS.cuchillo.damage * 2 + t * (WEAPONS.escopeta.damage - WEAPONS.cuchillo.damage * 2));
+    return Math.round(
+      WEAPONS.cuchillo.damage * 2 + t * (WEAPONS.escopeta.damage - WEAPONS.cuchillo.damage * 2),
+    );
   }
   const pistolHits = 5 + (w - 5);
   return Math.round(WEAPONS.pistola.damage * pistolHits);

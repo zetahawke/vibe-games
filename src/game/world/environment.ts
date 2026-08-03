@@ -19,9 +19,10 @@ export function buildGroundAndPath(
   trackMaterial(grassMat);
   trackMaterial(dirtMat);
 
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(90, pathEndZ + 40), grassMat);
+  // Wide clearing so the forest ring sits on grass, not void.
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(160, pathEndZ + 70), grassMat);
   ground.rotation.x = -Math.PI / 2;
-  ground.position.z = pathEndZ / 2 - 4;
+  ground.position.z = pathEndZ / 2 - 10;
   ground.receiveShadow = true;
   scene.add(ground);
 
@@ -51,6 +52,144 @@ export function buildGroundAndPath(
     rock.castShadow = true;
     scene.add(rock);
   }
+
+  buildForest(scene, pathHalfW, pathEndZ, fortHalf, trackMaterial);
+}
+
+/** Low-poly pines / leafy trees ringing the playable path (keeps corridor clear). */
+function buildForest(
+  scene: THREE.Scene,
+  pathHalfW: number,
+  pathEndZ: number,
+  fortHalf: number,
+  trackMaterial: (m: THREE.Material) => void,
+): void {
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5a3a22, roughness: 0.9 });
+  const pineMat = new THREE.MeshStandardMaterial({ color: 0x2d5a28, roughness: 0.85 });
+  const pineDarkMat = new THREE.MeshStandardMaterial({ color: 0x1f4220, roughness: 0.88 });
+  const leafMat = new THREE.MeshStandardMaterial({ color: 0x3f7a34, roughness: 0.8 });
+  const leafLiteMat = new THREE.MeshStandardMaterial({ color: 0x4f9340, roughness: 0.82 });
+  const bushMat = new THREE.MeshStandardMaterial({ color: 0x356b30, roughness: 0.92 });
+  for (const m of [trunkMat, pineMat, pineDarkMat, leafMat, leafLiteMat, bushMat]) {
+    trackMaterial(m);
+  }
+
+  const forest = new THREE.Group();
+  const clearX = pathHalfW + 2.8;
+  const playZMin = -fortHalf - 1;
+  const playZMax = pathEndZ - 1;
+
+  const placeOk = (x: number, z: number): boolean => {
+    // Keep dirt path + fort interior open; allow trees behind/beside.
+    if (Math.abs(x) < clearX && z > playZMin && z < playZMax) return false;
+    if (Math.abs(x) < fortHalf + 1.5 && Math.abs(z) < fortHalf + 1.5) return false;
+    return true;
+  };
+
+  const addPine = (x: number, z: number, scale: number) => {
+    const tree = new THREE.Group();
+    const h = 3.2 * scale;
+    const trunk = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.18 * scale, 0.28 * scale, h * 0.45, 6),
+      trunkMat,
+    );
+    trunk.position.y = h * 0.22;
+    trunk.castShadow = true;
+    const coneA = new THREE.Mesh(new THREE.ConeGeometry(1.35 * scale, h * 0.55, 7), pineMat);
+    coneA.position.y = h * 0.55;
+    coneA.castShadow = true;
+    const coneB = new THREE.Mesh(new THREE.ConeGeometry(1.05 * scale, h * 0.45, 7), pineDarkMat);
+    coneB.position.y = h * 0.78;
+    coneB.castShadow = true;
+    const coneC = new THREE.Mesh(new THREE.ConeGeometry(0.7 * scale, h * 0.35, 7), pineMat);
+    coneC.position.y = h * 0.98;
+    coneC.castShadow = true;
+    tree.add(trunk, coneA, coneB, coneC);
+    tree.position.set(x, 0, z);
+    forest.add(tree);
+  };
+
+  const addLeafy = (x: number, z: number, scale: number) => {
+    const tree = new THREE.Group();
+    const trunk = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.16 * scale, 0.24 * scale, 1.6 * scale, 6),
+      trunkMat,
+    );
+    trunk.position.y = 0.8 * scale;
+    trunk.castShadow = true;
+    const canopy = new THREE.Mesh(new THREE.IcosahedronGeometry(1.15 * scale, 0), leafMat);
+    canopy.position.y = 2.1 * scale;
+    canopy.scale.set(1.15, 1, 1.1);
+    canopy.castShadow = true;
+    const canopy2 = new THREE.Mesh(new THREE.IcosahedronGeometry(0.85 * scale, 0), leafLiteMat);
+    canopy2.position.set(0.35 * scale, 2.45 * scale, -0.2 * scale);
+    canopy2.castShadow = true;
+    tree.add(trunk, canopy, canopy2);
+    tree.position.set(x, 0, z);
+    forest.add(tree);
+  };
+
+  const addBush = (x: number, z: number, scale: number) => {
+    const bush = new THREE.Mesh(new THREE.IcosahedronGeometry(0.55 * scale, 0), bushMat);
+    bush.position.set(x, 0.35 * scale, z);
+    bush.scale.set(1.2, 0.75, 1.1);
+    bush.castShadow = true;
+    forest.add(bush);
+  };
+
+  // Side belts along the path
+  for (let i = 0; i < 56; i++) {
+    const side = i % 2 === 0 ? 1 : -1;
+    const z = -fortHalf + 2 + (i / 55) * (pathEndZ + fortHalf + 8);
+    const x = side * (clearX + 1.5 + Math.random() * 18 + (i % 5) * 1.2);
+    if (!placeOk(x, z)) continue;
+    const scale = 0.75 + Math.random() * 0.7;
+    if (Math.random() > 0.35) addPine(x, z + (Math.random() - 0.5) * 2, scale);
+    else addLeafy(x, z + (Math.random() - 0.5) * 2, scale);
+  }
+
+  // Back of fort + far sides
+  for (let i = 0; i < 40; i++) {
+    const x = (Math.random() - 0.5) * 90;
+    const z = -fortHalf - 3 - Math.random() * 22;
+    if (!placeOk(x, z)) continue;
+    const scale = 0.9 + Math.random() * 0.9;
+    if (Math.random() > 0.4) addPine(x, z, scale);
+    else addLeafy(x, z, scale);
+  }
+
+  // Beyond spawn / path end
+  for (let i = 0; i < 36; i++) {
+    const x = (Math.random() - 0.5) * 85;
+    const z = pathEndZ + 2 + Math.random() * 20;
+    if (!placeOk(x, z)) continue;
+    const scale = 0.8 + Math.random() * 0.85;
+    if (Math.random() > 0.45) addPine(x, z, scale);
+    else addLeafy(x, z, scale);
+  }
+
+  // Outer fill for depth
+  for (let i = 0; i < 48; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const radius = 38 + Math.random() * 32;
+    const x = Math.cos(angle) * radius;
+    const z = pathEndZ * 0.35 + Math.sin(angle) * radius * 0.7;
+    if (!placeOk(x, z)) continue;
+    const scale = 0.7 + Math.random() * 1.1;
+    if (Math.random() > 0.5) addPine(x, z, scale);
+    else addLeafy(x, z, scale);
+  }
+
+  // Bushes near path edge for a softer forest line
+  for (let i = 0; i < 28; i++) {
+    const side = i % 2 === 0 ? 1 : -1;
+    const z = 4 + Math.random() * (pathEndZ - 10);
+    const x = side * (clearX + 0.4 + Math.random() * 3.5);
+    if (!placeOk(x, z)) continue;
+    addBush(x, z, 0.7 + Math.random() * 0.6);
+  }
+
+  scene.add(forest);
 }
 
 export function buildFort(

@@ -4,6 +4,7 @@ export interface InputState {
   lookDx: number;
   lookDy: number;
   fire: boolean;
+  jump: boolean;
   shop: boolean;
   pause: boolean;
 }
@@ -13,6 +14,7 @@ export class InputManager {
   private lookDx = 0;
   private lookDy = 0;
   private fireHeld = false;
+  private jumpPressed = false;
   private shopPressed = false;
   private pausePressed = false;
   private touchMove = { x: 0, y: 0 };
@@ -48,6 +50,10 @@ export class InputManager {
     this.fireHeld = down;
   }
 
+  pressJump(): void {
+    this.jumpPressed = true;
+  }
+
   pressShop(): void {
     this.shopPressed = true;
   }
@@ -67,6 +73,7 @@ export class InputManager {
       lookDx: uiOpen ? 0 : this.lookDx,
       lookDy: uiOpen ? 0 : this.lookDy,
       fire: !uiOpen && this.fireHeld,
+      jump: !uiOpen && this.jumpPressed,
       shop: this.shopPressed,
       pause: this.pausePressed,
     };
@@ -84,6 +91,7 @@ export class InputManager {
 
     this.lookDx = 0;
     this.lookDy = 0;
+    this.jumpPressed = false;
     this.shopPressed = false;
     this.pausePressed = false;
     this.pointerLocked = document.pointerLockElement === this.canvas;
@@ -91,6 +99,10 @@ export class InputManager {
   }
 
   private onKeyDown = (e: KeyboardEvent): void => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (!this.keys.has('Space')) this.jumpPressed = true;
+    }
     this.keys.add(e.code);
     if (e.code === 'Escape') this.pausePressed = true;
     if (e.code === 'KeyE') this.shopPressed = true;

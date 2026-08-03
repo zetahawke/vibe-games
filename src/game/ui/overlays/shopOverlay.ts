@@ -1,6 +1,6 @@
 import { buyWeapon } from '@/domain/economy/economy';
 import { GameSave } from '@/domain/save/save';
-import { getWeapon, WEAPONS, WeaponId } from '@/domain/weapons/weapons';
+import { getWeapon, WEAPON_IDS } from '@/domain/weapons/weapons';
 import { weaponIconSvg } from '@/domain/weapons/weaponVisuals';
 import { el } from '@/shared/dom';
 
@@ -23,8 +23,17 @@ export function renderShopOverlay(
       el('p', { className: 'muted' }, ['Compra armas y equípalas desde tu inventario.']),
     );
 
+    const earn = el('button', { type: 'button', className: 'btn primary earn-btn' }, [
+      'Ganar más monedas',
+    ]);
+    const close = el('button', { type: 'button', className: 'btn' }, ['Cerrar']);
+
+    earn.addEventListener('click', onEarn);
+    close.addEventListener('click', onClose);
+    card.append(el('div', { className: 'btn-row' }, [earn, close]));
+
     const list = el('div', { className: 'shop-list' });
-    for (const id of Object.keys(WEAPONS) as WeaponId[]) {
+    for (const id of WEAPON_IDS) {
       const def = getWeapon(id);
       const owned = save.ownedWeapons.includes(id);
       const equipped = save.equippedWeapon === id;
@@ -79,14 +88,6 @@ export function renderShopOverlay(
       list.append(row);
     }
     card.append(list);
-
-    const earn = el('button', { type: 'button', className: 'btn primary earn-btn' }, [
-      'Ganar más monedas',
-    ]);
-    const close = el('button', { type: 'button', className: 'btn' }, ['Cerrar']);
-    earn.addEventListener('click', onEarn);
-    close.addEventListener('click', onClose);
-    card.append(el('div', { className: 'btn-col' }, [earn, close]));
   };
 
   render();
