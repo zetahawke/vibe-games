@@ -66,6 +66,29 @@ export function renderHubScreen(
     renderIdentifySettingsOverlay(root, username, onPlayIdentify, () => undefined);
   });
 
+  const makeCard = (
+    title: string,
+    description: string,
+    meta: string | null,
+    actions: HTMLElement,
+    bgUrl: string,
+  ): HTMLElement => {
+    const card = el('article', { className: 'game-card' });
+    const bg = el('div', {
+      className: 'game-card-bg',
+      style: `background-image: url('${bgUrl}')`,
+      'aria-hidden': 'true',
+    });
+    const body = el('div', { className: 'game-card-body' }, [
+      el('h2', {}, [title]),
+      el('p', {}, [description]),
+    ]);
+    if (meta) body.append(el('p', { className: 'muted' }, [meta]));
+    body.append(actions);
+    card.append(bg, body);
+    return card;
+  };
+
   root.append(
     el('section', { className: 'screen hub-screen' }, [
       el('header', { className: 'hub-header' }, [
@@ -77,27 +100,27 @@ export function renderHubScreen(
         logoutBtn,
       ]),
       el('div', { className: 'game-grid' }, [
-        el('article', { className: 'game-card' }, [
-          el('h2', {}, ['Fuerte de Mates']),
-          el('p', {}, ['Defiende el fuerte y gana monedas con matemáticas.']),
+        makeCard(
+          'Fuerte de Mates',
+          'Defiende el fuerte y gana monedas con matemáticas.',
+          null,
           shooterActions,
-        ]),
-        el('article', { className: 'game-card' }, [
-          el('h2', {}, ['Animales']),
-          el('p', {}, ['Arrastra animales a su sombra.']),
-          el('p', { className: 'muted' }, [
-            `Modo: ${labelMode(animalsSettings.dropMode)} · Gráficos: ${labelGraphics(animalsSettings.graphicsStyle)}`,
-          ]),
+          '/hub/fuerte.jpg',
+        ),
+        makeCard(
+          'Animales',
+          'Arrastra animales a su sombra.',
+          `Modo: ${labelMode(animalsSettings.dropMode)} · Gráficos: ${labelGraphics(animalsSettings.graphicsStyle)}`,
           el('div', { className: 'card-actions' }, [animalsPlay]),
-        ]),
-        el('article', { className: 'game-card' }, [
-          el('h2', {}, ['Identificar']),
-          el('p', {}, ['Vocales, números y abecedario con voz.']),
-          el('p', { className: 'muted' }, [
-            `Tema: ${themeTitle(identifySettings.theme)} · Modo: ${labelMode(identifySettings.dropMode)}`,
-          ]),
+          '/hub/animales.jpg',
+        ),
+        makeCard(
+          'Identificar',
+          'Vocales, números y abecedario con voz.',
+          `Tema: ${themeTitle(identifySettings.theme)} · Modo: ${labelMode(identifySettings.dropMode)}`,
           el('div', { className: 'card-actions' }, [identifyPlay]),
-        ]),
+          '/hub/identificar.jpg',
+        ),
       ]),
     ]),
   );
