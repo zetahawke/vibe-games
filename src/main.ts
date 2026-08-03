@@ -1,5 +1,6 @@
 import './styles/main.css';
 import { Router } from './app/router';
+import { AnimalsSession } from './game/animals/AnimalsSession';
 import { GameSession } from './game/GameSession';
 
 const app = document.querySelector('#app');
@@ -12,6 +13,12 @@ const router = new Router(root);
 
 router.setGameStarter((username, mode) => {
   new GameSession(root, username, mode, () => {
+    router.showHub();
+  });
+});
+
+router.setAnimalsStarter((username, mode) => {
+  new AnimalsSession(root, username, mode, () => {
     router.showHub();
   });
 });

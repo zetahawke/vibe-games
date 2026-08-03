@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-02  
 **Status:** Approved for planning  
-**Scope v1:** Hub mínimo + shooter de mates (3ª persona). Juego de animales = placeholder.
+**Scope v1:** Hub + shooter de mates (3ª persona) + juego de animales (ver `2026-08-02-animales-design.md`).
 
 ---
 
@@ -11,7 +11,7 @@
 Suite de juegos de navegador en **español** para uso en casa, pensada para:
 
 - Niño ~7 años: shooter que incentiva matemáticas vía economía de monedas.
-- Niña ~2 años: juego 2D de animales (fuera de v1; solo tarjeta “Próximamente”).
+- Niña ~2 años: juego 2D de animales (drag a sombras); detalle en `2026-08-02-animales-design.md`.
 
 **Nombre provisional:** Juegos de Casa.
 

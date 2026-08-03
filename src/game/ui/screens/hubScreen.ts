@@ -1,11 +1,14 @@
 import { logout } from '@/domain/auth/auth';
+import { getDropMode, type DropMode } from '@/domain/animals';
 import { getHighScore, loadSave } from '@/domain/save/save';
+import { renderAnimalsSettingsOverlay } from '@/game/ui/overlays/animalsSettingsOverlay';
 import { clear, el } from '@/shared/dom';
 
 export function renderHubScreen(
   root: HTMLElement,
   username: string,
-  onPlay: (mode: 'new' | 'continue') => void,
+  onPlayShooter: (mode: 'new' | 'continue') => void,
+  onPlayAnimals: (mode: DropMode) => void,
   onLogout: () => void,
 ): void {
   clear(root);
@@ -25,9 +28,9 @@ export function renderHubScreen(
   const logoutBtn = el('button', { type: 'button', className: 'btn ghost' }, ['Cerrar sesión']);
 
   continueBtn.addEventListener('click', () => {
-    if (save) onPlay('continue');
+    if (save) onPlayShooter('continue');
   });
-  newBtn.addEventListener('click', () => onPlay('new'));
+  newBtn.addEventListener('click', () => onPlayShooter('new'));
   logoutBtn.addEventListener('click', () => {
     logout();
     onLogout();
@@ -35,6 +38,20 @@ export function renderHubScreen(
 
   const shooterActions = el('div', { className: 'card-actions' }, [newBtn]);
   if (save) shooterActions.prepend(continueBtn);
+
+  const animalsPlay = el('button', { type: 'button', className: 'btn primary' }, [
+    'Jugar',
+  ]) as HTMLButtonElement;
+  animalsPlay.addEventListener('click', () => {
+    renderAnimalsSettingsOverlay(
+      root,
+      username,
+      (mode) => onPlayAnimals(mode),
+      () => {
+        /* stay on hub */
+      },
+    );
+  });
 
   root.append(
     el('section', { className: 'screen hub-screen' }, [
@@ -52,12 +69,19 @@ export function renderHubScreen(
           el('p', {}, ['Defiende el fuerte y gana monedas con matemáticas.']),
           shooterActions,
         ]),
-        el('article', { className: 'game-card locked' }, [
+        el('article', { className: 'game-card' }, [
           el('h2', {}, ['Animales']),
           el('p', {}, ['Arrastra animales a su sombra.']),
-          el('div', { className: 'coming-soon' }, ['Próximamente']),
+          el('p', { className: 'muted' }, [`Modo: ${labelMode(getDropMode(username))}`]),
+          el('div', { className: 'card-actions' }, [animalsPlay]),
         ]),
       ]),
     ]),
   );
+}
+
+function labelMode(mode: DropMode): string {
+  if (mode === 'libre') return 'Libre';
+  if (mode === 'suave') return 'Suave';
+  return 'Guiado';
 }

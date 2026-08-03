@@ -5,9 +5,10 @@ Suite de juegos de navegador en español para jugar en casa (PC y tablet).
 ## v1
 
 - Login local (usuario + contraseña en el navegador)
-- Hub con **Fuerte de Mates** y placeholder de **Animales** (“Próximamente”)
+- Hub con **Fuerte de Mates** y **Animales** (arrastrar a sombras)
 - Shooter 3ª persona: defiende el fuerte, oleadas de 1 minuto + descanso de 1 minuto
 - Tienda de armas y quiz de matemáticas para ganar monedas
+- Animales: SVG grandes, rondas de 3–4, modos Libre / Suave / Guiado
 - Guardado y récord de oleada en `localStorage`
 
 ## Estructura del código
@@ -17,13 +18,14 @@ src/
   app/                 # Router / shell de la suite
   config/              # Constantes de juego
   shared/              # Utilidades compartidas (DOM, device)
-  domain/              # Lógica pura (auth, save, score, math, economy, quiz, weapons, waves)
+  domain/              # Lógica pura (auth, save, score, math, economy, quiz, weapons, waves, animals)
   game/
-    GameSession.ts     # Orquestación de una partida
+    GameSession.ts     # Orquestación de una partida (shooter)
+    animals/           # Sesión DOM del matching de animales
     input/             # Controles teclado/mouse/touch
     ui/
       screens/         # Login, hub
-      overlays/        # Tienda, quiz, pausa, game over
+      overlays/        # Tienda, quiz, pausa, game over, ajuste animales
       hud.ts
     world/             # Three.js: mundo, player, zombies, proyectiles, entorno
   styles/
