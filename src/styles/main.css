@@ -144,6 +144,72 @@ input {
   margin-top: 1.25rem;
 }
 
+.crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.crosshair::before,
+.crosshair::after {
+  content: '';
+  position: absolute;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 2px #000;
+}
+
+.crosshair::before {
+  left: 50%;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  margin-left: -1px;
+}
+
+.crosshair::after {
+  top: 50%;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  margin-top: -1px;
+}
+
+.weapon-icon {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.weapon-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.weapon-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.weapon-stat {
+  font-weight: 700;
+  color: #ffe08a;
+  margin-top: 0.15rem;
+}
+
+.equipped-tag {
+  color: #7dffb0;
+  font-weight: 700;
+}
+
 .game-wrap {
   position: relative;
   width: 100%;

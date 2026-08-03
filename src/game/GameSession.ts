@@ -10,6 +10,7 @@ import {
   updateHighScore,
   writeSave,
 } from '../save/save';
+import { scoreForKill, scoreForQuiz } from '../score/score';
 import { Hud, renderTopicPicker } from '../ui/hud';
 import { renderGameOverOverlay } from '../ui/gameOverOverlay';
 import { renderPauseOverlay } from '../ui/pauseOverlay';
@@ -177,7 +178,7 @@ export class GameSession {
       return;
     }
     this.uiBlocking = true;
-    this.world.setPaused(true);
+    // Timer and combat keep running; only block player input via consume(uiBlocking)
     this.shopOverlay = renderShopOverlay(
       this.wrap,
       this.save,
@@ -195,7 +196,6 @@ export class GameSession {
     this.shopOverlay = null;
     if (!this.quizOverlay) {
       this.uiBlocking = false;
-      this.world?.setPaused(this.paused);
     }
     this.persist();
   }
@@ -207,9 +207,10 @@ export class GameSession {
       this.wrap,
       this.save.mathTopic,
       this.save.quizDifficulty,
-      (coins, difficulty) => {
+      (coins, difficulty, questionTopic) => {
         this.save.coins = addCoins(this.save.coins, coins);
         this.save.quizDifficulty = difficulty;
+        this.save.score += scoreForQuiz(questionTopic);
         this.persist();
         this.quizOverlay?.remove();
         this.quizOverlay = null;
@@ -243,7 +244,7 @@ export class GameSession {
 
   private resume(): void {
     this.paused = false;
-    this.world?.setPaused(this.uiBlocking);
+    this.world?.setPaused(false);
     this.overlay?.remove();
     this.overlay = null;
   }
@@ -253,13 +254,14 @@ export class GameSession {
     this.last = now;
     const input = this.input!.consume(this.uiBlocking || this.paused);
 
-    if (input.pause) this.togglePause();
-    if (input.shop) this.requestShop();
+    if (!this.uiBlocking && input.pause) this.togglePause();
+    if (!this.uiBlocking && input.shop) this.requestShop();
 
     const prevPhase = this.waves.phase;
     const prevWave = this.waves.wave;
 
-    if (!this.paused && !this.uiBlocking && this.waves.status === 'playing') {
+    // Wave timer keeps running even with shop/quiz open (only Esc pause freezes it)
+    if (!this.paused && this.waves.status === 'playing') {
       this.waves = tickWave(this.waves, dt * 1000);
       if (this.waves.phase !== prevPhase || this.waves.wave !== prevWave) {
         this.world?.setWavePhase(this.waves.phase, this.waves.wave);
@@ -273,13 +275,20 @@ export class GameSession {
     }
 
     const equipped = getWeapon(this.save.equippedWeapon);
-    const events = this.world!.update(dt, input, equipped);
+    const events = this.world!.update(
+      dt,
+      this.uiBlocking || this.paused
+        ? { moveX: 0, moveZ: 0, lookDx: 0, lookDy: 0, fire: false, shop: false, pause: false }
+        : input,
+      equipped,
+    );
 
     if (events.kills > 0 && this.waves.status === 'playing') {
       this.save.coins = addCoins(this.save.coins, events.kills * COINS_PER_ZOMBIE);
+      this.save.score += events.kills * scoreForKill(this.waves.wave);
     }
 
-    if (events.fortBreached && this.waves.status === 'playing' && !this.paused && !this.uiBlocking) {
+    if (events.fortBreached && this.waves.status === 'playing' && !this.paused) {
       this.waves = onFortBreached(this.waves);
       this.world?.setWavePhase(this.waves.phase, this.waves.wave);
       if (this.waves.status === 'gameover') {
@@ -299,8 +308,10 @@ export class GameSession {
       phase: this.waves.phase,
       phaseTimeLeftMs: this.waves.phaseTimeLeftMs,
       weaponName: equipped.name,
-      highScore: Math.max(getHighScore(this.username), this.waves.wave),
+      score: this.save.score,
+      highScore: Math.max(getHighScore(this.username), this.save.score),
       banner: this.banner,
+      showCrosshair: !equipped.isMelee && !this.uiBlocking && !this.paused,
     });
 
     this.raf = requestAnimationFrame(this.loop);
@@ -308,10 +319,16 @@ export class GameSession {
 
   private handleGameOver(): void {
     cancelAnimationFrame(this.raf);
-    const best = updateHighScore(this.username, this.waves.wave);
+    const best = updateHighScore(this.username, this.save.score);
     clearSave(this.username);
     this.world?.setPaused(true);
-    this.overlay = renderGameOverOverlay(this.wrap, this.waves.wave, best, () => this.exit());
+    this.overlay = renderGameOverOverlay(
+      this.wrap,
+      this.waves.wave,
+      best,
+      () => this.exit(),
+      this.save.score,
+    );
   }
 
   private syncSave(): GameSave {

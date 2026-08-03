@@ -53,12 +53,12 @@ export function getWeapon(id: WeaponId): WeaponDef {
   return WEAPONS[id];
 }
 
-/** HP curve locked to weapon equivalences in the design spec. */
+/** HP curve: wave 1 = 2 knife hits; wave 5 = 5 pistol / 1 shotgun. */
 export function zombieHpForWave(wave: number): number {
   const w = Math.max(1, Math.floor(wave));
   if (w <= 5) {
-    const t = (w - 1) / 4; // 0 at w1, 1 at w5
-    return Math.round(30 + t * (150 - 30));
+    const t = (w - 1) / 4;
+    return Math.round(WEAPONS.cuchillo.damage * 2 + t * (WEAPONS.escopeta.damage - WEAPONS.cuchillo.damage * 2));
   }
   const pistolHits = 5 + (w - 5);
   return Math.round(WEAPONS.pistola.damage * pistolHits);

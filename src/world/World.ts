@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Phase } from '../save/save';
-import { WeaponDef, zombieHpForWave } from '../weapons/weapons';
+import { WeaponDef, WeaponId, zombieHpForWave } from '../weapons/weapons';
+import { createWeaponModel } from '../weapons/weaponVisuals';
 import { zombiesToSpawnForWave } from '../waves/waveLogic';
 import { InputState } from '../input/InputManager';
 import { aabbFromCenter, overlaps } from './aabb';
@@ -10,6 +11,7 @@ import {
   PATH_END_Z,
   rollPathHalfWidth,
 } from './layout';
+import { WAVE_DURATION_MS } from '../config/gameConfig';
 import {
   makeClothTexture,
   makeDirtTexture,
@@ -39,11 +41,18 @@ interface PlayerRig {
   rightArm: THREE.Object3D;
   leftLeg: THREE.Object3D;
   rightLeg: THREE.Object3D;
-  weapon: THREE.Object3D;
+  weaponSlot: THREE.Group;
+}
+
+interface Projectile {
+  mesh: THREE.Mesh;
+  velocity: THREE.Vector3;
+  damage: number;
+  life: number;
 }
 
 const PLAYER_SPEED = 8;
-const BASE_ZOMBIE_SPEED = 2.15;
+const BASE_ZOMBIE_SPEED = 1.85;
 
 export class World {
   readonly renderer: THREE.WebGLRenderer;
@@ -54,14 +63,17 @@ export class World {
   private yaw = Math.PI;
   private pitch = 0.2;
   private zombies: Zombie[] = [];
-  private spawnAcc = 0;
   private fireCooldown = 0;
   private attackAnim = 0;
   private walkPhase = 0;
   private paused = false;
-  private phase: Phase = 'wave';
-  private wave = 1;
+  private phase: Phase = 'rest';
+  private wave = 0;
   private toSpawn = 0;
+  private spawnInterval = 3;
+  private spawnTimer = 0;
+  private projectiles: Projectile[] = [];
+  private equippedId: WeaponId | null = null;
   private textures: THREE.Texture[] = [];
   private materials: THREE.Material[] = [];
   private readonly pathHalfW: number;
@@ -139,10 +151,12 @@ export class World {
     this.wave = wave;
     if (phase === 'wave' && (phaseChanged || waveChanged)) {
       this.toSpawn = zombiesToSpawnForWave(wave);
-      this.spawnAcc = 0;
+      this.spawnInterval = WAVE_DURATION_MS / 1000 / Math.max(1, this.toSpawn);
+      this.spawnTimer = 0;
     }
     if (phase === 'rest') {
       this.clearZombies();
+      this.clearProjectiles();
       this.toSpawn = 0;
     }
   }
@@ -152,17 +166,23 @@ export class World {
     this.zombies = [];
   }
 
+  private clearProjectiles(): void {
+    for (const p of this.projectiles) this.scene.remove(p.mesh);
+    this.projectiles = [];
+  }
+
   update(dt: number, input: InputState, equipped: WeaponDef): WorldEvents {
     const events: WorldEvents = { kills: 0, fortBreached: false };
+    this.syncWeaponModel(equipped.id);
+
     if (this.paused) {
       this.renderer.render(this.scene, this.camera);
       return events;
     }
 
     this.yaw -= input.lookDx * 0.0025;
-    this.pitch = Math.min(0.8, Math.max(-0.2, this.pitch + input.lookDy * 0.002));
+    this.pitch = Math.min(0.55, Math.max(-0.4, this.pitch - input.lookDy * 0.002));
 
-    // Facing: yaw=π → +Z (path / zombies)
     const forward = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
     const right = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
     const move = new THREE.Vector3();
@@ -185,41 +205,36 @@ export class World {
 
     if (moving) this.walkPhase += dt * 9;
     this.animatePlayer(moving, dt, equipped);
-
-    const camOffset = new THREE.Vector3(0, 3.4, 6.8);
-    camOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
-    this.camera.position.copy(this.playerRig.root.position).add(camOffset);
-    this.camera.position.y += Math.sin(this.pitch) * 2;
-    this.camera.lookAt(
-      this.playerRig.root.position.x - Math.sin(this.yaw) * 8,
-      1.6,
-      this.playerRig.root.position.z - Math.cos(this.yaw) * 8,
-    );
+    this.updateCamera();
 
     this.fireCooldown = Math.max(0, this.fireCooldown - dt * 1000);
     if (input.fire && this.fireCooldown <= 0) {
       this.fireCooldown = equipped.cooldownMs;
       this.attackAnim = 1;
-      events.kills += this.tryFire(equipped);
+      if (equipped.isMelee) {
+        events.kills += this.tryMelee(equipped);
+      } else {
+        this.spawnProjectiles(equipped);
+      }
     }
 
+    events.kills += this.updateProjectiles(dt);
+
     if (this.phase === 'wave') {
-      this.spawnAcc += dt;
-      while (this.toSpawn > 0 && this.spawnAcc >= 1.1) {
-        this.spawnAcc -= 1.1;
+      this.spawnTimer += dt;
+      while (this.toSpawn > 0 && this.spawnTimer >= this.spawnInterval) {
+        this.spawnTimer -= this.spawnInterval;
         this.spawnZombie();
         this.toSpawn -= 1;
       }
 
       const fortAabb = aabbFromCenter(0, 0, this.fortHalf);
       for (const z of this.zombies) {
-        // March down the path toward the fort (mostly -Z)
         const target = new THREE.Vector3(0, 0, 0);
         const dir = target.clone().sub(z.root.position);
         dir.y = 0;
         if (dir.lengthSq() > 0.001) dir.normalize();
         z.root.position.addScaledVector(dir, z.speed * dt);
-        // Keep loosely on the path
         z.root.position.x = THREE.MathUtils.clamp(
           z.root.position.x,
           -this.pathHalfW + 0.8,
@@ -245,9 +260,30 @@ export class World {
     return events;
   }
 
+  private updateCamera(): void {
+    const look = new THREE.Vector3(
+      -Math.sin(this.yaw) * Math.cos(this.pitch),
+      Math.sin(this.pitch),
+      -Math.cos(this.yaw) * Math.cos(this.pitch),
+    );
+    const focus = this.playerRig.root.position.clone().add(new THREE.Vector3(0, 1.55, 0));
+    this.camera.position.copy(focus).addScaledVector(look, -7.2);
+    this.camera.lookAt(focus.clone().addScaledVector(look, 14));
+  }
+
+  private syncWeaponModel(id: WeaponId): void {
+    if (this.equippedId === id) return;
+    this.equippedId = id;
+    this.playerRig.weaponSlot.clear();
+    const model = createWeaponModel(id);
+    model.position.set(0, -0.55, -0.15);
+    this.playerRig.weaponSlot.add(model);
+  }
+
   dispose(): void {
     window.removeEventListener('resize', this.onResize);
     this.clearZombies();
+    this.clearProjectiles();
     for (const t of this.textures) t.dispose();
     for (const m of this.materials) m.dispose();
     this.renderer.dispose();
@@ -261,33 +297,37 @@ export class World {
     this.playerRig.leftArm.rotation.x = -swing * 0.7;
 
     if (this.attackAnim > 0) {
-      this.attackAnim = Math.max(0, this.attackAnim - dt * 4);
+      this.attackAnim = Math.max(0, this.attackAnim - dt * (equipped.isMelee ? 4 : 6));
       const t = this.attackAnim;
       if (equipped.isMelee) {
-        // Positive X swings the arm toward local -Z (character forward)
         this.playerRig.rightArm.rotation.x = 1.35 * t;
         this.playerRig.rightArm.rotation.z = 0.25 * t;
       } else {
-        this.playerRig.rightArm.rotation.x = 0.35 * t;
-        this.playerRig.weapon.position.z = -0.45 - 0.12 * t;
+        // Recoil kick
+        this.playerRig.rightArm.rotation.x = -0.45 * t;
+        this.playerRig.weaponSlot.position.z = 0.08 * t;
       }
     } else {
       this.playerRig.rightArm.rotation.x = swing * 0.7;
       this.playerRig.rightArm.rotation.z = 0;
-      this.playerRig.weapon.position.z = -0.45;
+      this.playerRig.weaponSlot.position.z = 0;
     }
-
-    this.playerRig.weapon.scale.set(
-      equipped.isMelee ? 0.55 : 1,
-      equipped.isMelee ? 0.55 : 0.7,
-      equipped.isMelee ? 1.35 : 1.1,
-    );
   }
 
-  private tryFire(equipped: WeaponDef): number {
+  private aimDirection(): THREE.Vector3 {
+    return new THREE.Vector3(
+      -Math.sin(this.yaw) * Math.cos(this.pitch),
+      Math.sin(this.pitch),
+      -Math.cos(this.yaw) * Math.cos(this.pitch),
+    ).normalize();
+  }
+
+  private tryMelee(equipped: WeaponDef): number {
     const origin = this.playerRig.root.position.clone();
     origin.y = 1.2;
-    const dir = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw)).normalize();
+    const dir = this.aimDirection();
+    dir.y = 0;
+    dir.normalize();
     let kills = 0;
     let best: Zombie | null = null;
     let bestDist = Infinity;
@@ -298,27 +338,82 @@ export class World {
       const dist = toZ.length();
       if (dist > equipped.range) continue;
       const aligned = toZ.clone().normalize().dot(dir);
-      const lateral = Math.abs(toZ.clone().normalize().cross(dir).y);
-      if (equipped.isMelee) {
-        if (dist <= equipped.range && aligned > 0.15 && dist < bestDist) {
-          best = z;
-          bestDist = dist;
-        }
-      } else if (aligned > 0.92 && lateral < 0.25 && dist < bestDist) {
+      if (aligned > 0.15 && dist < bestDist) {
         best = z;
         bestDist = dist;
       }
     }
 
-    if (best) {
-      best.hp -= equipped.damage;
-      if (best.hp <= 0) {
-        this.scene.remove(best.root);
-        this.zombies = this.zombies.filter((z) => z !== best);
-        kills = 1;
+    if (best) kills += this.damageZombie(best, equipped.damage);
+    return kills;
+  }
+
+  private spawnProjectiles(equipped: WeaponDef): void {
+    const origin = this.playerRig.root.position.clone().add(new THREE.Vector3(0, 1.45, 0));
+    const base = this.aimDirection();
+    const count = equipped.id === 'escopeta' ? 5 : 1;
+    const spread = equipped.id === 'escopeta' ? 0.12 : 0.01;
+    const speed = equipped.id === 'rifle' ? 55 : equipped.id === 'escopeta' ? 42 : 48;
+    const pelletDamage =
+      equipped.id === 'escopeta' ? Math.ceil(equipped.damage / count) : equipped.damage;
+
+    for (let i = 0; i < count; i++) {
+      const dir = base.clone();
+      dir.x += (Math.random() - 0.5) * spread;
+      dir.y += (Math.random() - 0.5) * spread * 0.5;
+      dir.z += (Math.random() - 0.5) * spread;
+      dir.normalize();
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(equipped.id === 'escopeta' ? 0.08 : 0.07, 6, 6),
+        new THREE.MeshStandardMaterial({
+          color: equipped.id === 'rifle' ? 0xffe066 : 0xffcc33,
+          emissive: 0xaa7700,
+          metalness: 0.2,
+          roughness: 0.4,
+        }),
+      );
+      mesh.position.copy(origin).addScaledVector(dir, 1.2);
+      this.scene.add(mesh);
+      this.projectiles.push({
+        mesh,
+        velocity: dir.multiplyScalar(speed),
+        damage: pelletDamage,
+        life: equipped.range / speed + 0.15,
+      });
+    }
+  }
+
+  private updateProjectiles(dt: number): number {
+    let kills = 0;
+    const remaining: Projectile[] = [];
+    for (const p of this.projectiles) {
+      p.life -= dt;
+      p.mesh.position.addScaledVector(p.velocity, dt);
+      let hit = false;
+      for (const z of this.zombies) {
+        const d = p.mesh.position.distanceTo(z.root.position.clone().setY(1.2));
+        if (d < 1.1) {
+          kills += this.damageZombie(z, p.damage);
+          hit = true;
+          break;
+        }
+      }
+      if (hit || p.life <= 0) {
+        this.scene.remove(p.mesh);
+      } else {
+        remaining.push(p);
       }
     }
+    this.projectiles = remaining;
     return kills;
+  }
+
+  private damageZombie(z: Zombie, damage: number): number {
+    z.hp -= damage;
+    if (z.hp > 0) return 0;
+    this.scene.remove(z.root);
+    this.zombies = this.zombies.filter((o) => o !== z);
+    return 1;
   }
 
   private spawnZombie(): void {
@@ -421,14 +516,9 @@ export class World {
     const ra = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.9, 0.28), skin);
     ra.position.y = -0.35;
     ra.castShadow = true;
-    const weapon = new THREE.Mesh(
-      new THREE.BoxGeometry(0.12, 0.12, 0.75),
-      new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.6, roughness: 0.35 }),
-    );
-    // Extend in local -Z (character forward when yaw faces path)
-    weapon.position.set(0, -0.75, -0.45);
-    weapon.castShadow = true;
-    rightArm.add(ra, weapon);
+    const weaponSlot = new THREE.Group();
+    weaponSlot.position.set(0, -0.35, -0.2);
+    rightArm.add(ra, weaponSlot);
 
     const leftLeg = new THREE.Group();
     leftLeg.position.set(-0.22, 0.85, 0);
@@ -445,7 +535,7 @@ export class World {
     rightLeg.add(rl);
 
     root.add(body, head, hair, leftArm, rightArm, leftLeg, rightLeg);
-    return { root, leftArm, rightArm, leftLeg, rightLeg, weapon };
+    return { root, leftArm, rightArm, leftLeg, rightLeg, weaponSlot };
   }
 
   private buildZombie(): Zombie {

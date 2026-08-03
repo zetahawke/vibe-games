@@ -6,10 +6,9 @@ describe('weapons', () => {
     expect(getWeapon('cuchillo').price).toBe(0);
   });
 
-  it('wave 1 zombie dies in 3 cuchillo hits or 1 pistola hit', () => {
+  it('wave 1 zombie dies in 2 cuchillo hits', () => {
     const hp = zombieHpForWave(1);
-    expect(hp).toBe(WEAPONS.cuchillo.damage * 3);
-    expect(hp).toBe(WEAPONS.pistola.damage);
+    expect(hp).toBe(WEAPONS.cuchillo.damage * 2);
   });
 
   it('wave 5 zombie dies in 5 pistola hits or 1 escopeta hit', () => {

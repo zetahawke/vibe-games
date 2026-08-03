@@ -16,6 +16,7 @@ export interface GameSave {
   quizDifficulty: number;
   /** Path/entrance half-width for this match (rolled ±20% at nueva partida). */
   pathHalfW: number;
+  score: number;
 }
 
 function saveKey(username: string): string {
@@ -38,6 +39,7 @@ export function defaultSave(topic: MathTopic): GameSave {
     mathTopic: topic,
     quizDifficulty: 1,
     pathHalfW: rollPathHalfWidth(),
+    score: 0,
   };
 }
 
@@ -48,6 +50,9 @@ export function loadSave(username: string): GameSave | null {
     const save = JSON.parse(raw) as GameSave;
     if (!Number.isFinite(save.pathHalfW)) {
       save.pathHalfW = rollPathHalfWidth();
+    }
+    if (!Number.isFinite(save.score)) {
+      save.score = 0;
     }
     return save;
   } catch {

@@ -9,8 +9,10 @@ export interface HudModel {
   phase: Phase;
   phaseTimeLeftMs: number;
   weaponName: string;
+  score: number;
   highScore: number;
   banner: string;
+  showCrosshair: boolean;
 }
 
 function formatTime(ms: number): string {
@@ -30,6 +32,8 @@ export class Hud {
   private scoreEl: HTMLElement;
   private bannerEl: HTMLElement;
   private phaseEl: HTMLElement;
+  private pointsEl: HTMLElement;
+  private crosshairEl: HTMLElement;
   readonly touchMode: boolean;
 
   readonly shopBtn: HTMLButtonElement;
@@ -49,8 +53,10 @@ export class Hud {
     this.timerEl = el('div', { className: 'hud-item' });
     this.weaponEl = el('div', { className: 'hud-item' });
     this.scoreEl = el('div', { className: 'hud-item' });
+    this.pointsEl = el('div', { className: 'hud-item' });
     this.phaseEl = el('div', { className: 'hud-item' });
     this.bannerEl = el('div', { className: 'hud-banner' });
+    this.crosshairEl = el('div', { className: 'crosshair', hidden: 'true' });
 
     this.shopBtn = el('button', { type: 'button', className: 'btn touch-btn' }, [
       'Tienda',
@@ -80,9 +86,11 @@ export class Hud {
         this.phaseEl,
         this.timerEl,
         this.weaponEl,
+        this.pointsEl,
         this.scoreEl,
       ]),
       this.bannerEl,
+      this.crosshairEl,
     );
 
     if (this.touchMode) {
@@ -115,8 +123,10 @@ export class Hud {
     this.phaseEl.textContent = model.phase === 'wave' ? 'Combate' : 'Descanso';
     this.timerEl.textContent = formatTime(model.phaseTimeLeftMs);
     this.weaponEl.textContent = `Arma: ${model.weaponName}`;
+    this.pointsEl.textContent = `Puntos: ${model.score}`;
     this.scoreEl.textContent = `Récord: ${model.highScore}`;
     this.bannerEl.textContent = model.banner;
+    this.crosshairEl.hidden = !model.showCrosshair;
   }
 
   dispose(): void {

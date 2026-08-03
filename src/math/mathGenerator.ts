@@ -108,6 +108,6 @@ export function generateQuestion(
     prompt: `¿Cuánto es ${built.expr}?`,
     answer: built.answer,
     difficulty: d,
-    topic,
+    topic: chosen,
   };
 }

@@ -1,6 +1,7 @@
 import { buyWeapon } from '../economy/economy';
 import { GameSave } from '../save/save';
 import { getWeapon, WEAPONS, WeaponId } from '../weapons/weapons';
+import { weaponIconSvg } from '../weapons/weaponVisuals';
 import { el } from './dom';
 
 export function renderShopOverlay(
@@ -17,8 +18,9 @@ export function renderShopOverlay(
   const render = () => {
     card.replaceChildren();
     card.append(
-      el('h2', {}, ['Tienda']),
+      el('h2', {}, ['Tienda e inventario']),
       el('p', {}, [`Monedas: ${save.coins}`]),
+      el('p', { className: 'muted' }, ['Compra armas y equípalas desde tu inventario.']),
     );
 
     const list = el('div', { className: 'shop-list' });
@@ -26,15 +28,27 @@ export function renderShopOverlay(
       const def = getWeapon(id);
       const owned = save.ownedWeapons.includes(id);
       const equipped = save.equippedWeapon === id;
-      const row = el('div', { className: 'shop-row' }, [
-        el('div', {}, [
-          el('strong', {}, [def.name]),
-          el('div', { className: 'muted' }, [
-            `Daño ${def.damage} · ${def.price === 0 ? 'Gratis' : `${def.price} monedas`}`,
-          ]),
+
+      const icon = el('div', { className: 'weapon-icon' });
+      icon.innerHTML = weaponIconSvg(id);
+
+      const info = el('div', { className: 'weapon-info' }, [
+        el('strong', {}, [def.name]),
+        el('div', { className: 'weapon-stat' }, [`Daño: ${def.damage}`]),
+        el('div', { className: 'muted' }, [
+          owned
+            ? equipped
+              ? 'Equipada'
+              : 'En inventario'
+            : def.price === 0
+              ? 'Gratis'
+              : `${def.price} monedas`,
         ]),
       ]);
+
+      const row = el('div', { className: 'shop-row' }, [icon, info]);
       const actions = el('div', { className: 'btn-row' });
+
       if (!owned) {
         const buy = el('button', { type: 'button', className: 'btn primary' }, ['Comprar']);
         buy.addEventListener('click', () => {
@@ -58,8 +72,9 @@ export function renderShopOverlay(
         });
         actions.append(equip);
       } else {
-        actions.append(el('span', { className: 'muted' }, ['Equipada']));
+        actions.append(el('span', { className: 'equipped-tag' }, ['✓ Equipada']));
       }
+
       row.append(actions);
       list.append(row);
     }

@@ -5,12 +5,14 @@ export function renderGameOverOverlay(
   wave: number,
   highScore: number,
   onHub: () => void,
+  score = 0,
 ): HTMLElement {
   const overlay = el('div', { className: 'overlay' }, [
     el('div', { className: 'overlay-card' }, [
       el('h2', {}, ['¡Game Over!']),
       el('p', {}, [`Llegaste a la oleada ${wave}`]),
-      el('p', {}, [`Mejor oleada: ${highScore}`]),
+      el('p', {}, [`Puntos: ${score}`]),
+      el('p', {}, [`Mejor puntuación: ${highScore}`]),
       el('p', {}, ['Tu partida se borró. ¡Inténtalo de nuevo!']),
     ]),
   ]);

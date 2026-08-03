@@ -12,7 +12,7 @@ export function renderQuizOverlay(
   parent: HTMLElement,
   topic: MathTopic,
   difficulty: number,
-  onWin: (coins: number, difficulty: number) => void,
+  onWin: (coins: number, difficulty: number, questionTopic: MathTopic) => void,
   onClose: (difficulty: number) => void,
 ): HTMLElement {
   const overlay = el('div', { className: 'overlay' });
@@ -44,7 +44,7 @@ export function renderQuizOverlay(
           state = submitAnswer(state, Number(entry));
           entry = '';
           if (state.status === 'won') {
-            onWin(coinsEarned(state), state.difficulty);
+            onWin(coinsEarned(state), state.difficulty, state.question.topic);
           }
         } else {
           entry += label;

@@ -42,7 +42,7 @@ export function renderHubScreen(
         el('h1', {}, ['Juegos de Casa']),
         el('p', {}, [`Hola, ${username}`]),
         highScore > 0
-          ? el('p', { className: 'hiscore' }, [`Mejor oleada: ${highScore}`])
+          ? el('p', { className: 'hiscore' }, [`Mejor puntuación: ${highScore}`])
           : el('p', { className: 'hiscore muted' }, ['Aún no hay récord']),
         logoutBtn,
       ]),
