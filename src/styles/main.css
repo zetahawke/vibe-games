@@ -148,9 +148,9 @@ input {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 18px;
-  height: 18px;
-  margin: -9px 0 0 -9px;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
   pointer-events: none;
   z-index: 3;
 }
@@ -159,24 +159,44 @@ input {
 .crosshair::after {
   content: '';
   position: absolute;
-  background: rgba(255, 255, 255, 0.9);
+  background: transparent;
   box-shadow: 0 0 2px #000;
 }
 
+/* Vertical arms with center gap */
 .crosshair::before {
   left: 50%;
   top: 0;
   width: 2px;
   height: 100%;
   margin-left: -1px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.95) 30%,
+    transparent 30%,
+    transparent 70%,
+    rgba(255, 255, 255, 0.95) 70%,
+    rgba(255, 255, 255, 0.95) 100%
+  );
 }
 
+/* Horizontal arms with center gap */
 .crosshair::after {
   top: 50%;
   left: 0;
   height: 2px;
   width: 100%;
   margin-top: -1px;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.95) 30%,
+    transparent 30%,
+    transparent 70%,
+    rgba(255, 255, 255, 0.95) 70%,
+    rgba(255, 255, 255, 0.95) 100%
+  );
 }
 
 .weapon-icon {

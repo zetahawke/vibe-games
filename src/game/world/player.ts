@@ -144,7 +144,14 @@ export function updateThirdPersonCamera(
   pitch: number,
 ): void {
   const look = aimDirection(yaw, pitch);
-  const focus = playerRoot.position.clone().add(new THREE.Vector3(0, 1.55, 0));
-  camera.position.copy(focus).addScaledVector(look, -7.2);
-  camera.lookAt(focus.clone().addScaledVector(look, 14));
+  // Shoulder pivot: camera sits higher behind so the body stays in the lower frame
+  // and screen-center (crosshair) aims over the head toward distant targets.
+  const shoulder = playerRoot.position.clone().add(new THREE.Vector3(0, 1.35, 0));
+  const camPos = shoulder
+    .clone()
+    .addScaledVector(look, -6.4)
+    .add(new THREE.Vector3(0, 2.35, 0));
+  const aimPoint = shoulder.clone().addScaledVector(look, 20).add(new THREE.Vector3(0, 0.55, 0));
+  camera.position.copy(camPos);
+  camera.lookAt(aimPoint);
 }
