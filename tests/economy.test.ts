@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buyWeapon } from '../src/economy/economy';
+import { buyWeapon } from '@/domain/economy/economy';
 
 describe('economy', () => {
   it('buys pistola when enough coins', () => {

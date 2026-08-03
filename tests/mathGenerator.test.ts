@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateQuestion } from '../src/math/mathGenerator';
+import { generateQuestion } from '@/domain/math/mathGenerator';
 
 function seq(nums: number[]) {
   let i = 0;

@@ -4,7 +4,7 @@ import {
   submitAnswer,
   coinsEarned,
   adjustDifficulty,
-} from '../src/quiz/quizSession';
+} from '@/domain/quiz/quizSession';
 
 describe('quizSession', () => {
   it('pays full reward on first try', () => {

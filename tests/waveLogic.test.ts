@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createWaveState, tickWave, onFortBreached } from '../src/waves/waveLogic';
-import { WAVE_DURATION_MS, REST_DURATION_MS } from '../src/config/gameConfig';
+import { createWaveState, tickWave, onFortBreached } from '@/domain/waves/waveLogic';
+import { WAVE_DURATION_MS, REST_DURATION_MS } from '@/config/gameConfig';
 
 describe('waveLogic', () => {
   it('transitions wave to rest after 60s', () => {

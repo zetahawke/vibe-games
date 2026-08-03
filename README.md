@@ -10,6 +10,27 @@ Suite de juegos de navegador en español para jugar en casa (PC y tablet).
 - Tienda de armas y quiz de matemáticas para ganar monedas
 - Guardado y récord de oleada en `localStorage`
 
+## Estructura del código
+
+```
+src/
+  app/                 # Router / shell de la suite
+  config/              # Constantes de juego
+  shared/              # Utilidades compartidas (DOM, device)
+  domain/              # Lógica pura (auth, save, score, math, economy, quiz, weapons, waves)
+  game/
+    GameSession.ts     # Orquestación de una partida
+    input/             # Controles teclado/mouse/touch
+    ui/
+      screens/         # Login, hub
+      overlays/        # Tienda, quiz, pausa, game over
+      hud.ts
+    world/             # Three.js: mundo, player, zombies, proyectiles, entorno
+  styles/
+```
+
+Alias de imports: `@/` → `src/` (ej. `import { World } from '@/game/world'`).
+
 ## Comandos
 
 ```bash

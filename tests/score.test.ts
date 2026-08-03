@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { scoreForKill, scoreForQuiz, topicScoreFactor } from '../src/score/score';
+import { scoreForKill, scoreForQuiz, topicScoreFactor } from '@/domain/score/score';
 
 describe('score', () => {
   it('kill score scales with wave', () => {

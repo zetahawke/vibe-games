@@ -10,7 +10,11 @@
     "noEmit": true,
     "isolatedModules": true,
     "moduleDetection": "force",
-    "types": ["vitest/globals"]
+    "types": ["vitest/globals", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
   "include": ["src", "tests"]
 }

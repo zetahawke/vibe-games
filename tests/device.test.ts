@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { isTouchPrimary } from '../src/input/device';
+import { isTouchPrimary } from '@/shared/device';
 
 describe('isTouchPrimary', () => {
   afterEach(() => {

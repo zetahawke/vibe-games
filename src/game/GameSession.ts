@@ -1,6 +1,6 @@
-import { COINS_PER_ZOMBIE } from '../config/gameConfig';
-import { addCoins } from '../economy/economy';
-import { InputManager } from '../input/InputManager';
+import { COINS_PER_ZOMBIE } from '@/config/gameConfig';
+import { addCoins } from '@/domain/economy/economy';
+import { InputManager } from '@/game/input/InputManager';
 import {
   clearSave,
   defaultSave,
@@ -9,17 +9,17 @@ import {
   loadSave,
   updateHighScore,
   writeSave,
-} from '../save/save';
-import { scoreForKill, scoreForQuiz } from '../score/score';
-import { Hud, renderTopicPicker } from '../ui/hud';
-import { renderGameOverOverlay } from '../ui/gameOverOverlay';
-import { renderPauseOverlay } from '../ui/pauseOverlay';
-import { renderQuizOverlay } from '../ui/quizOverlay';
-import { renderShopOverlay } from '../ui/shopOverlay';
-import { clear, el } from '../ui/dom';
-import { onFortBreached, tickWave, WaveState } from '../waves/waveLogic';
-import { getWeapon } from '../weapons/weapons';
-import { World } from '../world/World';
+} from '@/domain/save/save';
+import { scoreForKill, scoreForQuiz } from '@/domain/score/score';
+import { Hud, renderTopicPicker } from '@/game/ui/hud';
+import { renderGameOverOverlay } from '@/game/ui/overlays/gameOverOverlay';
+import { renderPauseOverlay } from '@/game/ui/overlays/pauseOverlay';
+import { renderQuizOverlay } from '@/game/ui/overlays/quizOverlay';
+import { renderShopOverlay } from '@/game/ui/overlays/shopOverlay';
+import { clear, el } from '@/shared/dom';
+import { onFortBreached, tickWave, WaveState } from '@/domain/waves/waveLogic';
+import { getWeapon } from '@/domain/weapons/weapons';
+import { World } from '@/game/world/World';
 
 export class GameSession {
   private wrap: HTMLElement;

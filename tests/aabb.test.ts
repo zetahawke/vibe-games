@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { overlaps } from '../src/world/aabb';
+import { overlaps } from '@/game/world/aabb';
 
 describe('aabb', () => {
   it('detects overlap', () => {

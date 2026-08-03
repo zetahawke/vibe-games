@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { WEAPONS, zombieHpForWave, getWeapon } from '../src/weapons/weapons';
+import { WEAPONS, zombieHpForWave, getWeapon } from '@/domain/weapons/weapons';
 
 describe('weapons', () => {
   it('starts with free cuchillo', () => {

@@ -6,7 +6,7 @@ import {
   clearSave,
   getHighScore,
   updateHighScore,
-} from '../src/save/save';
+} from '@/domain/save/save';
 
 beforeEach(() => localStorage.clear());
 

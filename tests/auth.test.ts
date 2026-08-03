@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { register, login, listUsers, getSession, logout } from '../src/auth/auth';
+import { register, login, listUsers, getSession, logout } from '@/domain/auth/auth';
 
 beforeEach(() => {
   localStorage.clear();

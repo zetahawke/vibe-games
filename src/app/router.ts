@@ -1,6 +1,6 @@
-import { getSession } from '../auth/auth';
-import { renderHubScreen } from '../ui/hubScreen';
-import { renderLoginScreen } from '../ui/loginScreen';
+import { getSession } from '@/domain/auth/auth';
+import { renderHubScreen } from '@/game/ui/screens/hubScreen';
+import { renderLoginScreen } from '@/game/ui/screens/loginScreen';
 
 export class Router {
   private root: HTMLElement;
