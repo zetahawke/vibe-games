@@ -103,7 +103,7 @@ export function renderHubScreen(
         makeCard(
           'Fuerte de Mates',
           'Defiende el fuerte y gana monedas con matemáticas.',
-          'Edad recomendada: 7+',
+          'Edad recomendada: 5+',
           shooterActions,
           '/hub/fuerte.jpg',
         ),
