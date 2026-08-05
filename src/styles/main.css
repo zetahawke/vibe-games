@@ -599,6 +599,17 @@ input {
   margin-top: 0.75rem;
 }
 
+.quiz-earned {
+  color: #7dffb0;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.quiz-correct {
+  color: #7dffb0;
+  font-weight: 700;
+}
+
 /* English quiz multiple-choice */
 .english-opts {
   display: flex;

@@ -33,12 +33,14 @@ export function startQuiz(
   rng?: () => number,
 ): QuizState {
   const d = clampDifficulty(difficulty);
+  const question = generateQuestion(topic, d, rng);
   return {
     topic,
     difficulty: d,
-    question: generateQuestion(topic, d, rng),
+    question,
     attemptsLeft: QUIZ_MAX_ATTEMPTS,
-    reward: rewardFor(topic, d),
+    // Use the resolved sub-topic (question.topic) so mixto rewards properly.
+    reward: rewardFor(question.topic, d),
     status: 'active',
     lastMessage: '',
   };

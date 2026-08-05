@@ -10,7 +10,7 @@ import {
   updateHighScore,
   writeSave,
 } from '@/domain/save/save';
-import { scoreForKill, scoreForQuiz } from '@/domain/score';
+import { scoreForKill } from '@/domain/score';
 import { Hud, renderLevelPicker, type LevelSubjectChoice } from '@/game/ui/hud';
 import { renderGameOverOverlay } from '@/game/ui/overlays/gameOverOverlay';
 import { renderPauseOverlay } from '@/game/ui/overlays/pauseOverlay';
@@ -241,17 +241,11 @@ export class GameSession {
         this.wrap,
         this.save.mathTopic,
         this.save.quizDifficulty,
-        (coins, difficulty, questionTopic) => {
+        (coins, score, finalDifficulty) => {
           this.save.coins = addCoins(this.save.coins, coins);
-          this.save.quizDifficulty = difficulty;
-          this.save.score += scoreForQuiz(questionTopic);
+          this.save.score += score;
+          this.save.quizDifficulty = finalDifficulty;
           this.persist();
-          this.quizOverlay?.remove();
-          this.quizOverlay = null;
-          this.requestShop();
-        },
-        (difficulty) => {
-          this.save.quizDifficulty = difficulty;
           this.quizOverlay?.remove();
           this.quizOverlay = null;
           this.requestShop();
