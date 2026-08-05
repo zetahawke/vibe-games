@@ -101,9 +101,9 @@ export function renderHubScreen(
       ]),
       el('div', { className: 'game-grid' }, [
         makeCard(
-          'Fuerte de Mates',
-          'Defiende el fuerte y gana monedas con matemáticas.',
-          'Edad recomendada: 5+',
+          'Protege el fuerte',
+          'Defiende el fuerte y gana monedas con matemáticas e inglés.',
+          'Edad recomendada: 7+',
           shooterActions,
           '/hub/fuerte.jpg',
         ),

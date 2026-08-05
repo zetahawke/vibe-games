@@ -61,6 +61,8 @@ export class World {
   private readonly pathEndZ = PATH_END_Z;
   private readonly fortHalf = FORT_HALF;
   private readonly fortHeight = FORT_HEIGHT;
+  private hpBarsLayer: HTMLElement;
+  private hpBarEls = new Map<Zombie, HTMLElement>();
 
   constructor(private container: HTMLElement, pathHalfW: number = rollPathHalfWidth()) {
     this.pathHalfW = pathHalfW;
@@ -71,6 +73,10 @@ export class World {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.append(this.renderer.domElement);
+
+    this.hpBarsLayer = document.createElement('div');
+    this.hpBarsLayer.className = 'zombie-hp-layer';
+    container.append(this.hpBarsLayer);
 
     this.camera = new THREE.PerspectiveCamera(
       60,
@@ -153,7 +159,11 @@ export class World {
   }
 
   clearZombies(): void {
-    for (const z of this.zombies) this.scene.remove(z.root);
+    for (const z of this.zombies) {
+      this.scene.remove(z.root);
+      this.hpBarEls.get(z)?.remove();
+      this.hpBarEls.delete(z);
+    }
     this.zombies = [];
   }
 
@@ -282,13 +292,38 @@ export class World {
       if (events.fortBreached) this.clearZombies();
     }
 
+    this.updateHpBars();
     this.renderer.render(this.scene, this.camera);
     return events;
+  }
+
+  private updateHpBars(): void {
+    const now = performance.now();
+    const w = this.container.clientWidth;
+    const h = this.container.clientHeight;
+    const above = new THREE.Vector3();
+    for (const z of this.zombies) {
+      const bar = this.hpBarEls.get(z);
+      if (!bar) continue;
+      const visible = now < z.hpShowUntil;
+      bar.hidden = !visible;
+      if (!visible) continue;
+      above.set(z.root.position.x, 2.8, z.root.position.z);
+      above.project(this.camera);
+      if (above.z > 1) { bar.hidden = true; continue; }
+      const sx = ((above.x + 1) / 2) * w;
+      const sy = ((-above.y + 1) / 2) * h;
+      bar.style.left = `${sx - 30}px`;
+      bar.style.top = `${sy - 8}px`;
+      const pct = Math.max(0, Math.min(1, z.hp / z.hpMax)) * 100;
+      (bar.firstElementChild as HTMLElement).style.width = `${pct}%`;
+    }
   }
 
   dispose(): void {
     window.removeEventListener('resize', this.onResize);
     this.clearZombies();
+    this.hpBarsLayer.remove();
     clearProjectiles(this.scene, this.projectiles);
     this.projectiles = [];
     for (const t of this.textures) t.dispose();
@@ -321,8 +356,11 @@ export class World {
 
   private damageZombie(z: Zombie, damage: number): number {
     z.hp -= damage;
+    z.hpShowUntil = performance.now() + 2000;
     if (z.hp > 0) return 0;
     this.scene.remove(z.root);
+    this.hpBarEls.get(z)?.remove();
+    this.hpBarEls.delete(z);
     this.zombies = this.zombies.filter((o) => o !== z);
     return 1;
   }
@@ -335,10 +373,19 @@ export class World {
     const lane = (Math.random() * 2 - 1) * (this.pathHalfW - 1.2);
     z.root.position.set(lane, 0, this.pathEndZ + Math.random() * 2);
     this.scene.add(z.root);
-    z.hp = zombieHpForWave(this.wave);
+    const hp = zombieHpForWave(this.wave);
+    z.hp = hp;
+    z.hpMax = hp;
+    z.hpShowUntil = performance.now() + 2000;
     const waveBoost = 1 + (this.wave - 1) * 0.04;
     z.speed = BASE_ZOMBIE_SPEED * waveBoost * (0.9 + Math.random() * 0.2);
     this.zombies.push(z);
+
+    const bar = document.createElement('div');
+    bar.className = 'zombie-hp-bar';
+    bar.innerHTML = '<div class="zombie-hp-fill"></div>';
+    this.hpBarsLayer.append(bar);
+    this.hpBarEls.set(z, bar);
   }
 
   private onResize = (): void => {

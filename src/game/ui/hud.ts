@@ -1,4 +1,4 @@
-import type { MathTopic } from '@/config/gameConfig';
+import type { GameSubject, GradeLevel } from '@/domain/save/save';
 import { isTouchPrimary } from '@/shared/device';
 import { Phase } from '@/domain/save/save';
 import { clear, el } from '@/shared/dom';
@@ -33,7 +33,6 @@ export class Hud {
   private scoreEl: HTMLElement;
   private bannerEl: HTMLElement;
   private phaseEl: HTMLElement;
-  private pointsEl: HTMLElement;
   private crosshairEl: HTMLElement;
   readonly touchMode: boolean;
 
@@ -43,80 +42,82 @@ export class Hud {
   readonly jumpBtn: HTMLButtonElement;
   readonly stickZone: HTMLElement;
   readonly lookZone: HTMLElement;
+  private readonly _hiscoreEl: HTMLElement;
 
   constructor(parent: HTMLElement) {
     this.touchMode = isTouchPrimary();
     this.root = el('div', {
       className: this.touchMode ? 'hud hud-touch' : 'hud hud-desktop',
     });
-    this.coinsEl = el('div', { className: 'hud-item' });
-    this.livesEl = el('div', { className: 'hud-item' });
-    this.waveEl = el('div', { className: 'hud-item' });
-    this.timerEl = el('div', { className: 'hud-item' });
-    this.weaponEl = el('div', { className: 'hud-item' });
-    this.scoreEl = el('div', { className: 'hud-item' });
-    this.pointsEl = el('div', { className: 'hud-item' });
-    this.phaseEl = el('div', { className: 'hud-item' });
+
+    this.coinsEl = el('div', { className: 'hud-stat' });
+    this.livesEl = el('div', { className: 'hud-stat' });
+    this.waveEl  = el('div', { className: 'hud-stat' });
+    this.phaseEl = el('div', { className: 'hud-stat' });
+    this.timerEl = el('div', { className: 'hud-stat' });
+    this.weaponEl = el('div', { className: 'hud-stat' });
+    this.scoreEl = el('div', { className: 'hud-stat' });
+    const highScoreEl = el('div', { className: 'hud-stat hud-stat-muted', id: 'hud-hiscore' });
     this.bannerEl = el('div', { className: 'hud-banner' });
     this.crosshairEl = el('div', { className: 'crosshair', hidden: 'true' });
 
-    this.shopBtn = el('button', { type: 'button', className: 'btn touch-btn' }, [
-      'Tienda',
-    ]) as HTMLButtonElement;
-    this.pauseBtn = el('button', { type: 'button', className: 'btn touch-btn' }, [
-      'Pausa',
-    ]) as HTMLButtonElement;
-    this.fireBtn = el('button', { type: 'button', className: 'btn touch-btn fire-btn' }, [
-      'Disparar',
-    ]) as HTMLButtonElement;
-    this.jumpBtn = el('button', { type: 'button', className: 'btn touch-btn jump-btn' }, [
-      'Saltar',
-    ]) as HTMLButtonElement;
-    this.stickZone = el('div', { className: 'stick-zone', id: 'stick-zone' }, [
-      el('div', { className: 'stick-knob', id: 'stick-knob' }),
+    const statsPanel = el('div', { className: 'hud-stats' }, [
+      this.coinsEl,
+      this.livesEl,
+      this.waveEl,
+      this.phaseEl,
+      this.timerEl,
+      this.weaponEl,
+      this.scoreEl,
+      highScoreEl,
     ]);
-    this.lookZone = el('div', { className: 'look-zone', id: 'look-zone' });
+    this._hiscoreEl = highScoreEl;
 
-    const hint = this.touchMode
-      ? null
-      : el('div', { className: 'hud-hint' }, [
-          'WASD mover · Espacio saltar · Mouse mirar · Clic disparar · E tienda · Esc pausa',
-        ]);
+    this.shopBtn = el('button', { type: 'button', className: 'hud-icon-btn', title: 'Inventario' }, [
+      '🎒',
+    ]) as HTMLButtonElement;
+    this.pauseBtn = el('button', { type: 'button', className: 'hud-icon-btn', title: 'Pausa' }, [
+      '⏸',
+    ]) as HTMLButtonElement;
+
+    this.fireBtn = el('button', { type: 'button', className: 'hud-fire-btn' }, [
+      '🔴',
+    ]) as HTMLButtonElement;
+    this.jumpBtn = el('button', { type: 'button', className: 'hud-jump-btn' }, [
+      '⬆',
+    ]) as HTMLButtonElement;
+
+    this.stickZone = el('div', { className: 'hud-stick-zone', id: 'stick-zone' }, [
+      el('div', { className: 'stick-base', id: 'stick-base' }, [
+        el('div', { className: 'stick-knob', id: 'stick-knob' }),
+      ]),
+    ]);
+    this.lookZone = el('div', { className: 'hud-look-zone', id: 'look-zone' });
+
+    const cornerBtns = el('div', { className: 'hud-corner' }, [
+      this.shopBtn,
+      this.pauseBtn,
+    ]);
 
     this.root.append(
-      el('div', { className: 'hud-top' }, [
-        this.coinsEl,
-        this.livesEl,
-        this.waveEl,
-        this.phaseEl,
-        this.timerEl,
-        this.weaponEl,
-        this.pointsEl,
-        this.scoreEl,
-      ]),
+      statsPanel,
       this.bannerEl,
       this.crosshairEl,
+      cornerBtns,
     );
 
     if (this.touchMode) {
       this.root.append(
-        el('div', { className: 'hud-bottom' }, [
-          this.stickZone,
-          el('div', { className: 'hud-actions' }, [
-            this.shopBtn,
-            this.pauseBtn,
-            this.jumpBtn,
-            this.fireBtn,
-          ]),
-          this.lookZone,
-        ]),
+        this.stickZone,
+        this.lookZone,
+        this.fireBtn,
+        this.jumpBtn,
       );
     } else {
-      this.root.append(
-        el('div', { className: 'hud-desktop-actions' }, [this.shopBtn, this.pauseBtn]),
-      );
-      if (hint) this.root.append(hint);
-      // Keep nodes for GameSession wiring, but hidden
+      const hint = el('div', { className: 'hud-hint' }, [
+        'WASD mover · Espacio saltar · Mouse mirar · Clic disparar · E tienda · Esc pausa',
+      ]);
+      this.root.append(hint);
       this.fireBtn.hidden = true;
       this.jumpBtn.hidden = true;
       this.stickZone.hidden = true;
@@ -128,14 +129,14 @@ export class Hud {
   }
 
   update(model: HudModel): void {
-    this.coinsEl.textContent = `Monedas: ${model.coins}`;
-    this.livesEl.textContent = `Vidas: ${'♥'.repeat(model.lives)}${'♡'.repeat(Math.max(0, 3 - model.lives))}`;
-    this.waveEl.textContent = `Oleada: ${model.wave}`;
-    this.phaseEl.textContent = model.phase === 'wave' ? 'Combate' : 'Descanso';
-    this.timerEl.textContent = formatTime(model.phaseTimeLeftMs);
-    this.weaponEl.textContent = `Arma: ${model.weaponName}`;
-    this.pointsEl.textContent = `Puntos: ${model.score}`;
-    this.scoreEl.textContent = `Récord: ${model.highScore}`;
+    this.coinsEl.textContent = `🪙 ${model.coins}`;
+    this.livesEl.textContent = `${'♥'.repeat(model.lives)}${'♡'.repeat(Math.max(0, 3 - model.lives))}`;
+    this.waveEl.textContent = `Oleada ${model.wave}`;
+    this.phaseEl.textContent = model.phase === 'wave' ? '⚔ Combate' : '💤 Descanso';
+    this.timerEl.textContent = `⏱ ${formatTime(model.phaseTimeLeftMs)}`;
+    this.weaponEl.textContent = `🔫 ${model.weaponName}`;
+    this.scoreEl.textContent = `⭐ ${model.score}`;
+    this._hiscoreEl.textContent = `🏆 ${model.highScore}`;
     this.bannerEl.textContent = model.banner;
     this.crosshairEl.hidden = !model.showCrosshair;
   }
@@ -145,32 +146,84 @@ export class Hud {
   }
 }
 
-export function renderTopicPicker(
+// ── Level + Subject picker ────────────────────────────────────────────────────
+
+export type SubjectChoice = { subject: 'math' } | { subject: 'english'; englishGrade: '7mo' };
+export interface LevelSubjectChoice {
+  grade: GradeLevel;
+  subject: GameSubject;
+  englishGrade: '7mo';
+}
+
+const GRADES: { id: GradeLevel; label: string; enabled: boolean }[] = [
+  { id: '5to', label: '5to Básico', enabled: false },
+  { id: '6to', label: '6to Básico', enabled: false },
+  { id: '7mo', label: '7mo Básico', enabled: true },
+  { id: '8vo', label: '8vo Básico', enabled: false },
+];
+
+const SUBJECTS: { id: GameSubject; label: string; icon: string }[] = [
+  { id: 'math',    label: 'Matemáticas', icon: '🔢' },
+  { id: 'english', label: 'Inglés',       icon: '🇺🇸' },
+];
+
+export function renderLevelPicker(
   root: HTMLElement,
-  onPick: (topic: MathTopic) => void,
+  onPick: (choice: LevelSubjectChoice) => void,
   onCancel: () => void,
 ): void {
   clear(root);
-  const topics: { id: MathTopic; label: string }[] = [
-    { id: 'sumas', label: 'Sumas' },
-    { id: 'restas', label: 'Restas' },
-    { id: 'multiplicaciones', label: 'Multiplicaciones' },
-    { id: 'divisiones', label: 'Divisiones fáciles' },
-    { id: 'mixto', label: 'Mixto' },
-  ];
-  const list = el('div', { className: 'btn-col' });
-  for (const t of topics) {
-    const b = el('button', { type: 'button', className: 'btn primary' }, [t.label]);
-    b.addEventListener('click', () => onPick(t.id));
-    list.append(b);
-  }
-  const cancel = el('button', { type: 'button', className: 'btn topic-cancel' }, ['Cancelar']);
-  cancel.addEventListener('click', onCancel);
-  root.append(
-    el('section', { className: 'screen' }, [
-      el('h1', {}, ['Elige el tema de mates']),
-      list,
-      cancel,
-    ]),
-  );
+  let selectedGrade: GradeLevel | null = null;
+
+  const showSubjects = (grade: GradeLevel) => {
+    selectedGrade = grade;
+    clear(root);
+
+    const list = el('div', { className: 'btn-col' });
+    for (const s of SUBJECTS) {
+      const b = el('button', { type: 'button', className: 'btn primary' }, [`${s.icon} ${s.label}`]);
+      b.addEventListener('click', () =>
+        onPick({ grade, subject: s.id, englishGrade: '7mo' }),
+      );
+      list.append(b);
+    }
+    const back = el('button', { type: 'button', className: 'btn ghost' }, ['← Volver']);
+    back.addEventListener('click', () => showGrades());
+    root.append(
+      el('section', { className: 'screen' }, [
+        el('h1', {}, ['Elige la materia']),
+        el('p', { className: 'muted' }, [`Nivel: ${GRADES.find(g => g.id === grade)?.label}`]),
+        list,
+        back,
+      ]),
+    );
+  };
+
+  const showGrades = () => {
+    selectedGrade = null;
+    clear(root);
+    const list = el('div', { className: 'btn-col' });
+    for (const g of GRADES) {
+      const b = el('button', {
+        type: 'button',
+        className: 'btn primary',
+        ...(g.enabled ? {} : { disabled: 'true' }),
+      }, [g.label + (g.enabled ? '' : ' — próximamente')]);
+      if (g.enabled) b.addEventListener('click', () => showSubjects(g.id));
+      list.append(b);
+    }
+    const cancel = el('button', { type: 'button', className: 'btn ghost topic-cancel' }, ['Cancelar']);
+    cancel.addEventListener('click', onCancel);
+    root.append(
+      el('section', { className: 'screen' }, [
+        el('h1', {}, ['Protege el fuerte']),
+        el('p', { className: 'muted' }, ['Elige tu nivel']),
+        list,
+        cancel,
+      ]),
+    );
+  };
+
+  showGrades();
+  void selectedGrade; // suppress unused warning
 }

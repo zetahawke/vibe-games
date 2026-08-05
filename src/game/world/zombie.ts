@@ -8,6 +8,9 @@ export interface Zombie {
   leftLeg: THREE.Object3D;
   rightLeg: THREE.Object3D;
   hp: number;
+  hpMax: number;
+  /** performance.now() timestamp until which the HP bar should be visible. */
+  hpShowUntil: number;
   speed: number;
   walkPhase: number;
 }
@@ -65,6 +68,8 @@ export function buildZombie(
     leftLeg,
     rightLeg,
     hp: 1,
+    hpMax: 1,
+    hpShowUntil: 0,
     speed: BASE_ZOMBIE_SPEED,
     walkPhase: Math.random() * Math.PI * 2,
   };

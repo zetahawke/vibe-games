@@ -11,11 +11,12 @@ import {
   writeSave,
 } from '@/domain/save/save';
 import { scoreForKill, scoreForQuiz } from '@/domain/score/score';
-import { Hud, renderTopicPicker } from '@/game/ui/hud';
+import { Hud, renderLevelPicker, type LevelSubjectChoice } from '@/game/ui/hud';
 import { renderGameOverOverlay } from '@/game/ui/overlays/gameOverOverlay';
 import { renderPauseOverlay } from '@/game/ui/overlays/pauseOverlay';
 import { renderQuizOverlay } from '@/game/ui/overlays/quizOverlay';
 import { renderShopOverlay } from '@/game/ui/overlays/shopOverlay';
+import { renderEnglishQuizOverlay } from '@/game/ui/overlays/englishQuizOverlay';
 import { clear, el } from '@/shared/dom';
 import { onFortBreached, tickWave, WaveState } from '@/domain/waves/waveLogic';
 import { getWeapon } from '@/domain/weapons/weapons';
@@ -60,11 +61,18 @@ export class GameSession {
       }
     }
 
-    renderTopicPicker(
+    renderLevelPicker(
       this.wrap,
-      (topic) => {
+      (choice: LevelSubjectChoice) => {
         clear(this.wrap);
-        this.beginWithSave(defaultSave(topic));
+        this.beginWithSave(
+          defaultSave({
+            subject: choice.subject,
+            grade: choice.grade,
+            englishGrade: choice.englishGrade,
+            mathTopic: 'mixto',
+          }),
+        );
       },
       () => this.exit(),
     );
@@ -115,43 +123,50 @@ export class GameSession {
       input.pressJump();
     });
 
-    this.bindStick(hud.stickZone);
+    this.bindDynamicStick(hud.stickZone);
     this.bindLook(hud.lookZone);
   }
 
-  private bindStick(zone: HTMLElement): void {
+  private bindDynamicStick(zone: HTMLElement): void {
+    const base = zone.querySelector('#stick-base') as HTMLElement;
     const knob = zone.querySelector('#stick-knob') as HTMLElement;
     let active = false;
-    const center = () => {
-      const r = zone.getBoundingClientRect();
-      return { x: r.left + r.width / 2, y: r.top + r.height / 2, max: r.width / 2 };
-    };
-    const update = (clientX: number, clientY: number) => {
-      const c = center();
-      let dx = clientX - c.x;
-      let dy = clientY - c.y;
-      const len = Math.hypot(dx, dy) || 1;
-      const max = c.max - 10;
-      if (len > max) {
-        dx = (dx / len) * max;
-        dy = (dy / len) * max;
-      }
-      knob.style.transform = `translate(${dx}px, ${dy}px)`;
-      this.input?.setTouchMove(dx / max, dy / max);
-    };
-    const end = () => {
-      active = false;
-      knob.style.transform = 'translate(0,0)';
-      this.input?.setTouchMove(0, 0);
-    };
+    let originX = 0;
+    let originY = 0;
+    const RADIUS = 52;
+
     zone.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
       active = true;
       zone.setPointerCapture(e.pointerId);
-      update(e.clientX, e.clientY);
+      const rect = zone.getBoundingClientRect();
+      originX = e.clientX - rect.left;
+      originY = e.clientY - rect.top;
+      base.style.left = `${originX}px`;
+      base.style.top = `${originY}px`;
+      base.style.display = 'block';
+      knob.style.transform = 'translate(-50%, -50%)';
     });
+
     zone.addEventListener('pointermove', (e) => {
-      if (active) update(e.clientX, e.clientY);
+      if (!active) return;
+      const rect = zone.getBoundingClientRect();
+      let dx = (e.clientX - rect.left) - originX;
+      let dy = (e.clientY - rect.top) - originY;
+      const len = Math.hypot(dx, dy) || 1;
+      if (len > RADIUS) {
+        dx = (dx / len) * RADIUS;
+        dy = (dy / len) * RADIUS;
+      }
+      knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+      this.input?.setTouchMove(dx / RADIUS, dy / RADIUS);
     });
+
+    const end = () => {
+      active = false;
+      base.style.display = 'none';
+      this.input?.setTouchMove(0, 0);
+    };
     zone.addEventListener('pointerup', end);
     zone.addEventListener('pointercancel', end);
   }
@@ -167,9 +182,7 @@ export class GameSession {
       this.input?.setTouchLook(e.clientX - last.x, e.clientY - last.y);
       last = { x: e.clientX, y: e.clientY };
     });
-    const clearLast = () => {
-      last = null;
-    };
+    const clearLast = () => { last = null; };
     zone.addEventListener('pointerup', clearLast);
     zone.addEventListener('pointercancel', clearLast);
   }
@@ -178,11 +191,10 @@ export class GameSession {
     if (!this.waves || this.waves.status === 'gameover') return;
     if (this.shopOverlay || this.quizOverlay) return;
     if (!this.world?.isPlayerInFort()) {
-      this.showBanner('Entra al fuerte para abrir la tienda');
+      this.showBanner('Entra al fuerte para abrir el inventario');
       return;
     }
     this.uiBlocking = true;
-    // Timer and combat keep running; only block player input via consume(uiBlocking)
     this.shopOverlay = renderShopOverlay(
       this.wrap,
       this.save,
@@ -198,35 +210,53 @@ export class GameSession {
   private closeShop(): void {
     this.shopOverlay?.remove();
     this.shopOverlay = null;
-    if (!this.quizOverlay) {
-      this.uiBlocking = false;
-    }
+    if (!this.quizOverlay) this.uiBlocking = false;
     this.persist();
   }
 
   private openQuiz(): void {
     this.shopOverlay?.remove();
     this.shopOverlay = null;
-    this.quizOverlay = renderQuizOverlay(
-      this.wrap,
-      this.save.mathTopic,
-      this.save.quizDifficulty,
-      (coins, difficulty, questionTopic) => {
-        this.save.coins = addCoins(this.save.coins, coins);
-        this.save.quizDifficulty = difficulty;
-        this.save.score += scoreForQuiz(questionTopic);
-        this.persist();
-        this.quizOverlay?.remove();
-        this.quizOverlay = null;
-        this.requestShop();
-      },
-      (difficulty) => {
-        this.save.quizDifficulty = difficulty;
-        this.quizOverlay?.remove();
-        this.quizOverlay = null;
-        this.requestShop();
-      },
-    );
+
+    if (this.save.subject === 'english') {
+      this.quizOverlay = renderEnglishQuizOverlay(
+        this.wrap,
+        this.save.englishGrade,
+        (coins) => {
+          this.save.coins = addCoins(this.save.coins, coins);
+          this.persist();
+          this.quizOverlay?.remove();
+          this.quizOverlay = null;
+          this.requestShop();
+        },
+        () => {
+          this.quizOverlay?.remove();
+          this.quizOverlay = null;
+          this.requestShop();
+        },
+      );
+    } else {
+      this.quizOverlay = renderQuizOverlay(
+        this.wrap,
+        this.save.mathTopic,
+        this.save.quizDifficulty,
+        (coins, difficulty, questionTopic) => {
+          this.save.coins = addCoins(this.save.coins, coins);
+          this.save.quizDifficulty = difficulty;
+          this.save.score += scoreForQuiz(questionTopic);
+          this.persist();
+          this.quizOverlay?.remove();
+          this.quizOverlay = null;
+          this.requestShop();
+        },
+        (difficulty) => {
+          this.save.quizDifficulty = difficulty;
+          this.quizOverlay?.remove();
+          this.quizOverlay = null;
+          this.requestShop();
+        },
+      );
+    }
   }
 
   private togglePause(): void {
@@ -264,7 +294,6 @@ export class GameSession {
     const prevPhase = this.waves.phase;
     const prevWave = this.waves.wave;
 
-    // Wave timer keeps running even with shop/quiz open (only Esc pause freezes it)
     if (!this.paused && this.waves.status === 'playing') {
       this.waves = tickWave(this.waves, dt * 1000);
       if (this.waves.phase !== prevPhase || this.waves.wave !== prevWave) {

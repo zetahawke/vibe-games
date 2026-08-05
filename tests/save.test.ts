@@ -8,18 +8,20 @@ import {
   updateHighScore,
 } from '@/domain/save/save';
 
+const mathSave = () => defaultSave({ subject: 'math', grade: '7mo', englishGrade: '7mo', mathTopic: 'sumas' });
+
 beforeEach(() => localStorage.clear());
 
 describe('save', () => {
   it('roundtrips a save', () => {
-    const s = defaultSave('sumas');
+    const s = mathSave();
     s.coins = 12;
     writeSave('ana', s);
     expect(loadSave('ana')?.coins).toBe(12);
   });
 
   it('clearSave removes active game but high score remains', () => {
-    writeSave('ana', defaultSave('sumas'));
+    writeSave('ana', mathSave());
     updateHighScore('ana', 7);
     clearSave('ana');
     expect(loadSave('ana')).toBeNull();
