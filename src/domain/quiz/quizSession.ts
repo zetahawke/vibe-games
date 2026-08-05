@@ -1,9 +1,6 @@
-import {
-  MathTopic,
-  QUIZ_MAX_ATTEMPTS,
-  QUIZ_REWARDS,
-} from '@/config/gameConfig';
+import { MathTopic, QUIZ_MAX_ATTEMPTS } from '@/config/gameConfig';
 import { generateQuestion, MathQuestion } from '@/domain/math/mathGenerator';
+import { QUIZ_SCORE } from '@/domain/score/score';
 
 export interface QuizState {
   topic: MathTopic;
@@ -19,8 +16,15 @@ function clampDifficulty(difficulty: number): number {
   return Math.min(3, Math.max(1, Math.floor(difficulty)));
 }
 
-function rewardFor(difficulty: number): number {
-  return QUIZ_REWARDS[clampDifficulty(difficulty)] ?? QUIZ_REWARDS[1];
+/**
+ * Coins = base por tema × nivel de dificultad.
+ * sumas/restas diff 1 → 4 · diff 2 → 8 · diff 3 → 12
+ * multiplicaciones diff 1 → 8 · diff 2 → 16 · diff 3 → 24
+ * divisiones      diff 1 → 14 · diff 2 → 28 · diff 3 → 42
+ */
+function rewardFor(topic: MathTopic, difficulty: number): number {
+  const base = QUIZ_SCORE[topic] ?? 4;
+  return base * clampDifficulty(difficulty);
 }
 
 export function startQuiz(
@@ -34,7 +38,7 @@ export function startQuiz(
     difficulty: d,
     question: generateQuestion(topic, d, rng),
     attemptsLeft: QUIZ_MAX_ATTEMPTS,
-    reward: rewardFor(d),
+    reward: rewardFor(topic, d),
     status: 'active',
     lastMessage: '',
   };
