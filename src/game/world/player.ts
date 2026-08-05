@@ -15,7 +15,7 @@ export interface PlayerRig {
   weaponSlot: THREE.Group;
 }
 
-export const PLAYER_SPEED = 8;
+export const PLAYER_SPEED = 10;
 export const PLAYER_JUMP_SPEED = 9;
 export const PLAYER_GRAVITY = 24;
 export const PLAYER_GROUND_Y = 0;
