@@ -1,50 +1,100 @@
 import * as THREE from 'three';
 import { WeaponId, getWeapon, type WeaponKind } from '@/domain/weapons/weapons';
 
-function mat(color: number, metal = 0.4, rough = 0.45): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({ color, metalness: metal, roughness: rough });
+function mat(
+  color: number,
+  metal = 0.4,
+  rough = 0.45,
+  emissive = 0x000000,
+  emissiveIntensity = 0,
+): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color,
+    metalness: metal,
+    roughness: rough,
+    emissive,
+    emissiveIntensity,
+  });
 }
 
 function buildKindModel(kind: WeaponKind, upgraded: boolean): THREE.Group {
   const g = new THREE.Group();
-  // Upgraded variants get a warmer / gold-tinted metal look.
-  const dark = upgraded ? 0x3a2a12 : 0x2b2b2b;
-  const mid = upgraded ? 0x8a6a28 : 0x444444;
-  const wood = upgraded ? 0x8a5520 : 0x6b3e1f;
-  const green = upgraded ? 0x4a5a2a : 0x2f3d2f;
 
-  if (kind === 'cuchillo') {
-    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.35, 0.12), mat(0x5c3a1e, 0.1, 0.9));
-    handle.position.set(0, -0.15, 0);
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, 0.55), mat(0xcfd6e0, 0.85, 0.25));
-    blade.position.set(0, 0.05, -0.4);
-    g.add(handle, blade);
-  } else if (kind === 'pistola') {
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.22, 0.45), mat(dark, 0.5, 0.4));
-    body.position.set(0, 0, -0.25);
-    const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.28), mat(mid, 0.7, 0.3));
-    barrel.position.set(0, 0.02, -0.55);
-    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.32, 0.16), mat(0x1a1a1a, 0.2, 0.7));
-    grip.position.set(0, -0.22, -0.1);
-    g.add(body, barrel, grip);
-  } else if (kind === 'escopeta') {
-    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.18, 0.4), mat(wood, 0.1, 0.85));
-    stock.position.set(0, -0.05, 0.05);
-    const tube = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.85), mat(mid, 0.65, 0.35));
-    tube.position.set(0, 0.02, -0.5);
-    const pump = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.16, 0.28), mat(dark, 0.4, 0.5));
-    pump.position.set(0, -0.08, -0.25);
-    g.add(stock, tube, pump);
+  if (!upgraded) {
+    // Base weapon: dark metal tones
+    if (kind === 'cuchillo') {
+      const handle = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.35, 0.12), mat(0x5c3a1e, 0.1, 0.9));
+      handle.position.set(0, -0.15, 0);
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, 0.55), mat(0xcfd6e0, 0.85, 0.25));
+      blade.position.set(0, 0.05, -0.4);
+      g.add(handle, blade);
+    } else if (kind === 'pistola') {
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.22, 0.45), mat(0x2b2b2b, 0.5, 0.4));
+      body.position.set(0, 0, -0.25);
+      const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.28), mat(0x444444, 0.7, 0.3));
+      barrel.position.set(0, 0.02, -0.55);
+      const grip = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.32, 0.16), mat(0x1a1a1a, 0.2, 0.7));
+      grip.position.set(0, -0.22, -0.1);
+      g.add(body, barrel, grip);
+    } else if (kind === 'escopeta') {
+      const stock = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.18, 0.4), mat(0x6b3e1f, 0.1, 0.85));
+      stock.position.set(0, -0.05, 0.05);
+      const tube = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.85), mat(0x444444, 0.65, 0.35));
+      tube.position.set(0, 0.02, -0.5);
+      const pump = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.16, 0.28), mat(0x2b2b2b, 0.4, 0.5));
+      pump.position.set(0, -0.08, -0.25);
+      g.add(stock, tube, pump);
+    } else {
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.7), mat(0x2f3d2f, 0.45, 0.4));
+      body.position.set(0, 0, -0.35);
+      const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.55), mat(0x444444, 0.75, 0.28));
+      barrel.position.set(0, 0.04, -0.85);
+      const stock = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.18, 0.35), mat(0x6b3e1f, 0.1, 0.85));
+      stock.position.set(0, -0.02, 0.15);
+      const mag = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.28, 0.16), mat(0x222222, 0.3, 0.6));
+      mag.position.set(0, -0.2, -0.2);
+      g.add(body, barrel, stock, mag);
+    }
   } else {
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.7), mat(green, 0.45, 0.4));
-    body.position.set(0, 0, -0.35);
-    const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.55), mat(mid, 0.75, 0.28));
-    barrel.position.set(0, 0.04, -0.85);
-    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.18, 0.35), mat(wood, 0.1, 0.85));
-    stock.position.set(0, -0.02, 0.15);
-    const mag = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.28, 0.16), mat(0x222222, 0.3, 0.6));
-    mag.position.set(0, -0.2, -0.2);
-    g.add(body, barrel, stock, mag);
+    // Upgraded: vivid gold body + glowing emissive accent so it's unmistakably yellow
+    const goldBody  = mat(0xd4a017, 0.75, 0.25, 0xd4a017, 0.18);
+    const goldShine = mat(0xffd700, 0.85, 0.15, 0xffd700, 0.30);
+    const darkGold  = mat(0x7a5a00, 0.65, 0.35);
+    const warmWood  = mat(0x9a6030, 0.05, 0.85);
+
+    if (kind === 'cuchillo') {
+      const handle = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.35, 0.12), warmWood);
+      handle.position.set(0, -0.15, 0);
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, 0.55), goldShine);
+      blade.position.set(0, 0.05, -0.4);
+      g.add(handle, blade);
+    } else if (kind === 'pistola') {
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.22, 0.45), goldBody);
+      body.position.set(0, 0, -0.25);
+      const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.28), goldShine);
+      barrel.position.set(0, 0.02, -0.55);
+      const grip = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.32, 0.16), darkGold);
+      grip.position.set(0, -0.22, -0.1);
+      g.add(body, barrel, grip);
+    } else if (kind === 'escopeta') {
+      const stock = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.18, 0.4), warmWood);
+      stock.position.set(0, -0.05, 0.05);
+      const tube = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.85), goldShine);
+      tube.position.set(0, 0.02, -0.5);
+      const pump = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.16, 0.28), goldBody);
+      pump.position.set(0, -0.08, -0.25);
+      g.add(stock, tube, pump);
+    } else {
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.7), goldBody);
+      body.position.set(0, 0, -0.35);
+      const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.55), goldShine);
+      barrel.position.set(0, 0.04, -0.85);
+      const stock = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.18, 0.35), warmWood);
+      stock.position.set(0, -0.02, 0.15);
+      const mag = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.28, 0.16), darkGold);
+      mag.position.set(0, -0.2, -0.2);
+      g.add(body, barrel, stock, mag);
+    }
   }
   return g;
 }

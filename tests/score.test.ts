@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { scoreForKill, scoreForQuiz, topicScoreFactor } from '@/domain/score/score';
+import { scoreForKill, scoreForQuiz, ENGLISH_QUIZ_SCORE } from '@/domain/score/score';
 
 describe('score', () => {
   it('kill score scales with wave', () => {
@@ -7,12 +7,14 @@ describe('score', () => {
     expect(scoreForKill(3)).toBe(40);
   });
 
-  it('quiz score uses topic factors', () => {
-    expect(topicScoreFactor('restas')).toBe(1);
-    expect(topicScoreFactor('sumas')).toBe(2);
-    expect(topicScoreFactor('multiplicaciones')).toBe(3);
-    expect(topicScoreFactor('divisiones')).toBe(4);
-    expect(scoreForQuiz('sumas')).toBe(6);
-    expect(scoreForQuiz('divisiones')).toBe(10);
+  it('quiz score matches topic difficulty', () => {
+    expect(scoreForQuiz('sumas')).toBe(4);
+    expect(scoreForQuiz('restas')).toBe(4);
+    expect(scoreForQuiz('multiplicaciones')).toBe(8);
+    expect(scoreForQuiz('divisiones')).toBe(14);
+  });
+
+  it('english quiz score is defined', () => {
+    expect(ENGLISH_QUIZ_SCORE).toBeGreaterThan(0);
   });
 });

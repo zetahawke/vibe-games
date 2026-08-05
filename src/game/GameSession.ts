@@ -10,7 +10,7 @@ import {
   updateHighScore,
   writeSave,
 } from '@/domain/save/save';
-import { scoreForKill, scoreForQuiz } from '@/domain/score/score';
+import { scoreForKill, scoreForQuiz } from '@/domain/score';
 import { Hud, renderLevelPicker, type LevelSubjectChoice } from '@/game/ui/hud';
 import { renderGameOverOverlay } from '@/game/ui/overlays/gameOverOverlay';
 import { renderPauseOverlay } from '@/game/ui/overlays/pauseOverlay';
@@ -222,8 +222,9 @@ export class GameSession {
       this.quizOverlay = renderEnglishQuizOverlay(
         this.wrap,
         this.save.englishGrade,
-        (coins) => {
+        (coins, score) => {
           this.save.coins = addCoins(this.save.coins, coins);
+          this.save.score += score;
           this.persist();
           this.quizOverlay?.remove();
           this.quizOverlay = null;

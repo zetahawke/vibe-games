@@ -1,10 +1,11 @@
 import { ENGLISH_REWARD, pickEnglishQuestion, type EnglishGrade, type EnglishQuestion } from '@/domain/english';
+import { ENGLISH_QUIZ_SCORE } from '@/domain/score';
 import { el } from '@/shared/dom';
 
 export function renderEnglishQuizOverlay(
   parent: HTMLElement,
   grade: EnglishGrade,
-  onWin: (coins: number) => void,
+  onWin: (coins: number, score: number) => void,
   onClose: () => void,
 ): HTMLElement {
   const overlay = el('div', { className: 'overlay' });
@@ -36,7 +37,7 @@ export function renderEnglishQuizOverlay(
             answered = true;
             message = '¡Correcto! 🎉';
             render();
-            setTimeout(() => onWin(ENGLISH_REWARD), 900);
+            setTimeout(() => onWin(ENGLISH_REWARD, ENGLISH_QUIZ_SCORE), 900);
           } else {
             message = `Incorrecto. La respuesta era: ${question.options[question.answer]}`;
             question = pickEnglishQuestion(grade);
