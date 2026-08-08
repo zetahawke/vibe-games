@@ -96,7 +96,11 @@ export class World {
   /** Host-authored positions for guest puppet interpolation. */
   private enemyNetTargets = new Map<number, { x: number; z: number }>();
   private onEnemyHitCb: ((netId: number, dmg: number, killed: boolean) => void) | null = null;
-  private onShotCb: ((origin: { x: number; y: number; z: number }, yaw: number, weapon: WeaponId) => void) | null = null;
+  private onShotCb: ((
+    origin: { x: number; y: number; z: number },
+    dir: { x: number; y: number; z: number },
+    weapon: WeaponId,
+  ) => void) | null = null;
   private sky: THREE.Mesh;
   private skyDay: THREE.CanvasTexture;
   private skyNight: THREE.CanvasTexture;
@@ -229,16 +233,26 @@ export class World {
     this.guestMode = guest;
   }
 
-  setShotHandler(handler: (origin: { x: number; y: number; z: number }, yaw: number, weapon: WeaponId) => void): void {
+  setShotHandler(handler: (
+    origin: { x: number; y: number; z: number },
+    dir: { x: number; y: number; z: number },
+    weapon: WeaponId,
+  ) => void): void {
     this.onShotCb = handler;
   }
 
-  spawnRemoteShot(origin: { x: number; y: number; z: number }, yaw: number, weaponId: string): void {
+  spawnRemoteShot(
+    origin: { x: number; y: number; z: number },
+    dir: { x: number; y: number; z: number },
+    weaponId: string,
+  ): void {
     const equipped = getWeapon((weaponId as WeaponId) || 'pistol');
     if (equipped.isMelee) return;
-    const dir = aimDirection(yaw, 0.12);
+    const direction = new THREE.Vector3(dir.x, dir.y, dir.z);
+    if (direction.lengthSq() < 1e-6) return;
+    direction.normalize();
     const from = new THREE.Vector3(origin.x, origin.y, origin.z);
-    const shots = spawnProjectiles(this.scene, from, dir, equipped);
+    const shots = spawnProjectiles(this.scene, from, direction, equipped, { spreadScale: 0 });
     for (const p of shots) p.visualOnly = true;
     this.projectiles.push(...shots);
   }
@@ -454,7 +468,11 @@ export class World {
         this.projectiles.push(
           ...spawnProjectiles(this.scene, origin, direction, equipped),
         );
-        this.onShotCb?.({ x: origin.x, y: origin.y, z: origin.z }, this.yaw, equipped.id);
+        this.onShotCb?.(
+          { x: origin.x, y: origin.y, z: origin.z },
+          { x: direction.x, y: direction.y, z: direction.z },
+          equipped.id,
+        );
       }
     }
 

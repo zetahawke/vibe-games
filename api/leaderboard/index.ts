@@ -1,5 +1,6 @@
 import { getAdmin } from '../_supabase';
 import { checkLimit } from '../_rateLimit';
+import { bestEntriesPerPlayer } from '../../src/domain/score/leaderboard';
 
 type Req = { method?: string; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown>; query: Record<string, string | string[] | undefined> };
 type Res = { status: (n: number) => Res; json: (b: unknown) => void; end: () => void };
@@ -17,10 +18,9 @@ export default async function handler(req: Req, res: Res): Promise<void> {
     res.status(400).json({ error: 'playerCount debe ser 1–4.' }); return;
   }
 
-  // Check for active season — no data shown if no season is running.
   const { data: season } = await getAdmin()
     .from('seasons')
-    .select('name')
+    .select('id, name')
     .eq('is_active', true)
     .maybeSingle();
 
@@ -28,21 +28,25 @@ export default async function handler(req: Req, res: Res): Promise<void> {
     res.status(200).json({ entries: [], seasonName: null }); return;
   }
 
+  // Entries often have season_id null (record API didn't stamp it historically).
+  // Show current-season rows plus unstamped ones; exclude other seasons.
   const { data, error } = await getAdmin()
     .from('scoreboard_entries')
-    .select('personal_score, coins_earned, last_weapon, players(username)')
+    .select('personal_score, coins_earned, last_weapon, season_id, players(username)')
     .eq('player_count', playerCount)
-    .order('personal_score', { ascending: false })
-    .limit(20);
+    .or(`season_id.eq.${season.id},season_id.is.null`);
 
   if (error) { res.status(500).json({ error: error.message }); return; }
 
-  const entries = (data ?? []).map((row) => ({
+  const rows = (data ?? []).map((row) => ({
     username:      (row.players as { username: string } | null)?.username ?? 'Desconocido',
-    personalScore: row.personal_score as number,
-    coinsEarned:   row.coins_earned as number,
-    lastWeapon:    row.last_weapon as string,
+    personalScore: Number(row.personal_score) || 0,
+    coinsEarned:   Number(row.coins_earned) || 0,
+    lastWeapon:    String(row.last_weapon ?? 'knife'),
   }));
 
-  res.status(200).json({ entries, seasonName: season.name });
+  res.status(200).json({
+    entries: bestEntriesPerPlayer(rows, 20),
+    seasonName: season.name,
+  });
 }

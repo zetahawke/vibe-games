@@ -85,14 +85,17 @@ describe('parseMatch', () => {
 });
 
 describe('parseShot', () => {
-  it('reads visual projectile origin', () => {
-    expect(parseShot({ playerId: 'p1', x: 1, y: 1.2, z: 3, yaw: 0.5, weapon: 'pistol' })).toEqual({
-      playerId: 'p1', x: 1, y: 1.2, z: 3, yaw: 0.5, weapon: 'pistol',
+  it('reads origin and flight direction', () => {
+    expect(parseShot({
+      playerId: 'p1', x: 1, y: 1.2, z: 3, dx: 0, dy: -0.1, dz: 1, weapon: 'pistol',
+    })).toEqual({
+      playerId: 'p1', x: 1, y: 1.2, z: 3, dx: 0, dy: -0.1, dz: 1, weapon: 'pistol',
     });
   });
 
-  it('rejects missing weapon', () => {
+  it('rejects missing weapon or direction', () => {
     expect(parseShot({ playerId: 'p1', x: 0, y: 0, z: 0, yaw: 0 })).toBeNull();
+    expect(parseShot({ playerId: 'p1', x: 0, y: 0, z: 0, weapon: 'pistol' })).toBeNull();
   });
 });
 

@@ -16,10 +16,11 @@ export function spawnProjectiles(
   origin: THREE.Vector3,
   aim: THREE.Vector3,
   equipped: WeaponDef,
+  opts?: { spreadScale?: number },
 ): Projectile[] {
   const kind = equipped.kind;
   const count = kind === 'shotgun' ? 5 : 1;
-  const spread = kind === 'shotgun' ? 0.12 : 0.01;
+  const spread = (kind === 'shotgun' ? 0.12 : 0.01) * (opts?.spreadScale ?? 1);
   const speed = kind === 'rifle' ? 55 : kind === 'shotgun' ? 42 : 48;
   const pelletDamage = kind === 'shotgun' ? Math.ceil(equipped.damage / count) : equipped.damage;
   const created: Projectile[] = [];

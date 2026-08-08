@@ -40,9 +40,16 @@ export default async function handler(req: Req, res: Res): Promise<void> {
     .select('id', { count: 'exact', head: true })
     .eq('session_id', sessionId);
 
+  const { data: season } = await getAdmin()
+    .from('seasons')
+    .select('id')
+    .eq('is_active', true)
+    .maybeSingle();
+
   const { error } = await getAdmin().from('scoreboard_entries').insert({
     session_id:     sessionId,
     player_id:      playerId,
+    season_id:      season?.id ?? null,
     player_count:   playerCount ?? 1,
     personal_score: personalScore ?? 0,
     session_score:  personalScore ?? 0,

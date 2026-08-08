@@ -42,7 +42,7 @@ export function buildPlayer(
   const girl = look.sex === 'girl';
   const skinTex = makeSkinTexture();
   const shirtTex = makeClothTexture(color, darkenHex(color));
-  const pantsTex = makeClothTexture(girl ? '#5a3a62' : '#2a3a55', girl ? '#3d2844' : '#1d2a3f');
+  const pantsTex = makeClothTexture('#2a3a55', '#1d2a3f');
   trackTexture(skinTex);
   trackTexture(shirtTex);
   trackTexture(pantsTex);
@@ -55,19 +55,22 @@ export function buildPlayer(
   trackMaterial(pants);
 
   const root = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(girl ? 0.75 : 0.85, 1.05, 0.5), shirt);
-  body.position.y = 1.35;
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(girl ? 0.72 : 0.85, girl ? 0.72 : 1.05, girl ? 0.48 : 0.5),
+    shirt,
+  );
+  body.position.y = girl ? 1.52 : 1.35;
   body.castShadow = true;
 
   const head = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.55, 0.55), skin);
   head.position.y = 2.15;
   head.castShadow = true;
 
-  const hair = new THREE.Mesh(
-    new THREE.BoxGeometry(girl ? 0.62 : 0.58, girl ? 0.42 : 0.18, girl ? 0.62 : 0.58),
-    new THREE.MeshStandardMaterial({ color: girl ? 0x4a2a12 : 0x3b2414, roughness: 0.95 }),
-  );
-  hair.position.y = girl ? 2.32 : 2.42;
+  const hairMat = new THREE.MeshStandardMaterial({
+    color: girl ? 0x3a1f0c : 0x3b2414,
+    roughness: 0.95,
+  });
+  trackMaterial(hairMat);
 
   const leftArm = new THREE.Group();
   leftArm.position.set(-0.55, 1.7, 0);
@@ -88,19 +91,46 @@ export function buildPlayer(
 
   const leftLeg = new THREE.Group();
   leftLeg.position.set(-0.22, 0.85, 0);
-  const ll = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.85, 0.35), pants);
+  const ll = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.85, 0.32), girl ? skin : pants);
   ll.position.y = -0.4;
   ll.castShadow = true;
   leftLeg.add(ll);
 
   const rightLeg = new THREE.Group();
   rightLeg.position.set(0.22, 0.85, 0);
-  const rl = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.85, 0.35), pants);
+  const rl = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.85, 0.32), girl ? skin : pants);
   rl.position.y = -0.4;
   rl.castShadow = true;
   rightLeg.add(rl);
 
-  root.add(body, head, hair, leftArm, rightArm, leftLeg, rightLeg);
+  root.add(body, head, leftArm, rightArm, leftLeg, rightLeg);
+
+  if (girl) {
+    const hairTop = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.2, 0.76), hairMat);
+    hairTop.position.set(0, 2.46, -0.06);
+    const hairBack = new THREE.Mesh(new THREE.BoxGeometry(0.56, 1.35, 0.26), hairMat);
+    hairBack.position.set(0, 1.78, -0.4);
+    const hairLeft = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.2, 0.24), hairMat);
+    hairLeft.position.set(-0.35, 1.78, -0.3);
+    const hairRight = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.2, 0.24), hairMat);
+    hairRight.position.set(0.35, 1.78, -0.3);
+    const skirtTex = makeClothTexture(darkenHex(color, 0.08), darkenHex(color, 0.32));
+    trackTexture(skirtTex);
+    const skirtMat = new THREE.MeshStandardMaterial({ map: skirtTex, roughness: 0.88 });
+    trackMaterial(skirtMat);
+    const skirtWaist = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.28, 0.58), skirtMat);
+    skirtWaist.position.y = 1.12;
+    const skirtHem = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.42, 0.78), skirtMat);
+    skirtHem.position.y = 0.78;
+    skirtWaist.castShadow = true;
+    skirtHem.castShadow = true;
+    root.add(hairTop, hairBack, hairLeft, hairRight, skirtWaist, skirtHem);
+  } else {
+    const hair = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.18, 0.58), hairMat);
+    hair.position.y = 2.42;
+    root.add(hair);
+  }
+
   return { root, leftArm, rightArm, leftLeg, rightLeg, weaponSlot };
 }
 
@@ -193,20 +223,23 @@ export function aimDirection(yaw: number, pitch: number): THREE.Vector3 {
   ).normalize();
 }
 
+/** Same distance the third-person camera looks at — shots must share this point. */
+export const CAMERA_LOOK_DISTANCE = 20;
+
 /** World point under the crosshair (same target the camera looks at). */
 export function getCrosshairAimPoint(
   playerRoot: THREE.Object3D,
   yaw: number,
   pitch: number,
-  distance = 40,
+  distance = CAMERA_LOOK_DISTANCE,
 ): THREE.Vector3 {
   const look = aimDirection(yaw, pitch);
   const shoulder = playerRoot.position.clone().add(new THREE.Vector3(0, 1.35, 0));
   return shoulder.clone().addScaledVector(look, distance).add(new THREE.Vector3(0, 0.55, 0));
 }
 
-/** Barrel tip in weapon-slot local space (after aim slot rotation −π/2, barrel is −Y). */
-const MUZZLE_LOCAL = new THREE.Vector3(0, -0.85, 0);
+/** Barrel tip in weapon-slot local space (models point barrel along local −Z). */
+const MUZZLE_LOCAL = new THREE.Vector3(0, 0.02, -0.7);
 
 /** World position of the equipped weapon muzzle (right arm). */
 export function getMuzzleWorldPosition(rig: PlayerRig): THREE.Vector3 {
@@ -224,7 +257,7 @@ export function muzzleAimDirection(
   pitch: number,
 ): { origin: THREE.Vector3; direction: THREE.Vector3 } {
   const origin = getMuzzleWorldPosition(rig);
-  const target = getCrosshairAimPoint(rig.root, yaw, pitch);
+  const target = getCrosshairAimPoint(rig.root, yaw, pitch, CAMERA_LOOK_DISTANCE);
   const direction = target.sub(origin).normalize();
   return { origin, direction };
 }
@@ -243,7 +276,7 @@ export function updateThirdPersonCamera(
     .clone()
     .addScaledVector(look, -6.4)
     .add(new THREE.Vector3(0, 2.35, 0));
-  const aimPoint = getCrosshairAimPoint(playerRoot, yaw, pitch, 20);
+  const aimPoint = getCrosshairAimPoint(playerRoot, yaw, pitch, CAMERA_LOOK_DISTANCE);
   camera.position.copy(camPos);
   camera.lookAt(aimPoint);
 }

@@ -223,11 +223,11 @@ export class OnlineGameSession extends GameSession {
       },
       onSpawn: () => undefined,
     });
-    world.setShotHandler((origin, yaw, weapon) => {
+    world.setShotHandler((origin, dir, weapon) => {
       this.bus?.send('shot', {
         playerId: this.playerId,
         x: origin.x, y: origin.y, z: origin.z,
-        yaw,
+        dx: dir.x, dy: dir.y, dz: dir.z,
         weapon,
       });
     });
@@ -315,7 +315,7 @@ export class OnlineGameSession extends GameSession {
     if (!shot || shot.playerId === this.playerId) return;
     this.world.spawnRemoteShot(
       { x: shot.x, y: shot.y, z: shot.z },
-      shot.yaw,
+      { x: shot.dx, y: shot.dy, z: shot.dz },
       shot.weapon,
     );
   }

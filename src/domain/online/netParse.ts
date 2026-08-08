@@ -119,7 +119,9 @@ export interface ShotPayload {
   x: number;
   y: number;
   z: number;
-  yaw: number;
+  dx: number;
+  dy: number;
+  dz: number;
   weapon: string;
 }
 
@@ -129,12 +131,15 @@ export function parseShot(raw: unknown): ShotPayload | null {
   const playerId = typeof r.playerId === 'string' ? r.playerId : '';
   const weapon = typeof r.weapon === 'string' ? r.weapon : '';
   if (!playerId || !weapon) return null;
+  if (r.dx === undefined && r.dy === undefined && r.dz === undefined) return null;
   return {
     playerId,
     x: Number(r.x) || 0,
     y: Number(r.y) || 0,
     z: Number(r.z) || 0,
-    yaw: Number(r.yaw) || 0,
+    dx: Number(r.dx) || 0,
+    dy: Number(r.dy) || 0,
+    dz: Number(r.dz) || 0,
     weapon,
   };
 }
