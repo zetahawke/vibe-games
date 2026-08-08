@@ -1,5 +1,6 @@
 import { ENGLISH_REWARD, pickEnglishQuestion, type EnglishGrade, type EnglishQuestion } from '@/domain/english';
 import { ENGLISH_QUIZ_SCORE } from '@/domain/score';
+import { makeOverlayCard } from '@/shared/overlay';
 import { el } from '@/shared/dom';
 
 export function renderEnglishQuizOverlay(
@@ -8,9 +9,7 @@ export function renderEnglishQuizOverlay(
   onWin: (coins: number, score: number) => void,
   onClose: () => void,
 ): HTMLElement {
-  const overlay = el('div', { className: 'overlay' });
-  const card = el('div', { className: 'overlay-card quiz-card' });
-  overlay.append(card);
+  const { overlay, card } = makeOverlayCard('quiz-card');
 
   let question: EnglishQuestion = pickEnglishQuestion(grade);
   let message = '';

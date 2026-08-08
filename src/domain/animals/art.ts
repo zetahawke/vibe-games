@@ -9,14 +9,14 @@ export function animalPhotoUrl(id: AnimalId): string {
 
 /**
  * Markup for the animal art slot.
- * Realista pieces use PNG; shadows always use SVG silhouette so there is a shape to match.
+ * Realistic pieces use PNG; shadows always use an SVG silhouette so there is a shape to match.
  */
 export function animalArtHtml(
   id: AnimalId,
   style: GraphicsStyle,
   variant: 'color' | 'shadow',
 ): string {
-  if (style === 'realista' && variant === 'color') {
+  if (style === 'realistic' && variant === 'color') {
     return `<img src="${animalPhotoUrl(id)}" alt="${id}" draggable="false" />`;
   }
   return animalSvg(id, variant);

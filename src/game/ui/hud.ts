@@ -148,18 +148,18 @@ export class Hud {
 
 // ── Level + Subject picker ────────────────────────────────────────────────────
 
-export type SubjectChoice = { subject: 'math' } | { subject: 'english'; englishGrade: '7mo' };
+export type SubjectChoice = { subject: 'math' } | { subject: 'english'; englishGrade: '7th' };
 export interface LevelSubjectChoice {
   grade: GradeLevel;
   subject: GameSubject;
-  englishGrade: '7mo';
+  englishGrade: '7th';
 }
 
 const GRADES: { id: GradeLevel; label: string; enabled: boolean }[] = [
-  { id: '5to', label: '5to Básico', enabled: false },
-  { id: '6to', label: '6to Básico', enabled: false },
-  { id: '7mo', label: '7mo Básico', enabled: true },
-  { id: '8vo', label: '8vo Básico', enabled: false },
+  { id: '5th', label: '5to Básico', enabled: false },
+  { id: '6th', label: '6to Básico', enabled: false },
+  { id: '7th', label: '7mo Básico', enabled: true },
+  { id: '8th', label: '8vo Básico', enabled: false },
 ];
 
 const SUBJECTS: { id: GameSubject; label: string; icon: string }[] = [
@@ -183,7 +183,7 @@ export function renderLevelPicker(
     for (const s of SUBJECTS) {
       const b = el('button', { type: 'button', className: 'btn primary' }, [`${s.icon} ${s.label}`]);
       b.addEventListener('click', () =>
-        onPick({ grade, subject: s.id, englishGrade: '7mo' }),
+        onPick({ grade, subject: s.id, englishGrade: '7th' }),
       );
       list.append(b);
     }

@@ -1,9 +1,9 @@
 import { STORAGE_PREFIX } from '@/config/gameConfig';
-import type { DropMode } from './dropRules';
+import { migrateDropMode, type DropMode } from './dropRules';
 
 export type { DropMode };
 
-export type GraphicsStyle = 'dibujado' | 'realista';
+export type GraphicsStyle = 'drawn' | 'realistic';
 
 export interface AnimalsSettings {
   dropMode: DropMode;
@@ -11,27 +11,37 @@ export interface AnimalsSettings {
 }
 
 const DEFAULTS: AnimalsSettings = {
-  dropMode: 'guiado',
-  graphicsStyle: 'dibujado',
+  dropMode: 'guided',
+  graphicsStyle: 'drawn',
 };
 
 function key(username: string): string {
   return `${STORAGE_PREFIX}animals:settings:${username}`;
 }
 
+/** Migrate old Spanish graphics style to English. */
+function migrateStyle(s: string): GraphicsStyle {
+  if (s === 'realista') return 'realistic';
+  if (s === 'dibujado') return 'drawn';
+  return s as GraphicsStyle;
+}
+
 function parseSettings(raw: string | null): AnimalsSettings {
   if (!raw) return { ...DEFAULTS };
   try {
-    const data = JSON.parse(raw) as Partial<AnimalsSettings>;
+    const data = JSON.parse(raw) as Partial<Record<string, string>>;
     const dropMode: DropMode =
-      data.dropMode === 'libre' || data.dropMode === 'suave' || data.dropMode === 'guiado'
+      data.dropMode === 'free' || data.dropMode === 'smooth' || data.dropMode === 'guided'
         ? data.dropMode
-        : DEFAULTS.dropMode;
+        : migrateDropMode(data.dropMode ?? '');
     const graphicsStyle: GraphicsStyle =
-      data.graphicsStyle === 'realista' || data.graphicsStyle === 'dibujado'
+      data.graphicsStyle === 'realistic' || data.graphicsStyle === 'drawn'
         ? data.graphicsStyle
-        : DEFAULTS.graphicsStyle;
-    return { dropMode, graphicsStyle };
+        : migrateStyle(data.graphicsStyle ?? '');
+    return {
+      dropMode: ['free', 'smooth', 'guided'].includes(dropMode) ? dropMode : DEFAULTS.dropMode,
+      graphicsStyle: ['realistic', 'drawn'].includes(graphicsStyle) ? graphicsStyle : DEFAULTS.graphicsStyle,
+    };
   } catch {
     return { ...DEFAULTS };
   }

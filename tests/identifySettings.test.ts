@@ -4,18 +4,18 @@ import { getIdentifySettings, setIdentifySettings } from '@/domain/identify/sett
 beforeEach(() => localStorage.clear());
 
 describe('identify settings', () => {
-  it('defaults to guiado and vocales', () => {
+  it('defaults to guided and vowels', () => {
     expect(getIdentifySettings('ana')).toEqual({
-      dropMode: 'guiado',
-      theme: 'vocales',
+      dropMode: 'guided',
+      theme: 'vowels',
     });
   });
 
   it('persists settings', () => {
-    setIdentifySettings('ana', { dropMode: 'suave', theme: 'numeros' });
+    setIdentifySettings('ana', { dropMode: 'smooth', theme: 'numbers' });
     expect(getIdentifySettings('ana')).toEqual({
-      dropMode: 'suave',
-      theme: 'numeros',
+      dropMode: 'smooth',
+      theme: 'numbers',
     });
   });
 });

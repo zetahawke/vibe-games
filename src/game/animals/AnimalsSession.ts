@@ -32,7 +32,7 @@ export class AnimalsSession {
           }),
         ),
       renderArt: (item, variant) => {
-        const photoPiece = graphicsStyle === 'realista' && variant === 'color';
+        const photoPiece = graphicsStyle === 'realistic' && variant === 'color';
         const classes = ['match-art', 'animal-art'];
         if (photoPiece) classes.push('animal-art-photo');
         return {

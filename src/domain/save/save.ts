@@ -1,11 +1,11 @@
 import { MAX_LIVES, MathTopic, STORAGE_PREFIX, WAVE_DURATION_MS } from '@/config/gameConfig';
 import type { EnglishGrade } from '@/domain/english';
-import { WeaponId } from '@/domain/weapons/weapons';
+import { migrateWeaponId, WeaponId } from '@/domain/weapons/weapons';
 import { rollPathHalfWidth } from '@/game/world/layout';
 
 export type Phase = 'wave' | 'rest';
 export type GameSubject = 'math' | 'english';
-export type GradeLevel = '5to' | '6to' | '7mo' | '8vo';
+export type GradeLevel = '5th' | '6th' | '7th' | '8th';
 
 export interface GameSave {
   wave: number;
@@ -20,7 +20,7 @@ export interface GameSave {
   subject: GameSubject;
   grade: GradeLevel;
   englishGrade: EnglishGrade;
-  /** Path/entrance half-width for this match (rolled ±20% at nueva partida). */
+  /** Path entrance half-width, rolled ±20% on each new game. */
   pathHalfW: number;
   score: number;
 }
@@ -47,8 +47,8 @@ export function defaultSave(opts: NewGameOptions): GameSave {
     phaseTimeLeftMs: WAVE_DURATION_MS,
     lives: MAX_LIVES,
     coins: 0,
-    ownedWeapons: ['cuchillo'],
-    equippedWeapon: 'cuchillo',
+    ownedWeapons: ['knife'],
+    equippedWeapon: 'knife',
     mathTopic: opts.mathTopic,
     quizDifficulty: 1,
     subject: opts.subject,
@@ -59,6 +59,26 @@ export function defaultSave(opts: NewGameOptions): GameSave {
   };
 }
 
+/** Migrate a grade level value from old Spanish format to English. */
+function migrateGrade(g: string): GradeLevel {
+  const map: Record<string, GradeLevel> = {
+    '5to': '5th', '6to': '6th', '7mo': '7th', '8vo': '8th',
+  };
+  return (map[g] ?? g) as GradeLevel;
+}
+
+/** Migrate a math topic value from old Spanish format to English. */
+function migrateTopic(t: string): MathTopic {
+  const map: Record<string, MathTopic> = {
+    sumas: 'additions',
+    restas: 'subtractions',
+    multiplicaciones: 'multiplications',
+    divisiones: 'divisions',
+    mixto: 'mixed',
+  };
+  return (map[t] ?? t) as MathTopic;
+}
+
 export function loadSave(username: string): GameSave | null {
   const raw = localStorage.getItem(saveKey(username));
   if (!raw) return null;
@@ -67,8 +87,11 @@ export function loadSave(username: string): GameSave | null {
     if (!Number.isFinite(save.pathHalfW)) save.pathHalfW = rollPathHalfWidth();
     if (!Number.isFinite(save.score)) save.score = 0;
     if (!save.subject) save.subject = 'math';
-    if (!save.grade) save.grade = '7mo';
-    if (!save.englishGrade) save.englishGrade = '7mo';
+    save.grade = migrateGrade(save.grade as string);
+    if (!save.englishGrade) save.englishGrade = '7th';
+    save.equippedWeapon = migrateWeaponId(save.equippedWeapon as string);
+    save.ownedWeapons = save.ownedWeapons.map((w) => migrateWeaponId(w as string));
+    save.mathTopic = migrateTopic(save.mathTopic as string);
     return save;
   } catch {
     return null;

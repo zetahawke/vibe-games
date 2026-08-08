@@ -6,18 +6,18 @@ import {
 } from '@/domain/identify/catalog';
 
 describe('identify catalog', () => {
-  it('vocales pool is AEIOU', () => {
-    expect(poolForTheme('vocales')).toEqual(['A', 'E', 'I', 'O', 'U']);
+  it('vowels pool is AEIOU', () => {
+    expect(poolForTheme('vowels')).toEqual(['A', 'E', 'I', 'O', 'U']);
   });
 
-  it('numeros pool is 1-10', () => {
-    expect(poolForTheme('numeros')).toEqual([
+  it('numbers pool is 1-10', () => {
+    expect(poolForTheme('numbers')).toEqual([
       '1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
     ]);
   });
 
-  it('abecedario has 27 letters including Ñ', () => {
-    const p = poolForTheme('abecedario');
+  it('alphabet has 27 letters including Ñ', () => {
+    const p = poolForTheme('alphabet');
     expect(p).toHaveLength(27);
     expect(p).toContain('Ñ');
     expect(p[0]).toBe('A');
@@ -25,12 +25,12 @@ describe('identify catalog', () => {
   });
 
   it('spoken labels', () => {
-    expect(spokenLabel('vocales', 'A')).toBe('a');
-    expect(spokenLabel('numeros', '1')).toBe('uno');
-    expect(spokenLabel('numeros', '10')).toBe('diez');
-    expect(spokenLabel('abecedario', 'J')).toBe('jota');
-    expect(spokenLabel('abecedario', 'W')).toBe('uve doble');
-    expect(spokenLabel('abecedario', 'Ñ')).toBe('eñe');
+    expect(spokenLabel('vowels',   'A')).toBe('a');
+    expect(spokenLabel('numbers',  '1')).toBe('uno');
+    expect(spokenLabel('numbers',  '10')).toBe('diez');
+    expect(spokenLabel('alphabet', 'J')).toBe('jota');
+    expect(spokenLabel('alphabet', 'W')).toBe('uve doble');
+    expect(spokenLabel('alphabet', 'Ñ')).toBe('eñe');
   });
 
   it('glyph labels', () => {

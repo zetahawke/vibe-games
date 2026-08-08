@@ -70,7 +70,7 @@ export class GameSession {
             subject: choice.subject,
             grade: choice.grade,
             englishGrade: choice.englishGrade,
-            mathTopic: 'mixto',
+            mathTopic: 'mixed',
           }),
         );
       },

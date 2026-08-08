@@ -4,9 +4,9 @@ export interface EnglishQuestion {
   answer: number; // index into options
 }
 
-export type EnglishGrade = '7mo';
+export type EnglishGrade = '7th';
 
-const QUESTIONS_7MO: EnglishQuestion[] = [
+const QUESTIONS_7TH: EnglishQuestion[] = [
   { prompt: '¿Cómo se dice: perro?', options: ['Dog', 'Cat', 'Wolf'], answer: 0 },
   { prompt: '¿Cómo se dice: gato?', options: ['Cat', 'Dog', 'Bird'], answer: 0 },
   { prompt: '¿Cómo se dice: casa?', options: ['Tree', 'Car', 'House'], answer: 2 },
@@ -35,7 +35,7 @@ const QUESTIONS_7MO: EnglishQuestion[] = [
 ];
 
 const GRADE_POOLS: Record<EnglishGrade, EnglishQuestion[]> = {
-  '7mo': QUESTIONS_7MO,
+  '7th': QUESTIONS_7TH,
 };
 
 export function pickEnglishQuestion(grade: EnglishGrade, rng = Math.random): EnglishQuestion {

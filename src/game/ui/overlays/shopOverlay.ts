@@ -2,6 +2,7 @@ import { buyWeapon } from '@/domain/economy/economy';
 import { GameSave } from '@/domain/save/save';
 import { getWeapon, WEAPON_IDS } from '@/domain/weapons/weapons';
 import { weaponIconSvg } from '@/domain/weapons/weaponVisuals';
+import { makeOverlayCard } from '@/shared/overlay';
 import { el } from '@/shared/dom';
 
 export function renderShopOverlay(
@@ -11,9 +12,7 @@ export function renderShopOverlay(
   onEarn: () => void,
   onClose: () => void,
 ): HTMLElement {
-  const overlay = el('div', { className: 'overlay' });
-  const card = el('div', { className: 'overlay-card shop-card' });
-  overlay.append(card);
+  const { overlay, card } = makeOverlayCard('shop-card');
 
   const render = () => {
     card.replaceChildren();

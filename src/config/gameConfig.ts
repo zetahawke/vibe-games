@@ -5,10 +5,9 @@ export const COINS_PER_ZOMBIE = 1;
 export const QUIZ_MAX_ATTEMPTS = 3;
 export const STORAGE_PREFIX = 'juegos-de-casa:v1:';
 
-export type MathTopic = 'sumas' | 'restas' | 'multiplicaciones' | 'divisiones' | 'mixto';
-
-export const QUIZ_REWARDS: Record<number, number> = {
-  1: 4,
-  2: 10,
-  3: 20,
-};
+export type MathTopic =
+  | 'additions'
+  | 'subtractions'
+  | 'multiplications'
+  | 'divisions'
+  | 'mixed';

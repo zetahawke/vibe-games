@@ -8,7 +8,7 @@ import {
 import type { DropMode } from '@/domain/animals/dropRules';
 import { MatchSession } from '@/game/match/MatchSession';
 import type { MatchItem } from '@/game/match/types';
-import { speakEs } from '@/shared/speech';
+import { speak } from '@/shared/speech';
 
 export class IdentifySession {
   private match: MatchSession;
@@ -42,10 +42,10 @@ export class IdentifySession {
         };
       },
       onPick: (item) => {
-        speakEs(spokenLabel(theme, item.id));
+        speak(spokenLabel(theme, item.id));
       },
       onSuccess: (item) => {
-        speakEs(spokenLabel(theme, item.id));
+        speak(spokenLabel(theme, item.id));
       },
       onExit,
     });

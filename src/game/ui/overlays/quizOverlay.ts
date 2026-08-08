@@ -7,6 +7,7 @@ import {
   startQuiz,
   submitAnswer,
 } from '@/domain/quiz/quizSession';
+import { makeOverlayCard } from '@/shared/overlay';
 import { el } from '@/shared/dom';
 
 /**
@@ -20,9 +21,7 @@ export function renderQuizOverlay(
   difficulty: number,
   onExit: (coins: number, score: number, finalDifficulty: number) => void,
 ): HTMLElement {
-  const overlay = el('div', { className: 'overlay' });
-  const card = el('div', { className: 'overlay-card quiz-card' });
-  overlay.append(card);
+  const { overlay, card } = makeOverlayCard('quiz-card');
 
   let state: QuizState = startQuiz(topic, difficulty);
   let entry = '';

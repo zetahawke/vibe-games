@@ -16,10 +16,10 @@ export function spawnProjectiles(
   equipped: WeaponDef,
 ): Projectile[] {
   const kind = equipped.kind;
-  const count = kind === 'escopeta' ? 5 : 1;
-  const spread = kind === 'escopeta' ? 0.12 : 0.01;
-  const speed = kind === 'rifle' ? 55 : kind === 'escopeta' ? 42 : 48;
-  const pelletDamage = kind === 'escopeta' ? Math.ceil(equipped.damage / count) : equipped.damage;
+  const count = kind === 'shotgun' ? 5 : 1;
+  const spread = kind === 'shotgun' ? 0.12 : 0.01;
+  const speed = kind === 'rifle' ? 55 : kind === 'shotgun' ? 42 : 48;
+  const pelletDamage = kind === 'shotgun' ? Math.ceil(equipped.damage / count) : equipped.damage;
   const created: Projectile[] = [];
 
   for (let i = 0; i < count; i++) {
@@ -29,7 +29,7 @@ export function spawnProjectiles(
     dir.z += (Math.random() - 0.5) * spread;
     dir.normalize();
     const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(kind === 'escopeta' ? 0.08 : 0.07, 6, 6),
+      new THREE.SphereGeometry(kind === 'shotgun' ? 0.08 : 0.07, 6, 6),
       new THREE.MeshStandardMaterial({
         color: kind === 'rifle' ? 0xffe066 : 0xffcc33,
         emissive: 0xaa7700,

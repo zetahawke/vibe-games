@@ -11,23 +11,23 @@ import {
 beforeEach(() => localStorage.clear());
 
 describe('animals settings', () => {
-  it('defaults to guiado and dibujado', () => {
-    expect(getDropMode('ana')).toBe('guiado');
-    expect(getGraphicsStyle('ana')).toBe('dibujado');
+  it('defaults to guided and drawn', () => {
+    expect(getDropMode('ana')).toBe('guided');
+    expect(getGraphicsStyle('ana')).toBe('drawn');
   });
 
   it('persists drop mode without wiping graphics', () => {
-    setGraphicsStyle('ana', 'realista');
-    setDropMode('ana', 'suave');
+    setGraphicsStyle('ana', 'realistic');
+    setDropMode('ana', 'smooth');
     expect(getAnimalsSettings('ana')).toEqual({
-      dropMode: 'suave',
-      graphicsStyle: 'realista',
+      dropMode: 'smooth',
+      graphicsStyle: 'realistic',
     });
   });
 
   it('persists graphics style', () => {
-    setAnimalsSettings('ana', { dropMode: 'libre', graphicsStyle: 'realista' });
-    expect(getGraphicsStyle('ana')).toBe('realista');
-    expect(getDropMode('ana')).toBe('libre');
+    setAnimalsSettings('ana', { dropMode: 'free', graphicsStyle: 'realistic' });
+    expect(getGraphicsStyle('ana')).toBe('realistic');
+    expect(getDropMode('ana')).toBe('free');
   });
 });

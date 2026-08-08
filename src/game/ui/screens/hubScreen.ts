@@ -127,11 +127,11 @@ export function renderHubScreen(
 }
 
 function labelMode(mode: DropMode): string {
-  if (mode === 'libre') return 'Libre';
-  if (mode === 'suave') return 'Suave';
+  if (mode === 'free')   return 'Libre';
+  if (mode === 'smooth') return 'Suave';
   return 'Guiado';
 }
 
 function labelGraphics(style: GraphicsStyle): string {
-  return style === 'realista' ? 'Realista' : 'Dibujado';
+  return style === 'realistic' ? 'Realista' : 'Dibujado';
 }

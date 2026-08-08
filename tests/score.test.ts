@@ -8,10 +8,10 @@ describe('score', () => {
   });
 
   it('quiz score matches topic difficulty', () => {
-    expect(scoreForQuiz('sumas')).toBe(4);
-    expect(scoreForQuiz('restas')).toBe(4);
-    expect(scoreForQuiz('multiplicaciones')).toBe(8);
-    expect(scoreForQuiz('divisiones')).toBe(14);
+    expect(scoreForQuiz('additions')).toBe(4);
+    expect(scoreForQuiz('subtractions')).toBe(4);
+    expect(scoreForQuiz('multiplications')).toBe(8);
+    expect(scoreForQuiz('divisions')).toBe(14);
   });
 
   it('english quiz score is defined', () => {

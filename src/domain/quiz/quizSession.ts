@@ -1,6 +1,7 @@
 import { MathTopic, QUIZ_MAX_ATTEMPTS } from '@/config/gameConfig';
 import { generateQuestion, MathQuestion } from '@/domain/math/mathGenerator';
 import { QUIZ_SCORE } from '@/domain/score/score';
+import { clampDifficulty } from '@/shared/math';
 
 export interface QuizState {
   topic: MathTopic;
@@ -12,15 +13,10 @@ export interface QuizState {
   lastMessage: string;
 }
 
-function clampDifficulty(difficulty: number): number {
-  return Math.min(3, Math.max(1, Math.floor(difficulty)));
-}
-
 /**
- * Coins = base por tema × nivel de dificultad.
- * sumas/restas diff 1 → 4 · diff 2 → 8 · diff 3 → 12
- * multiplicaciones diff 1 → 8 · diff 2 → 16 · diff 3 → 24
- * divisiones      diff 1 → 14 · diff 2 → 28 · diff 3 → 42
+ * Coins = topic base × difficulty level.
+ * Uses the resolved sub-topic from the generated question so 'mixed'
+ * rewards correctly (e.g. a divisions question inside mixed gives 14 × diff).
  */
 function rewardFor(topic: MathTopic, difficulty: number): number {
   const base = QUIZ_SCORE[topic] ?? 4;
@@ -39,7 +35,6 @@ export function startQuiz(
     difficulty: d,
     question,
     attemptsLeft: QUIZ_MAX_ATTEMPTS,
-    // Use the resolved sub-topic (question.topic) so mixto rewards properly.
     reward: rewardFor(question.topic, d),
     status: 'active',
     lastMessage: '',

@@ -8,7 +8,8 @@ import {
   updateHighScore,
 } from '@/domain/save/save';
 
-const mathSave = () => defaultSave({ subject: 'math', grade: '7mo', englishGrade: '7mo', mathTopic: 'sumas' });
+const mathSave = () =>
+  defaultSave({ subject: 'math', grade: '7th', englishGrade: '7th', mathTopic: 'additions' });
 
 beforeEach(() => localStorage.clear());
 

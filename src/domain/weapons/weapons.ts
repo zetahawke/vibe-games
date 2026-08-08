@@ -1,13 +1,13 @@
-export type WeaponKind = 'cuchillo' | 'pistola' | 'escopeta' | 'rifle';
+export type WeaponKind = 'knife' | 'pistol' | 'shotgun' | 'rifle';
 
 export type WeaponId =
-  | 'cuchillo'
-  | 'pistola'
-  | 'pistola_mejorada'
-  | 'escopeta'
-  | 'escopeta_mejorada'
+  | 'knife'
+  | 'pistol'
+  | 'pistol_upgraded'
+  | 'shotgun'
+  | 'shotgun_upgraded'
   | 'rifle'
-  | 'rifle_mejorada';
+  | 'rifle_upgraded';
 
 export interface WeaponDef {
   id: WeaponId;
@@ -22,19 +22,19 @@ export interface WeaponDef {
 
 /** Shop / inventory display order. */
 export const WEAPON_IDS: WeaponId[] = [
-  'cuchillo',
-  'pistola',
-  'pistola_mejorada',
-  'escopeta',
-  'escopeta_mejorada',
+  'knife',
+  'pistol',
+  'pistol_upgraded',
+  'shotgun',
+  'shotgun_upgraded',
   'rifle',
-  'rifle_mejorada',
+  'rifle_upgraded',
 ];
 
 export const WEAPONS: Record<WeaponId, WeaponDef> = {
-  cuchillo: {
-    id: 'cuchillo',
-    kind: 'cuchillo',
+  knife: {
+    id: 'knife',
+    kind: 'knife',
     name: 'Cuchillo',
     price: 0,
     damage: 10,
@@ -42,9 +42,9 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     range: 2.5,
     isMelee: true,
   },
-  pistola: {
-    id: 'pistola',
-    kind: 'pistola',
+  pistol: {
+    id: 'pistol',
+    kind: 'pistol',
     name: 'Pistola',
     price: 15,
     damage: 30,
@@ -52,19 +52,19 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     range: 40,
     isMelee: false,
   },
-  pistola_mejorada: {
-    id: 'pistola_mejorada',
-    kind: 'pistola',
+  pistol_upgraded: {
+    id: 'pistol_upgraded',
+    kind: 'pistol',
     name: 'Pistola mejorada',
-    price: 25,
+    price: 45,
     damage: 55,
     cooldownMs: 320,
     range: 42,
     isMelee: false,
   },
-  escopeta: {
-    id: 'escopeta',
-    kind: 'escopeta',
+  shotgun: {
+    id: 'shotgun',
+    kind: 'shotgun',
     name: 'Escopeta',
     price: 40,
     damage: 150,
@@ -72,11 +72,11 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     range: 20,
     isMelee: false,
   },
-  escopeta_mejorada: {
-    id: 'escopeta_mejorada',
-    kind: 'escopeta',
+  shotgun_upgraded: {
+    id: 'shotgun_upgraded',
+    kind: 'shotgun',
     name: 'Escopeta mejorada',
-    price: 60,
+    price: 110,
     damage: 260,
     cooldownMs: 850,
     range: 22,
@@ -86,17 +86,17 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     id: 'rifle',
     kind: 'rifle',
     name: 'Rifle',
-    price: 55,
+    price: 70,
     damage: 60,
     cooldownMs: 180,
     range: 50,
     isMelee: false,
   },
-  rifle_mejorada: {
-    id: 'rifle_mejorada',
+  rifle_upgraded: {
+    id: 'rifle_upgraded',
     kind: 'rifle',
     name: 'Rifle mejorado',
-    price: 80,
+    price: 180,
     damage: 110,
     cooldownMs: 160,
     range: 55,
@@ -114,9 +114,25 @@ export function zombieHpForWave(wave: number): number {
   if (w <= 5) {
     const t = (w - 1) / 4;
     return Math.round(
-      WEAPONS.cuchillo.damage * 2 + t * (WEAPONS.escopeta.damage - WEAPONS.cuchillo.damage * 2),
+      WEAPONS.knife.damage * 2 + t * (WEAPONS.shotgun.damage - WEAPONS.knife.damage * 2),
     );
   }
   const pistolHits = 5 + (w - 5);
-  return Math.round(WEAPONS.pistola.damage * pistolHits);
+  return Math.round(WEAPONS.pistol.damage * pistolHits);
+}
+
+/**
+ * Migrate old Spanish weapon IDs from localStorage saves to the new English ids.
+ * Returns the migrated id, or the original if no migration needed.
+ */
+export function migrateWeaponId(id: string): WeaponId {
+  const map: Record<string, WeaponId> = {
+    cuchillo:          'knife',
+    pistola:           'pistol',
+    pistola_mejorada:  'pistol_upgraded',
+    escopeta:          'shotgun',
+    escopeta_mejorada: 'shotgun_upgraded',
+    rifle_mejorada:    'rifle_upgraded',
+  };
+  return (map[id] ?? id) as WeaponId;
 }
