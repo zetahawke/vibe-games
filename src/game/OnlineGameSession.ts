@@ -108,7 +108,7 @@ export class OnlineGameSession extends GameSession {
       bus.onPresenceLeave((left) => {
         if (!this.isHost && left.some((p) => p.is_host)) this.handleHostLeft();
       });
-      this.publishInterval = setInterval(() => this.publish(), 200);
+      this.publishInterval = setInterval(() => this.publish(), 100);
       const look = requireProfile(username);
       const hello: PeerState = {
         playerId: this.playerId,
@@ -370,7 +370,7 @@ export class OnlineGameSession extends GameSession {
     if (!this.bus || this.netStatus !== 'online') return;
     const now = Date.now();
     const pos = this.world?.player.position;
-    if (now - this.lastPresenceSent >= 200) {
+    if (now - this.lastPresenceSent >= 100) {
       this.lastPresenceSent = now;
       const look = requireProfile(this.username);
       const self: PeerState = {

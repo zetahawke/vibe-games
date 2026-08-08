@@ -109,11 +109,11 @@ export function buildPlayer(
     const hairTop = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.2, 0.76), hairMat);
     hairTop.position.set(0, 2.46, -0.06);
     const hairBack = new THREE.Mesh(new THREE.BoxGeometry(0.56, 1.35, 0.26), hairMat);
-    hairBack.position.set(0, 1.78, -0.4);
+    hairBack.position.set(0, 1.78, 0.4);
     const hairLeft = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.2, 0.24), hairMat);
-    hairLeft.position.set(-0.35, 1.78, -0.3);
+    hairLeft.position.set(-0.35, 1.78, 0.3);
     const hairRight = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.2, 0.24), hairMat);
-    hairRight.position.set(0.35, 1.78, -0.3);
+    hairRight.position.set(0.35, 1.78, 0.3);
     const skirtTex = makeClothTexture(darkenHex(color, 0.08), darkenHex(color, 0.32));
     trackTexture(skirtTex);
     const skirtMat = new THREE.MeshStandardMaterial({ map: skirtTex, roughness: 0.88 });
