@@ -1,7 +1,6 @@
-import type { GameSubject, GradeLevel } from '@/domain/save/save';
 import { isTouchPrimary } from '@/shared/device';
 import { Phase } from '@/domain/save/save';
-import { clear, el } from '@/shared/dom';
+import { el } from '@/shared/dom';
 
 export interface HudModel {
   coins: number;
@@ -174,86 +173,4 @@ export class Hud {
   dispose(): void {
     this.root.remove();
   }
-}
-
-// ── Level + Subject picker ────────────────────────────────────────────────────
-
-export type SubjectChoice = { subject: 'math' } | { subject: 'english'; englishGrade: '7th' };
-export interface LevelSubjectChoice {
-  grade: GradeLevel;
-  subject: GameSubject;
-  englishGrade: '7th';
-}
-
-const GRADES: { id: GradeLevel; label: string; enabled: boolean }[] = [
-  { id: '5th', label: '5to Básico', enabled: false },
-  { id: '6th', label: '6to Básico', enabled: false },
-  { id: '7th', label: '7mo Básico', enabled: true },
-  { id: '8th', label: '8vo Básico', enabled: false },
-];
-
-const SUBJECTS: { id: GameSubject; label: string; icon: string }[] = [
-  { id: 'math',    label: 'Matemáticas', icon: '🔢' },
-  { id: 'english', label: 'Inglés',       icon: '🇺🇸' },
-];
-
-export function renderLevelPicker(
-  root: HTMLElement,
-  onPick: (choice: LevelSubjectChoice) => void,
-  onCancel: () => void,
-): void {
-  clear(root);
-  let selectedGrade: GradeLevel | null = null;
-
-  const showSubjects = (grade: GradeLevel) => {
-    selectedGrade = grade;
-    clear(root);
-
-    const list = el('div', { className: 'btn-col' });
-    for (const s of SUBJECTS) {
-      const b = el('button', { type: 'button', className: 'btn primary' }, [`${s.icon} ${s.label}`]);
-      b.addEventListener('click', () =>
-        onPick({ grade, subject: s.id, englishGrade: '7th' }),
-      );
-      list.append(b);
-    }
-    const back = el('button', { type: 'button', className: 'btn ghost' }, ['← Volver']);
-    back.addEventListener('click', () => showGrades());
-    root.append(
-      el('section', { className: 'screen' }, [
-        el('h1', {}, ['Elige la materia']),
-        el('p', { className: 'muted' }, [`Nivel: ${GRADES.find(g => g.id === grade)?.label}`]),
-        list,
-        back,
-      ]),
-    );
-  };
-
-  const showGrades = () => {
-    selectedGrade = null;
-    clear(root);
-    const list = el('div', { className: 'btn-col' });
-    for (const g of GRADES) {
-      const b = el('button', {
-        type: 'button',
-        className: 'btn primary',
-        ...(g.enabled ? {} : { disabled: 'true' }),
-      }, [g.label + (g.enabled ? '' : ' — próximamente')]);
-      if (g.enabled) b.addEventListener('click', () => showSubjects(g.id));
-      list.append(b);
-    }
-    const cancel = el('button', { type: 'button', className: 'btn ghost topic-cancel' }, ['Cancelar']);
-    cancel.addEventListener('click', onCancel);
-    root.append(
-      el('section', { className: 'screen' }, [
-        el('h1', {}, ['Protege el fuerte']),
-        el('p', { className: 'muted' }, ['Elige tu nivel']),
-        list,
-        cancel,
-      ]),
-    );
-  };
-
-  showGrades();
-  void selectedGrade; // suppress unused warning
 }

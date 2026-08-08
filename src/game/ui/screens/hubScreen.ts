@@ -9,12 +9,14 @@ import {
   themeTitle,
   type IdentifyTheme,
 } from '@/domain/identify';
+import { gradeLabel, loadProfile } from '@/domain/profile/profile';
 import { getHighScore, loadSave } from '@/domain/save/save';
 import { renderAnimalsSettingsOverlay } from '@/game/ui/overlays/animalsSettingsOverlay';
 import { renderIdentifySettingsOverlay } from '@/game/ui/overlays/identifySettingsOverlay';
 import { clear, el } from '@/shared/dom';
 import { renderLobbyScreen } from './lobbyScreen';
 import { renderLeaderboardScreen } from './leaderboardScreen';
+import { renderProfileScreen } from './profileScreen';
 
 export function renderHubScreen(
   root: HTMLElement,
@@ -32,125 +34,74 @@ export function renderHubScreen(
     isHost: boolean,
   ) => void,
 ): void {
+  const profile = loadProfile(username);
+  if (!profile) {
+    renderProfileScreen(root, username, () => {
+      renderHubScreen(root, username, onPlayShooter, onPlayAnimals, onPlayIdentify, onLogout, onPlayOnline);
+    }, { required: true });
+    return;
+  }
+
   clear(root);
-  const save = loadSave(username);
-  const highScore = getHighScore(username);
   const animalsSettings = getAnimalsSettings(username);
   const identifySettings = getIdentifySettings(username);
 
-  const continueBtn = el(
-    'button',
-    {
-      type: 'button',
-      className: 'btn primary',
-      ...(save ? {} : { disabled: 'true' }),
-    },
-    ['Continuar'],
-  );
-  const newBtn = el('button', { type: 'button', className: 'btn primary' }, ['Nueva partida']);
-  const logoutBtn = el('button', { type: 'button', className: 'btn ghost' }, ['Cerrar sesión']);
-
-  const lbBtn = el('button', { type: 'button', className: 'btn ghost' }, ['📊 Clasificación']);
-  lbBtn.addEventListener('click', () =>
-    void renderLeaderboardScreen(
-      root,
-      () => renderHubScreen(root, username, onPlayShooter, onPlayAnimals, onPlayIdentify, onLogout, onPlayOnline),
-    ),
-  );
-
-  continueBtn.addEventListener('click', () => {
-    if (save) onPlayShooter('continue');
+  const profileBtn = el('button', { type: 'button', className: 'btn ghost' }, ['Mi perfil']);
+  profileBtn.addEventListener('click', () => {
+    renderProfileScreen(root, username, () => {
+      renderHubScreen(root, username, onPlayShooter, onPlayAnimals, onPlayIdentify, onLogout, onPlayOnline);
+    });
   });
-  newBtn.addEventListener('click', () => onPlayShooter('new'));
+
+  const logoutBtn = el('button', { type: 'button', className: 'btn ghost' }, ['Cerrar sesión']);
   logoutBtn.addEventListener('click', () => {
     logout();
     onLogout();
   });
 
-  const shooterActions = el('div', { className: 'card-actions' }, [newBtn]);
-  if (save) shooterActions.prepend(continueBtn);
+  const fuerteBtn = el('button', { type: 'button', className: 'btn primary' }, ['Entrar']);
+  fuerteBtn.addEventListener('click', () => {
+    renderFuerteMenu(root, username, onPlayShooter, onPlayAnimals, onPlayIdentify, onLogout, onPlayOnline);
+  });
 
-  if (onPlayOnline) {
-    const onlineBtn = el('button', { type: 'button', className: 'btn' }, ['🌐 En línea']);
-    onlineBtn.addEventListener('click', () =>
-      renderLobbyScreen(
-        root,
-        username,
-        (sessionId, code, playerId, sessionToken, playerCount, isHost) => {
-          onPlayOnline(sessionId, code, playerId, sessionToken, playerCount, isHost);
-        },
-        () => renderHubScreen(root, username, onPlayShooter, onPlayAnimals, onPlayIdentify, onLogout, onPlayOnline),
-      ),
-    );
-    shooterActions.append(onlineBtn);
-  }
-
-  const animalsPlay = el('button', { type: 'button', className: 'btn primary' }, [
-    'Jugar',
-  ]) as HTMLButtonElement;
+  const animalsPlay = el('button', { type: 'button', className: 'btn primary' }, ['Jugar']) as HTMLButtonElement;
   animalsPlay.addEventListener('click', () => {
     renderAnimalsSettingsOverlay(root, username, onPlayAnimals, () => undefined);
   });
 
-  const identifyPlay = el('button', { type: 'button', className: 'btn primary' }, [
-    'Jugar',
-  ]) as HTMLButtonElement;
+  const identifyPlay = el('button', { type: 'button', className: 'btn primary' }, ['Jugar']) as HTMLButtonElement;
   identifyPlay.addEventListener('click', () => {
     renderIdentifySettingsOverlay(root, username, onPlayIdentify, () => undefined);
   });
 
-  const makeCard = (
-    title: string,
-    description: string,
-    meta: string | null,
-    actions: HTMLElement,
-    bgUrl: string,
-  ): HTMLElement => {
-    const card = el('article', { className: 'game-card' });
-    const bg = el('div', {
-      className: 'game-card-bg',
-      style: `background-image: url('${bgUrl}')`,
-      'aria-hidden': 'true',
-    });
-    const body = el('div', { className: 'game-card-body' }, [
-      el('h2', {}, [title]),
-      el('p', {}, [description]),
-    ]);
-    if (meta) body.append(el('p', { className: 'muted' }, [meta]));
-    body.append(actions);
-    card.append(bg, body);
-    return card;
-  };
-
   root.append(
     el('section', { className: 'screen hub-screen' }, [
       el('header', { className: 'hub-header' }, [
-        el('h1', {}, ['Juegos de Casa']),
-        el('p', {}, [`Hola, ${username}`]),
-        highScore > 0
-          ? el('p', { className: 'hiscore' }, [`Mejor puntuación: ${highScore}`])
-          : el('p', { className: 'hiscore muted' }, ['Aún no hay récord']),
-        el('div', { className: 'hub-actions' }, [lbBtn, logoutBtn]),
+        el('div', { className: 'hub-intro' }, [
+          el('h1', {}, ['Juegos de Casa']),
+          el('p', { className: 'muted' }, [`Hola, ${username} · ${gradeLabel(profile.grade)}`]),
+        ]),
+        el('div', { className: 'hub-actions' }, [profileBtn, logoutBtn]),
       ]),
       el('div', { className: 'game-grid' }, [
         makeCard(
           'Protege el fuerte',
-          'Defiende el fuerte y gana monedas con matemáticas e inglés.',
+          'Defiende el fuerte. Matemáticas de 2do básico.',
           'Edad recomendada: 7+',
-          shooterActions,
+          el('div', { className: 'card-actions' }, [fuerteBtn]),
           '/hub/fuerte.jpg',
         ),
         makeCard(
           'Animales',
           'Arrastra animales a su sombra.',
-          `Edad recomendada: 2+ · Modo: ${labelMode(animalsSettings.dropMode)} · Gráficos: ${labelGraphics(animalsSettings.graphicsStyle)}`,
+          `Edad 2+ · ${labelMode(animalsSettings.dropMode)} · ${labelGraphics(animalsSettings.graphicsStyle)}`,
           el('div', { className: 'card-actions' }, [animalsPlay]),
           '/hub/animales.jpg',
         ),
         makeCard(
           'Identificar',
           'Vocales, números y abecedario con voz.',
-          `Edad recomendada: 2+ · Tema: ${themeTitle(identifySettings.theme)} · Modo: ${labelMode(identifySettings.dropMode)}`,
+          `Edad 2+ · ${themeTitle(identifySettings.theme)} · ${labelMode(identifySettings.dropMode)}`,
           el('div', { className: 'card-actions' }, [identifyPlay]),
           '/hub/identificar.jpg',
         ),
@@ -159,8 +110,114 @@ export function renderHubScreen(
   );
 }
 
+function renderFuerteMenu(
+  root: HTMLElement,
+  username: string,
+  onPlayShooter: (mode: 'new' | 'continue') => void,
+  onPlayAnimals: (dropMode: DropMode, graphicsStyle: GraphicsStyle) => void,
+  onPlayIdentify: (theme: IdentifyTheme, dropMode: DropMode) => void,
+  onLogout: () => void,
+  onPlayOnline?: (
+    sessionId: string,
+    code: string,
+    playerId: string,
+    sessionToken: string,
+    playerCount: number,
+    isHost: boolean,
+  ) => void,
+): void {
+  if (!loadProfile(username)) {
+    renderProfileScreen(root, username, () => {
+      renderFuerteMenu(root, username, onPlayShooter, onPlayAnimals, onPlayIdentify, onLogout, onPlayOnline);
+    }, { required: true });
+    return;
+  }
+
+  clear(root);
+  const save = loadSave(username);
+  const highScore = getHighScore(username);
+
+  const backToHub = () =>
+    renderHubScreen(root, username, onPlayShooter, onPlayAnimals, onPlayIdentify, onLogout, onPlayOnline);
+
+  const continueBtn = el('button', {
+    type: 'button',
+    className: 'btn primary',
+    ...(save ? {} : { disabled: 'true' }),
+  }, ['Continuar']) as HTMLButtonElement;
+  continueBtn.addEventListener('click', () => {
+    if (save) onPlayShooter('continue');
+  });
+
+  const newBtn = el('button', { type: 'button', className: 'btn primary' }, ['Nueva partida']);
+  newBtn.addEventListener('click', () => onPlayShooter('new'));
+
+  const actions = el('div', { className: 'btn-col' }, [newBtn]);
+  if (save) actions.prepend(continueBtn);
+
+  if (onPlayOnline) {
+    const onlineBtn = el('button', { type: 'button', className: 'btn' }, ['En línea']);
+    onlineBtn.addEventListener('click', () =>
+      renderLobbyScreen(
+        root,
+        username,
+        (sessionId, code, playerId, sessionToken, playerCount, isHost) => {
+          onPlayOnline(sessionId, code, playerId, sessionToken, playerCount, isHost);
+        },
+        () => renderFuerteMenu(root, username, onPlayShooter, onPlayAnimals, onPlayIdentify, onLogout, onPlayOnline),
+      ),
+    );
+    actions.append(onlineBtn);
+  }
+
+  const lbBtn = el('button', { type: 'button', className: 'btn ghost' }, ['Clasificación']);
+  lbBtn.addEventListener('click', () =>
+    void renderLeaderboardScreen(root, () =>
+      renderFuerteMenu(root, username, onPlayShooter, onPlayAnimals, onPlayIdentify, onLogout, onPlayOnline),
+    ),
+  );
+  actions.append(lbBtn);
+
+  const backBtn = el('button', { type: 'button', className: 'btn ghost' }, ['← Volver']);
+  backBtn.addEventListener('click', backToHub);
+  actions.append(backBtn);
+
+  root.append(
+    el('section', { className: 'screen hub-screen fuerte-menu' }, [
+      el('h1', {}, ['Protege el fuerte']),
+      el('p', { className: 'muted' }, [
+        highScore > 0 ? `Mejor puntuación: ${highScore}` : 'Aún no hay récord local.',
+      ]),
+      actions,
+    ]),
+  );
+}
+
+function makeCard(
+  title: string,
+  description: string,
+  meta: string | null,
+  actions: HTMLElement,
+  bgUrl: string,
+): HTMLElement {
+  const card = el('article', { className: 'game-card' });
+  const bg = el('div', {
+    className: 'game-card-bg',
+    style: `background-image: url('${bgUrl}')`,
+    'aria-hidden': 'true',
+  });
+  const body = el('div', { className: 'game-card-body' }, [
+    el('h2', {}, [title]),
+    el('p', {}, [description]),
+  ]);
+  if (meta) body.append(el('p', { className: 'muted' }, [meta]));
+  body.append(actions);
+  card.append(bg, body);
+  return card;
+}
+
 function labelMode(mode: DropMode): string {
-  if (mode === 'free')   return 'Libre';
+  if (mode === 'free') return 'Libre';
   if (mode === 'smooth') return 'Suave';
   return 'Guiado';
 }

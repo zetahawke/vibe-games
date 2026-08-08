@@ -1,4 +1,5 @@
 import { MathTopic } from '@/config/gameConfig';
+import type { ChileGrade } from '@/domain/profile/profile';
 import { scoreForQuiz } from '@/domain/score';
 import {
   adjustDifficulty,
@@ -20,10 +21,11 @@ export function renderQuizOverlay(
   topic: MathTopic,
   difficulty: number,
   onExit: (coins: number, score: number, finalDifficulty: number) => void,
+  grade?: ChileGrade,
 ): HTMLElement {
   const { overlay, card } = makeOverlayCard('quiz-card');
 
-  let state: QuizState = startQuiz(topic, difficulty);
+  let state: QuizState = startQuiz(topic, difficulty, undefined, grade);
   let entry = '';
   let totalCoins = 0;
   let totalScore = 0;
@@ -59,7 +61,7 @@ export function renderQuizOverlay(
             render();
             // Auto-advance to next question after a short pause
             setTimeout(() => {
-              state = startQuiz(topic, state.difficulty);
+              state = startQuiz(topic, state.difficulty, undefined, grade);
               entry = '';
               render();
             }, 900);
@@ -68,7 +70,7 @@ export function renderQuizOverlay(
             render();
             // Auto-advance after failure too
             setTimeout(() => {
-              state = startQuiz(topic, state.difficulty);
+              state = startQuiz(topic, state.difficulty, undefined, grade);
               entry = '';
               render();
             }, 1200);

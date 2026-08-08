@@ -1,10 +1,23 @@
 import * as THREE from 'three';
+import type { AvatarSex } from '@/domain/profile/profile';
 import {
   makeClothTexture,
   makeSkinTexture,
 } from './textures';
 import { createWeaponModel } from '@/domain/weapons/weaponVisuals';
 import type { WeaponDef, WeaponId } from '@/domain/weapons/weapons';
+
+export interface PlayerLook {
+  sex?: AvatarSex;
+  color?: string;
+}
+
+function darkenHex(hex: string, amount = 0.22): string {
+  const n = Number.parseInt(hex.replace('#', ''), 16);
+  if (!Number.isFinite(n)) return '#2558c4';
+  const ch = (shift: number) => Math.max(0, Math.min(255, Math.round(((n >> shift) & 255) * (1 - amount))));
+  return `#${((ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).padStart(6, '0')}`;
+}
 
 export interface PlayerRig {
   root: THREE.Group;
@@ -23,10 +36,13 @@ export const PLAYER_GROUND_Y = 0;
 export function buildPlayer(
   trackTexture: (t: THREE.Texture) => void,
   trackMaterial: (m: THREE.Material) => void,
+  look: PlayerLook = {},
 ): PlayerRig {
+  const color = look.color && /^#[0-9a-fA-F]{6}$/.test(look.color) ? look.color : '#2f6fed';
+  const girl = look.sex === 'girl';
   const skinTex = makeSkinTexture();
-  const shirtTex = makeClothTexture('#2f6fed', '#2558c4');
-  const pantsTex = makeClothTexture('#2a3a55', '#1d2a3f');
+  const shirtTex = makeClothTexture(color, darkenHex(color));
+  const pantsTex = makeClothTexture(girl ? '#5a3a62' : '#2a3a55', girl ? '#3d2844' : '#1d2a3f');
   trackTexture(skinTex);
   trackTexture(shirtTex);
   trackTexture(pantsTex);
@@ -39,7 +55,7 @@ export function buildPlayer(
   trackMaterial(pants);
 
   const root = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.05, 0.5), shirt);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(girl ? 0.75 : 0.85, 1.05, 0.5), shirt);
   body.position.y = 1.35;
   body.castShadow = true;
 
@@ -48,10 +64,10 @@ export function buildPlayer(
   head.castShadow = true;
 
   const hair = new THREE.Mesh(
-    new THREE.BoxGeometry(0.58, 0.18, 0.58),
-    new THREE.MeshStandardMaterial({ color: 0x3b2414, roughness: 0.95 }),
+    new THREE.BoxGeometry(girl ? 0.62 : 0.58, girl ? 0.42 : 0.18, girl ? 0.62 : 0.58),
+    new THREE.MeshStandardMaterial({ color: girl ? 0x4a2a12 : 0x3b2414, roughness: 0.95 }),
   );
-  hair.position.y = 2.42;
+  hair.position.y = girl ? 2.32 : 2.42;
 
   const leftArm = new THREE.Group();
   leftArm.position.set(-0.55, 1.7, 0);

@@ -1,11 +1,12 @@
 import { MAX_LIVES, MathTopic, STORAGE_PREFIX, WAVE_DURATION_MS } from '@/config/gameConfig';
 import type { EnglishGrade } from '@/domain/english';
+import { migrateGrade, type ChileGrade } from '@/domain/profile/profile';
 import { migrateWeaponId, WeaponId } from '@/domain/weapons/weapons';
 import { rollPathHalfWidth } from '@/game/world/layout';
 
 export type Phase = 'wave' | 'rest';
 export type GameSubject = 'math' | 'english';
-export type GradeLevel = '5th' | '6th' | '7th' | '8th';
+export type GradeLevel = ChileGrade;
 
 export interface GameSave {
   wave: number;
@@ -67,14 +68,6 @@ export function defaultSave(opts: NewGameOptions): GameSave {
     wavesCleared: 0,
     quizStreak: 0,
   };
-}
-
-/** Migrate a grade level value from old Spanish format to English. */
-function migrateGrade(g: string): GradeLevel {
-  const map: Record<string, GradeLevel> = {
-    '5to': '5th', '6to': '6th', '7mo': '7th', '8vo': '8th',
-  };
-  return (map[g] ?? g) as GradeLevel;
 }
 
 /** Migrate a math topic value from old Spanish format to English. */

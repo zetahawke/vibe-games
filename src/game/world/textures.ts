@@ -157,21 +157,32 @@ export function makeZombieTexture(): THREE.CanvasTexture {
   });
 }
 
-export function makeSkyTexture(): THREE.CanvasTexture {
+export function makeSkyTexture(night = false): THREE.CanvasTexture {
   return canvasTexture(256, (ctx, size) => {
     const grad = ctx.createLinearGradient(0, 0, 0, size);
-    grad.addColorStop(0, '#6eb6e8');
-    grad.addColorStop(0.55, '#a8d4f0');
-    grad.addColorStop(1, '#e8f2d8');
+    if (night) {
+      grad.addColorStop(0, '#0b1224');
+      grad.addColorStop(0.55, '#1a2744');
+      grad.addColorStop(1, '#243018');
+    } else {
+      grad.addColorStop(0, '#6eb6e8');
+      grad.addColorStop(0.55, '#a8d4f0');
+      grad.addColorStop(1, '#e8f2d8');
+    }
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, size, size);
-    ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    for (let i = 0; i < 6; i++) {
+    ctx.fillStyle = night ? 'rgba(255,255,220,0.85)' : 'rgba(255,255,255,0.55)';
+    const count = night ? 40 : 6;
+    for (let i = 0; i < count; i++) {
       const x = Math.random() * size;
-      const y = Math.random() * size * 0.45;
-      ctx.beginPath();
-      ctx.ellipse(x, y, 28 + Math.random() * 30, 12 + Math.random() * 10, 0, 0, Math.PI * 2);
-      ctx.fill();
+      const y = Math.random() * size * (night ? 0.7 : 0.45);
+      if (night) {
+        ctx.fillRect(x, y, 1.5, 1.5);
+      } else {
+        ctx.beginPath();
+        ctx.ellipse(x, y, 28 + Math.random() * 30, 12 + Math.random() * 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   });
 }

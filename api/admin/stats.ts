@@ -19,18 +19,47 @@ export default async function handler(req: Req, res: Res): Promise<void> {
 
   const limit = Math.min(Number(req.query['limit'] ?? 10), 100);
 
-  const { data, error } = await getAdmin()
-    .from('scoreboard_entries')
-    .select('personal_score, players(username)')
-    .order('personal_score', { ascending: false })
-    .limit(limit);
+  const [{ data: season }, { data: rows, error }] = await Promise.all([
+    getAdmin().from('seasons').select('id, name, is_active, started_at, ended_at').eq('is_active', true).maybeSingle(),
+    getAdmin().from('scoreboard_entries').select('personal_score, player_id, season_id, players(username)'),
+  ]);
 
   if (error) { res.status(500).json({ error: error.message }); return; }
 
-  const players = (data ?? []).map((row) => ({
-    username:   (row.players as { username: string } | null)?.username ?? 'Desconocido',
-    totalScore: row.personal_score as number,
-  }));
+  const byPlayer = new Map<string, {
+    username: string;
+    totalScore: number;
+    matches: number;
+    bestScore: number;
+  }>();
 
-  res.status(200).json({ players });
+  for (const row of rows ?? []) {
+    if (season?.id && row.season_id && row.season_id !== season.id) continue;
+    const username = (row.players as { username: string } | null)?.username ?? 'Desconocido';
+    const score = Number(row.personal_score) || 0;
+    const prev = byPlayer.get(row.player_id as string);
+    if (!prev) {
+      byPlayer.set(row.player_id as string, {
+        username,
+        totalScore: score,
+        matches: 1,
+        bestScore: score,
+      });
+      continue;
+    }
+    prev.totalScore += score;
+    prev.matches += 1;
+    prev.bestScore = Math.max(prev.bestScore, score);
+  }
+
+  const players = [...byPlayer.values()]
+    .sort((a, b) => b.totalScore - a.totalScore)
+    .slice(0, limit);
+
+  res.status(200).json({
+    season: season
+      ? { id: season.id, name: season.name, isActive: season.is_active, startedAt: season.started_at }
+      : null,
+    players,
+  });
 }

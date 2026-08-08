@@ -1,3 +1,5 @@
+import { loadProfile, profileFromApi, saveProfile } from '@/domain/profile/profile';
+
 const KEY_ID    = 'game_player_id';
 const KEY_TOKEN = 'game_session_token';
 const KEY_NAME  = 'game_username';
@@ -14,6 +16,10 @@ export interface PlayerIdentity {
 
 export function getStoredPin(): string | null {
   return store().getItem(KEY_PIN);
+}
+
+export function getStoredSessionToken(): string | null {
+  return store().getItem(KEY_TOKEN);
 }
 
 export function rememberPin(pin: string): void {
@@ -71,7 +77,7 @@ export async function resolveIdentity(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, pin: storedPin }),
     });
-    const json = await res.json() as { playerId?: string; sessionToken?: string; error?: string };
+    const json = await res.json() as ProfileApi & { playerId?: string; sessionToken?: string; error?: string };
 
     if (res.status === 409) {
       return { error: 'Ese nombre ya existe. Usá la misma contraseña que antes.' };
@@ -79,6 +85,7 @@ export async function resolveIdentity(
     if (!res.ok) return { error: json.error ?? 'Error de registro.' };
 
     saveStored(json.playerId!, json.sessionToken!, username, storedPin);
+    maybeSaveRemoteProfile(username, json);
     return { playerId: json.playerId!, sessionToken: json.sessionToken!, username };
   } catch {
     return { error: 'No se pudo conectar. Reintentá en un momento.' };
@@ -95,10 +102,23 @@ async function recoverWithPin(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, pin }),
   });
-  const json = await res.json() as { playerId?: string; sessionToken?: string; error?: string };
+  const json = await res.json() as ProfileApi & { playerId?: string; sessionToken?: string; error?: string };
   if (!res.ok) return { error: json.error ?? 'PIN incorrecto.' };
   saveStored(json.playerId!, json.sessionToken!, username, pin);
+  maybeSaveRemoteProfile(username, json);
   return { playerId: json.playerId!, sessionToken: json.sessionToken!, username };
+}
+
+type ProfileApi = {
+  grade?: string;
+  avatar_sex?: string;
+  avatar_color?: string;
+  display_name?: string;
+};
+
+function maybeSaveRemoteProfile(username: string, json: ProfileApi): void {
+  if (loadProfile(username) || !json.grade) return;
+  saveProfile(username, profileFromApi(json, username));
 }
 
 function saveStored(playerId: string, sessionToken: string, username: string, pin: string): void {

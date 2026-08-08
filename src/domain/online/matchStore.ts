@@ -6,9 +6,13 @@ export interface PeerState {
   is_host: boolean;
   started: boolean;
   x: number;
+  y: number;
   z: number;
   rotY: number;
   weapon: string;
+  grounded: boolean;
+  sex: 'boy' | 'girl';
+  color: string;
   score: number;
   lives: number;
   coins: number;
@@ -39,9 +43,13 @@ export function parsePeer(raw: unknown, fallbackId = ''): PeerState | null {
     is_host: Boolean(r.is_host),
     started: Boolean(r.started),
     x: Number(r.x) || 0,
+    y: Number(r.y) || 0,
     z: Number(r.z) || 8,
     rotY: Number(r.rotY) || 0,
     weapon: typeof r.weapon === 'string' ? r.weapon : 'knife',
+    grounded: r.grounded !== false,
+    sex: r.sex === 'girl' ? 'girl' : 'boy',
+    color: typeof r.color === 'string' ? r.color : '#2f6fed',
     score: Number(r.score) || 0,
     lives: Number(r.lives) || 0,
     coins: Number(r.coins) || 0,

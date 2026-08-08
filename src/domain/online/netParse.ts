@@ -114,6 +114,31 @@ export function parseMatch(raw: unknown): MatchSnapshot | null {
   };
 }
 
+export interface ShotPayload {
+  playerId: string;
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+  weapon: string;
+}
+
+export function parseShot(raw: unknown): ShotPayload | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  const playerId = typeof r.playerId === 'string' ? r.playerId : '';
+  const weapon = typeof r.weapon === 'string' ? r.weapon : '';
+  if (!playerId || !weapon) return null;
+  return {
+    playerId,
+    x: Number(r.x) || 0,
+    y: Number(r.y) || 0,
+    z: Number(r.z) || 0,
+    yaw: Number(r.yaw) || 0,
+    weapon,
+  };
+}
+
 export function parseMatchStart(raw: unknown): MatchStartPayload | null {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Record<string, unknown>;

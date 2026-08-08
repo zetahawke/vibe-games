@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { EnemyType } from '@/domain/waves/enemyConfig';
 import type { WeaponDef } from '@/domain/weapons/weapons';
 import type { Enemy } from './enemy';
 
@@ -7,6 +8,7 @@ export interface Projectile {
   velocity: THREE.Vector3;
   damage: number;
   life: number;
+  visualOnly?: boolean;
 }
 
 export function spawnProjectiles(
@@ -55,20 +57,23 @@ export function updateProjectiles(
   projectiles: Projectile[],
   enemies: Enemy[],
   dt: number,
-  onHit: (e: Enemy, damage: number) => number,
-): { remaining: Projectile[]; kills: number } {
-  let kills = 0;
+  onHit: (e: Enemy, damage: number) => EnemyType | null,
+): { remaining: Projectile[]; kills: EnemyType[] } {
+  const kills: EnemyType[] = [];
   const remaining: Projectile[] = [];
   for (const p of projectiles) {
     p.life -= dt;
     p.mesh.position.addScaledVector(p.velocity, dt);
     let hit = false;
-    for (const e of enemies) {
-      const d = p.mesh.position.distanceTo(e.root.position.clone().setY(1.2));
-      if (d < 1.1) {
-        kills += onHit(e, p.damage);
-        hit = true;
-        break;
+    if (!p.visualOnly) {
+      for (const e of enemies) {
+        const d = p.mesh.position.distanceTo(e.root.position.clone().setY(1.2));
+        if (d < 1.1) {
+          const type = onHit(e, p.damage);
+          if (type) kills.push(type);
+          hit = true;
+          break;
+        }
       }
     }
     if (hit || p.life <= 0) {

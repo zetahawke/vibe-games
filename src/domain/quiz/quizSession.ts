@@ -1,5 +1,6 @@
 import { MathTopic, QUIZ_MAX_ATTEMPTS } from '@/config/gameConfig';
 import { generateQuestion, MathQuestion } from '@/domain/math/mathGenerator';
+import type { ChileGrade } from '@/domain/profile/profile';
 import { QUIZ_SCORE } from '@/domain/score/score';
 import { clampDifficulty } from '@/shared/math';
 
@@ -11,6 +12,7 @@ export interface QuizState {
   reward: number;
   status: 'active' | 'won' | 'failed';
   lastMessage: string;
+  grade?: ChileGrade;
 }
 
 /**
@@ -27,9 +29,10 @@ export function startQuiz(
   topic: MathTopic,
   difficulty: number,
   rng?: () => number,
+  grade?: ChileGrade,
 ): QuizState {
   const d = clampDifficulty(difficulty);
-  const question = generateQuestion(topic, d, rng);
+  const question = generateQuestion(topic, d, rng, grade);
   return {
     topic,
     difficulty: d,
@@ -38,6 +41,7 @@ export function startQuiz(
     reward: rewardFor(question.topic, d),
     status: 'active',
     lastMessage: '',
+    grade,
   };
 }
 
@@ -46,7 +50,7 @@ export function adjustDifficulty(
   delta: -1 | 1,
   rng?: () => number,
 ): QuizState {
-  return startQuiz(state.topic, state.difficulty + delta, rng);
+  return startQuiz(state.topic, state.difficulty + delta, rng, state.grade);
 }
 
 export function submitAnswer(state: QuizState, value: number): QuizState {

@@ -27,4 +27,21 @@ describe('mathGenerator', () => {
       expect(q.answer).toBeGreaterThanOrEqual(0);
     }
   });
+
+  it('2do básico mixed never multiplies or divides', () => {
+    for (let i = 0; i < 30; i++) {
+      const q = generateQuestion('mixed', 2, Math.random, '2do');
+      expect(['additions', 'subtractions']).toContain(q.topic);
+      expect(q.prompt.includes('×')).toBe(false);
+      expect(q.prompt.includes('÷')).toBe(false);
+    }
+  });
+
+  it('2do básico easy sums stay within 1–20', () => {
+    for (let i = 0; i < 20; i++) {
+      const q = generateQuestion('additions', 1, Math.random, '2do');
+      const nums = [...q.prompt.matchAll(/\d+/g)].map((m) => Number(m[0]));
+      expect(nums.every((n) => n >= 1 && n <= 20)).toBe(true);
+    }
+  });
 });

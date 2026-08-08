@@ -3,8 +3,9 @@ import { createMatchStore, type PeerState } from '@/domain/online/matchStore';
 
 function peer(over: Partial<PeerState> & Pick<PeerState, 'playerId' | 'name'>): PeerState {
   return {
-    is_host: false, started: false, x: 0, z: 8, rotY: 0,
-    weapon: 'knife', score: 0, lives: 3, coins: 0, ...over,
+    is_host: false, started: false, x: 0, y: 0, z: 8, rotY: 0,
+    weapon: 'knife', grounded: true, sex: 'boy', color: '#2f6fed',
+    score: 0, lives: 3, coins: 0, ...over,
   };
 }
 

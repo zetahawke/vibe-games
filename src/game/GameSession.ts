@@ -1,5 +1,6 @@
-import { COINS_PER_ZOMBIE, REST_DURATION_MS, WAVE_DURATION_MS } from '@/config/gameConfig';
-import { addCoins } from '@/domain/economy/economy';
+import { REST_DURATION_MS, WAVE_DURATION_MS } from '@/config/gameConfig';
+import { addCoins, coinsForKill } from '@/domain/economy/economy';
+import { requireProfile } from '@/domain/profile/profile';
 import { shouldAwardSkipCoin, canSkipWave, SKIP_COINS_MAX } from '@/domain/rewards/skipLogic';
 import {
   quizCoinsForWave,
@@ -18,7 +19,7 @@ import {
   writeSave,
 } from '@/domain/save/save';
 import { scoreForKill } from '@/domain/score';
-import { Hud, renderLevelPicker, type LevelSubjectChoice } from '@/game/ui/hud';
+import { Hud } from '@/game/ui/hud';
 import { renderGameOverOverlay } from '@/game/ui/overlays/gameOverOverlay';
 import { renderPauseOverlay } from '@/game/ui/overlays/pauseOverlay';
 import { renderQuizOverlay } from '@/game/ui/overlays/quizOverlay';
@@ -72,24 +73,18 @@ export class GameSession {
   }
 
   /**
-   * Shows the level/subject picker and starts the game on selection.
+   * Starts a new match using the player's profile grade.
    * Overridable by subclasses (e.g. OnlineGameSession for guests).
    */
   protected startOrPick(): void {
-    renderLevelPicker(
-      this.wrap,
-      (choice: LevelSubjectChoice) => {
-        clear(this.wrap);
-        this.beginWithSave(
-          defaultSave({
-            subject: choice.subject,
-            grade: choice.grade,
-            englishGrade: choice.englishGrade,
-            mathTopic: 'mixed',
-          }),
-        );
-      },
-      () => this.dispose(),
+    const profile = requireProfile(this.username);
+    this.beginWithSave(
+      defaultSave({
+        subject: 'math',
+        grade: profile.grade,
+        englishGrade: '7th',
+        mathTopic: 'mixed',
+      }),
     );
   }
 
@@ -123,7 +118,8 @@ export class GameSession {
 
     const canvasHost = el('div', { className: 'canvas-host' });
     this.wrap.append(canvasHost);
-    this.world = new World(canvasHost, save.pathHalfW);
+    const look = requireProfile(this.username);
+    this.world = new World(canvasHost, save.pathHalfW, { sex: look.sex, color: look.color });
     this.input = new InputManager(this.world.canvas);
     this.hud = new Hud(this.wrap);
     this.wireHud();
@@ -297,6 +293,7 @@ export class GameSession {
           this.quizOverlay = null;
           this.requestShop();
         },
+        this.save.grade,
       );
     }
   }
@@ -419,9 +416,11 @@ export class GameSession {
       equipped,
     );
 
-    if (events.kills > 0 && this.waves.status === 'playing') {
-      this.save.coins = addCoins(this.save.coins, events.kills * COINS_PER_ZOMBIE);
-      this.save.score += events.kills * scoreForKill(this.waves.wave);
+    if (events.kills.length > 0 && this.waves.status === 'playing') {
+      for (const kill of events.kills) {
+        this.save.coins = addCoins(this.save.coins, coinsForKill(this.waves.wave, kill.type));
+        this.save.score += scoreForKill(this.waves.wave);
+      }
     }
 
     if (events.fortBreached && this.waves.status === 'playing' && !this.paused) {

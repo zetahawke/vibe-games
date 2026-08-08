@@ -6,17 +6,23 @@ import {
   parseClockTick,
   parseMatch,
   parseMatchStart,
+  parseShot,
   unpackMobs,
 } from '@/domain/online/netParse';
+import { parsePeer } from '@/domain/online/matchStore';
 import type { PeerState } from '@/domain/online/matchStore';
 
 function peer(over: Partial<PeerState> & Pick<PeerState, 'playerId' | 'name'>): PeerState {
   return {
     is_host: false,
     x: 0,
+    y: 0,
     z: 8,
     rotY: 0,
     weapon: 'knife',
+    grounded: true,
+    sex: 'boy',
+    color: '#2f6fed',
     score: 0,
     lives: 3,
     coins: 0,
@@ -75,6 +81,31 @@ describe('parseMatch', () => {
 
   it('rejects match without grade', () => {
     expect(parseMatch({ subject: 'math', w: 1, p: 'w', t: 1000, s: 'p', l: 3, m: [] })).toBeNull();
+  });
+});
+
+describe('parseShot', () => {
+  it('reads visual projectile origin', () => {
+    expect(parseShot({ playerId: 'p1', x: 1, y: 1.2, z: 3, yaw: 0.5, weapon: 'pistol' })).toEqual({
+      playerId: 'p1', x: 1, y: 1.2, z: 3, yaw: 0.5, weapon: 'pistol',
+    });
+  });
+
+  it('rejects missing weapon', () => {
+    expect(parseShot({ playerId: 'p1', x: 0, y: 0, z: 0, yaw: 0 })).toBeNull();
+  });
+});
+
+describe('parsePeer pose', () => {
+  it('keeps jump height and grounded flag', () => {
+    const p = parsePeer({
+      playerId: 'g', name: 'hija', x: 2, y: 1.4, z: -3, rotY: 1,
+      weapon: 'rifle', grounded: false, sex: 'girl', color: '#c94c4c',
+    });
+    expect(p?.y).toBe(1.4);
+    expect(p?.grounded).toBe(false);
+    expect(p?.weapon).toBe('rifle');
+    expect(p?.sex).toBe('girl');
   });
 });
 

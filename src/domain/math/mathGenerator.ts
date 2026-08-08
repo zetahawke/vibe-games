@@ -1,4 +1,5 @@
 import { MathTopic } from '@/config/gameConfig';
+import type { ChileGrade } from '@/domain/profile/profile';
 import { clampDifficulty } from '@/shared/math';
 
 export interface MathQuestion {
@@ -14,18 +15,26 @@ function randInt(rng: Rng, min: number, max: number): number {
   return min + Math.floor(rng() * (max - min + 1));
 }
 
-function pickTopic(topic: MathTopic, rng: Rng): Exclude<MathTopic, 'mixed'> {
-  if (topic !== 'mixed') return topic;
-  const options: Exclude<MathTopic, 'mixed'>[] = [
-    'additions',
-    'subtractions',
-    'multiplications',
-    'divisions',
-  ];
+function pickTopic(topic: MathTopic, rng: Rng, grade?: ChileGrade): Exclude<MathTopic, 'mixed'> {
+  if (topic !== 'mixed') {
+    if (grade === '2do' && (topic === 'multiplications' || topic === 'divisions')) {
+      return rng() < 0.5 ? 'additions' : 'subtractions';
+    }
+    return topic;
+  }
+  const options: Exclude<MathTopic, 'mixed'>[] = grade === '2do'
+    ? ['additions', 'subtractions']
+    : ['additions', 'subtractions', 'multiplications', 'divisions'];
   return options[randInt(rng, 0, options.length - 1)];
 }
 
-function makeAdditions(difficulty: number, rng: Rng): { expr: string; answer: number } {
+function makeAdditions(difficulty: number, rng: Rng, grade?: ChileGrade): { expr: string; answer: number } {
+  if (grade === '2do') {
+    const max = difficulty === 1 ? 20 : difficulty === 2 ? 35 : 50;
+    const a = randInt(rng, 1, max);
+    const b = randInt(rng, 1, max);
+    return { expr: `${a} + ${b}`, answer: a + b };
+  }
   if (difficulty === 1) {
     const a = randInt(rng, 1, 10);
     const b = randInt(rng, 1, 10);
@@ -42,12 +51,14 @@ function makeAdditions(difficulty: number, rng: Rng): { expr: string; answer: nu
   return { expr: nums.join(' + '), answer: nums.reduce((s, n) => s + n, 0) };
 }
 
-function makeSubtractions(difficulty: number, rng: Rng): { expr: string; answer: number } {
-  const max = difficulty === 1 ? 10 : difficulty === 2 ? 20 : 50;
+function makeSubtractions(difficulty: number, rng: Rng, grade?: ChileGrade): { expr: string; answer: number } {
+  const max = grade === '2do'
+    ? (difficulty === 1 ? 20 : difficulty === 2 ? 35 : 50)
+    : (difficulty === 1 ? 10 : difficulty === 2 ? 20 : 50);
   let a = randInt(rng, 1, max);
   let b = randInt(rng, 1, max);
   if (b > a) [a, b] = [b, a];
-  if (difficulty >= 3) {
+  if (difficulty >= 3 && grade !== '2do') {
     const c = randInt(rng, 0, Math.min(b, 10));
     return { expr: `${a} - ${b} - ${c}`, answer: a - b - c };
   }
@@ -83,16 +94,17 @@ export function generateQuestion(
   topic: MathTopic,
   difficulty: number,
   rng: Rng = Math.random,
+  grade?: ChileGrade,
 ): MathQuestion {
   const d = clampDifficulty(difficulty);
-  const chosen = pickTopic(topic, rng);
+  const chosen = pickTopic(topic, rng, grade);
   let built: { expr: string; answer: number };
   switch (chosen) {
     case 'additions':
-      built = makeAdditions(d, rng);
+      built = makeAdditions(d, rng, grade);
       break;
     case 'subtractions':
-      built = makeSubtractions(d, rng);
+      built = makeSubtractions(d, rng, grade);
       break;
     case 'multiplications':
       built = makeMultiplications(d, rng);

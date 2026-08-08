@@ -9,7 +9,7 @@ import {
 } from '@/domain/save/save';
 
 const mathSave = () =>
-  defaultSave({ subject: 'math', grade: '7th', englishGrade: '7th', mathTopic: 'additions' });
+  defaultSave({ subject: 'math', grade: '2do', englishGrade: '7th', mathTopic: 'additions' });
 
 beforeEach(() => localStorage.clear());
 

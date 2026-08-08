@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { WAVE_DURATION_MS } from '@/config/gameConfig';
+import type { PlayerLook } from './player';
 import type { Phase } from '@/domain/save/save';
+import { isNightWave, nightSpeedMul } from '@/domain/waves/dayNight';
 import { enemyHp, pickEnemyType, spawnInterval, ENEMY_DEFS, type EnemyType } from '@/domain/waves/enemyConfig';
 import { reconcileEnemySnapshot } from '@/domain/online/enemySync';
 import { getWeapon, WeaponDef, WeaponId } from '@/domain/weapons/weapons';
@@ -32,7 +34,7 @@ import {
 import { makeSkyTexture } from './textures';
 import { animateEnemyWalk, BASE_ZOMBIE_SPEED, buildEnemy, type Enemy } from './enemy';
 
-export type WorldEvents = { kills: number; fortBreached: boolean };
+export type WorldEvents = { kills: Array<{ type: EnemyType }>; fortBreached: boolean };
 
 const _scratchDir = new THREE.Vector3();
 
@@ -84,8 +86,9 @@ export class World {
     rig: PlayerRig;
     walkPhase: number;
     weaponId: WeaponId | null;
+    grounded: boolean;
   }>();
-  private remoteTargets = new Map<string, { x: number; z: number; rotY: number }>();
+  private remoteTargets = new Map<string, { x: number; y: number; z: number; rotY: number }>();
   private guestMode = false;
   private nextNetId = 1;
   /** netIds killed locally — ignore lagging host snapshots until host drops them. */
@@ -93,11 +96,22 @@ export class World {
   /** Host-authored positions for guest puppet interpolation. */
   private enemyNetTargets = new Map<number, { x: number; z: number }>();
   private onEnemyHitCb: ((netId: number, dmg: number, killed: boolean) => void) | null = null;
+  private onShotCb: ((origin: { x: number; y: number; z: number }, yaw: number, weapon: WeaponId) => void) | null = null;
+  private sky: THREE.Mesh;
+  private skyDay: THREE.CanvasTexture;
+  private skyNight: THREE.CanvasTexture;
+  private sun: THREE.DirectionalLight;
+  private hemi: THREE.HemisphereLight;
+  private amb: THREE.AmbientLight;
   private onEnemySpawnCb: ((state: {
     id: number; type: EnemyType; x: number; z: number; hp: number; hpMax: number;
   }) => void) | null = null;
 
-  constructor(private container: HTMLElement, pathHalfW: number = rollPathHalfWidth()) {
+  constructor(
+    private container: HTMLElement,
+    pathHalfW: number = rollPathHalfWidth(),
+    look: PlayerLook = {},
+  ) {
     this.pathHalfW = pathHalfW;
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -118,22 +132,29 @@ export class World {
       280,
     );
 
-    const skyTex = makeSkyTexture();
-    this.textures.push(skyTex);
-    this.scene.background = skyTex;
+    this.skyDay = makeSkyTexture(false);
+    this.skyNight = makeSkyTexture(true);
+    this.textures.push(this.skyDay, this.skyNight);
+    const skyMat = new THREE.MeshBasicMaterial({
+      map: this.skyDay,
+      side: THREE.BackSide,
+      depthWrite: false,
+    });
+    this.sky = new THREE.Mesh(new THREE.SphereGeometry(160, 24, 16), skyMat);
+    this.scene.add(this.sky);
     this.scene.fog = new THREE.Fog(0xa8c4a8, 45, 125);
 
-    this.scene.add(new THREE.AmbientLight(0xbdd4ff, 0.45));
-    const sun = new THREE.DirectionalLight(0xfff0d0, 1.15);
-    sun.position.set(18, 42, 30);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
-    sun.shadow.camera.left = -70;
-    sun.shadow.camera.right = 70;
-    sun.shadow.camera.top = 70;
-    sun.shadow.camera.bottom = -70;
-    this.scene.add(sun);
-    this.scene.add(new THREE.HemisphereLight(0x9ecbff, 0x3d5c2e, 0.35));
+    this.amb = new THREE.AmbientLight(0xbdd4ff, 0.45);
+    this.sun = new THREE.DirectionalLight(0xfff0d0, 1.15);
+    this.sun.position.set(18, 42, 30);
+    this.sun.castShadow = true;
+    this.sun.shadow.mapSize.set(1024, 1024);
+    this.sun.shadow.camera.left = -70;
+    this.sun.shadow.camera.right = 70;
+    this.sun.shadow.camera.top = 70;
+    this.sun.shadow.camera.bottom = -70;
+    this.hemi = new THREE.HemisphereLight(0x9ecbff, 0x3d5c2e, 0.35);
+    this.scene.add(this.amb, this.sun, this.hemi);
 
     const trackTex = (t: THREE.Texture) => this.textures.push(t);
     const trackMat = (m: THREE.Material) => this.materials.push(m);
@@ -147,7 +168,7 @@ export class World {
       trackMat,
     );
     this.scene.add(buildFort(this.pathHalfW, this.fortHalf, this.fortHeight, trackTex, trackMat));
-    this.playerRig = buildPlayer(trackTex, trackMat);
+    this.playerRig = buildPlayer(trackTex, trackMat, look);
     this.playerRig.root.position.set(0, 0, 8);
     this.playerRig.root.rotation.y = this.yaw;
     this.scene.add(this.playerRig.root);
@@ -158,6 +179,9 @@ export class World {
   get canvas(): HTMLCanvasElement { return this.renderer.domElement; }
   get player(): THREE.Group      { return this.playerRig.root; }
   get playerYaw(): number        { return this.bodyYaw; }
+  get playerGrounded(): boolean {
+    return this.playerRig.root.position.y <= PLAYER_GROUND_Y + 0.001;
+  }
 
   // ── Remote player avatars ──────────────────────────────────────────────
 
@@ -167,17 +191,21 @@ export class World {
     z: number,
     rotY: number,
     weaponId?: string,
+    y = 0,
+    grounded = true,
+    look?: PlayerLook,
   ): void {
-    this.remoteTargets.set(playerId, { x, z, rotY });
+    this.remoteTargets.set(playerId, { x, y, z, rotY });
     let avatar = this.remoteAvatars.get(playerId);
     if (!avatar) {
-      const rig = buildPlayer((t) => this.textures.push(t), (m) => this.materials.push(m));
-      rig.root.position.set(x, 0, z);
+      const rig = buildPlayer((t) => this.textures.push(t), (m) => this.materials.push(m), look);
+      rig.root.position.set(x, y, z);
       rig.root.rotation.y = rotY;
       this.scene.add(rig.root);
-      avatar = { rig, walkPhase: 0, weaponId: null };
+      avatar = { rig, walkPhase: 0, weaponId: null, grounded };
       this.remoteAvatars.set(playerId, avatar);
     }
+    avatar.grounded = grounded;
     if (weaponId) {
       avatar.weaponId = syncWeaponModel(avatar.rig.weaponSlot, avatar.weaponId, weaponId as WeaponId);
     }
@@ -199,6 +227,20 @@ export class World {
 
   setGuestMode(guest: boolean): void {
     this.guestMode = guest;
+  }
+
+  setShotHandler(handler: (origin: { x: number; y: number; z: number }, yaw: number, weapon: WeaponId) => void): void {
+    this.onShotCb = handler;
+  }
+
+  spawnRemoteShot(origin: { x: number; y: number; z: number }, yaw: number, weaponId: string): void {
+    const equipped = getWeapon((weaponId as WeaponId) || 'pistol');
+    if (equipped.isMelee) return;
+    const dir = aimDirection(yaw, 0.12);
+    const from = new THREE.Vector3(origin.x, origin.y, origin.z);
+    const shots = spawnProjectiles(this.scene, from, dir, equipped);
+    for (const p of shots) p.visualOnly = true;
+    this.projectiles.push(...shots);
   }
 
   setCombatNetHandlers(handlers: {
@@ -237,7 +279,7 @@ export class World {
   applyRemoteHit(netId: number, dmg: number): number {
     const e = this.enemies.find((x) => x.netId === netId);
     if (!e) return 0;
-    return this.damageEnemy(e, dmg, true);
+    return this.damageEnemy(e, dmg, true) ? 1 : 0;
   }
 
   applyEnemySnapshot(states: Array<{
@@ -294,6 +336,11 @@ export class World {
     const waveChanged = wave !== this.wave;
     this.phase = phase;
     this.wave = wave;
+    this.applyDayNight(isNightWave(wave));
+    const mul = nightSpeedMul(wave);
+    for (const e of this.enemies) {
+      e.speed = BASE_ZOMBIE_SPEED * ENEMY_DEFS[e.type].speedFactor * mul;
+    }
     if (phase === 'wave' && (phaseChanged || waveChanged)) {
       this.spawnTimer = spawnInterval(wave);
     }
@@ -302,6 +349,16 @@ export class World {
       clearProjectiles(this.scene, this.projectiles);
       this.projectiles = [];
     }
+  }
+
+  private applyDayNight(night: boolean): void {
+    const mat = this.sky.material as THREE.MeshBasicMaterial;
+    mat.map = night ? this.skyNight : this.skyDay;
+    mat.needsUpdate = true;
+    this.scene.fog = new THREE.Fog(night ? 0x1a2438 : 0xa8c4a8, night ? 30 : 45, night ? 90 : 125);
+    this.amb.intensity = night ? 0.18 : 0.45;
+    this.sun.intensity = night ? 0.25 : 1.15;
+    this.hemi.intensity = night ? 0.12 : 0.35;
   }
 
   clearEnemies(): void {
@@ -314,7 +371,7 @@ export class World {
   clearZombies(): void { this.clearEnemies(); }
 
   update(dt: number, input: InputState, equipped: WeaponDef): WorldEvents {
-    const events: WorldEvents = { kills: 0, fortBreached: false };
+    const events: WorldEvents = { kills: [], fortBreached: false };
     this.equippedId = syncWeaponModel(
       this.playerRig.weaponSlot,
       this.equippedId,
@@ -379,13 +436,15 @@ export class World {
       equipped,
     );
     updateThirdPersonCamera(this.camera, this.playerRig.root, this.yaw, this.pitch);
+    this.sky.position.copy(this.camera.position);
 
     this.fireCooldown = Math.max(0, this.fireCooldown - dt * 1000);
     if (input.fire && this.fireCooldown <= 0) {
       this.fireCooldown = equipped.cooldownMs;
       this.attackAnim = 1;
       if (equipped.isMelee) {
-        events.kills += this.tryMelee(equipped);
+        const killed = this.tryMelee(equipped);
+        if (killed) events.kills.push({ type: killed });
       } else {
         const { origin, direction } = muzzleAimDirection(
           this.playerRig,
@@ -395,6 +454,7 @@ export class World {
         this.projectiles.push(
           ...spawnProjectiles(this.scene, origin, direction, equipped),
         );
+        this.onShotCb?.({ x: origin.x, y: origin.y, z: origin.z }, this.yaw, equipped.id);
       }
     }
 
@@ -406,7 +466,7 @@ export class World {
       (e, dmg) => this.damageEnemy(e, dmg),
     );
     this.projectiles = proj.remaining;
-    events.kills += proj.kills;
+    events.kills.push(...proj.kills.map((type) => ({ type })));
 
     if (this.phase === 'wave') {
       if (this.guestMode) {
@@ -487,7 +547,7 @@ export class World {
     this.renderer.domElement.remove();
   }
 
-  private tryMelee(equipped: WeaponDef): number {
+  private tryMelee(equipped: WeaponDef): EnemyType | null {
     const origin = this.playerRig.root.position.clone();
     origin.y = 1.2;
     const dir = aimDirection(this.yaw, this.pitch);
@@ -506,7 +566,7 @@ export class World {
         bestDist = dist;
       }
     }
-    return best ? this.damageEnemy(best, equipped.damage) : 0;
+    return best ? this.damageEnemy(best, equipped.damage) : null;
   }
 
   private lerpNetworkEnemies(dt: number): void {
@@ -529,7 +589,6 @@ export class World {
 
   private lerpRemoteAvatars(dt: number): void {
     const t = Math.min(1, dt * 18);
-    const knife = getWeapon('knife');
     for (const [id, avatar] of this.remoteAvatars) {
       const target = this.remoteTargets.get(id);
       if (!target) continue;
@@ -537,27 +596,30 @@ export class World {
       const prevX = root.position.x;
       const prevZ = root.position.z;
       root.position.x = THREE.MathUtils.lerp(prevX, target.x, t);
+      root.position.y = THREE.MathUtils.lerp(root.position.y, target.y, t);
       root.position.z = THREE.MathUtils.lerp(prevZ, target.z, t);
       root.rotation.y = lerpAngle(root.rotation.y, target.rotY, t);
       const dx = root.position.x - prevX;
       const dz = root.position.z - prevZ;
       const moving = dx * dx + dz * dz > 0.00002;
       if (moving) avatar.walkPhase += dt * 9;
-      animatePlayer(avatar.rig, avatar.walkPhase, 0, moving, true, dt, knife);
+      const weapon = getWeapon(avatar.weaponId ?? 'knife');
+      animatePlayer(avatar.rig, avatar.walkPhase, 0, moving, avatar.grounded, dt, weapon);
     }
   }
 
-  private damageEnemy(e: Enemy, dmg: number, remote = false): number {
+  private damageEnemy(e: Enemy, dmg: number, remote = false): EnemyType | null {
     e.hp = Math.max(0, e.hp - dmg);
     e.hpShowUntil = performance.now() + 2000;
     const killed = e.hp <= 0;
     if (!remote && e.netId > 0) this.onEnemyHitCb?.(e.netId, dmg, killed);
     if (killed) {
+      const type = e.type;
       if (e.netId > 0) this.killedNetIds.add(e.netId);
       this.removeEnemyVisual(e);
-      return 1;
+      return type;
     }
-    return 0;
+    return null;
   }
 
   private spawnEnemy(): void {
@@ -583,6 +645,7 @@ export class World {
     e.netId = netId;
     e.hp = hp;
     e.hpMax = hpMax;
+    e.speed = BASE_ZOMBIE_SPEED * ENEMY_DEFS[type].speedFactor * nightSpeedMul(this.wave);
     e.hpShowUntil = performance.now() + 2000;
     e.root.position.set(x, 0, z);
     this.scene.add(e.root);

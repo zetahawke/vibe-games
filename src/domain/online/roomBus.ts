@@ -1,7 +1,7 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { getRealtime } from '@/lib/supabase';
 
-export type RoomEvent = 'peer' | 'match' | 'hit';
+export type RoomEvent = 'peer' | 'match' | 'hit' | 'shot';
 export type RoomStatus = 'connecting' | 'online' | 'error';
 
 export interface RoomBus {
@@ -52,6 +52,7 @@ export async function connectRoom(opts: {
     peer: [],
     match: [],
     hit: [],
+    shot: [],
   };
   const leaveHandlers: Array<(left: Array<{ is_host?: boolean; playerId?: string }>) => void> = [];
 
@@ -67,6 +68,9 @@ export async function connectRoom(opts: {
     })
     .on('broadcast', { event: 'hit' }, ({ payload }) => {
       for (const h of handlers.hit) h(payload);
+    })
+    .on('broadcast', { event: 'shot' }, ({ payload }) => {
+      for (const h of handlers.shot) h(payload);
     })
     .on('presence', { event: 'leave' }, ({ leftPresences }) => {
       const left = (leftPresences ?? []) as Array<{ is_host?: boolean; playerId?: string }>;

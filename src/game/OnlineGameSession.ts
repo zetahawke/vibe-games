@@ -6,13 +6,14 @@ import {
   type MatchSnapshot,
   type PeerState,
 } from '@/domain/online/matchStore';
-import { packMobs, parseMatch } from '@/domain/online/netParse';
+import { packMobs, parseMatch, parseShot } from '@/domain/online/netParse';
 import { netStatusLabel } from '@/domain/online/netStatus';
 import { parseHits, type SeqHit } from '@/domain/online/hitSeq';
 import { closeSession, leaveSession } from '@/domain/online/sessionService';
 import type { EnglishGrade } from '@/domain/english';
 import type { EnemyType } from '@/domain/waves/enemyConfig';
-import { defaultSave, type GameSave, type GameSubject, type GradeLevel } from '@/domain/save/save';
+import { requireProfile } from '@/domain/profile/profile';
+import { defaultSave, type GameSave, type GameSubject } from '@/domain/save/save';
 import { clear, el } from '@/shared/dom';
 import type { World } from '@/game/world/World';
 
@@ -103,26 +104,26 @@ export class OnlineGameSession extends GameSession {
         this.applyMatchToGuest(m);
       });
       bus.on('hit', (raw) => this.onHits(raw));
+      bus.on('shot', (raw) => this.onShot(raw));
       bus.onPresenceLeave((left) => {
         if (!this.isHost && left.some((p) => p.is_host)) this.handleHostLeft();
       });
       this.publishInterval = setInterval(() => this.publish(), 200);
-      this.store.applyPeer({
+      const look = requireProfile(username);
+      const hello: PeerState = {
         playerId: this.playerId,
         name: username,
         is_host: isHost,
         started: false,
-        x: 0, z: 8, rotY: 0,
-        weapon: 'knife', score: 0, lives: 3, coins: 0,
-      });
-      this.bus.send('peer', {
-        playerId: this.playerId,
-        name: username,
-        is_host: isHost,
-        started: false,
-        x: 0, z: 8, rotY: 0,
-        weapon: 'knife', score: 0, lives: 3, coins: 0,
-      });
+        x: 0, y: 0, z: 8, rotY: 0,
+        weapon: 'knife',
+        grounded: true,
+        sex: look.sex,
+        color: look.color,
+        score: 0, lives: 3, coins: 0,
+      };
+      this.store.applyPeer(hello);
+      this.bus.send('peer', { ...hello });
       this.onStorePeers();
     } catch {
       this.netStatus = 'error';
@@ -222,6 +223,14 @@ export class OnlineGameSession extends GameSession {
       },
       onSpawn: () => undefined,
     });
+    world.setShotHandler((origin, yaw, weapon) => {
+      this.bus?.send('shot', {
+        playerId: this.playerId,
+        x: origin.x, y: origin.y, z: origin.z,
+        yaw,
+        weapon,
+      });
+    });
   }
 
   protected override beginWithSave(save: GameSave): void {
@@ -284,7 +293,10 @@ export class OnlineGameSession extends GameSession {
         this.world.removeRemotePlayer(p.playerId);
         continue;
       }
-      this.world.upsertRemotePlayer(p.playerId, p.x, p.z, p.rotY, p.weapon);
+      this.world.upsertRemotePlayer(
+        p.playerId, p.x, p.z, p.rotY, p.weapon, p.y, p.grounded,
+        { sex: p.sex, color: p.color },
+      );
     }
   }
 
@@ -297,13 +309,25 @@ export class OnlineGameSession extends GameSession {
     }
   }
 
+  private onShot(raw: unknown): void {
+    if (!this.world) return;
+    const shot = parseShot(raw);
+    if (!shot || shot.playerId === this.playerId) return;
+    this.world.spawnRemoteShot(
+      { x: shot.x, y: shot.y, z: shot.z },
+      shot.yaw,
+      shot.weapon,
+    );
+  }
+
   private startAsGuest(start: MatchSnapshot): void {
     this.refreshLobbyList = null;
     clear(this.wrap);
+    const profile = requireProfile(this.username);
     this.beginWithSave(
       defaultSave({
         subject:      start.subject as GameSubject,
-        grade:        start.grade as GradeLevel,
+        grade:        profile.grade,
         englishGrade: (start.englishGrade || '7th') as EnglishGrade,
         mathTopic:    'mixed',
         pathHalfW:    start.pathHalfW || undefined,
@@ -348,15 +372,20 @@ export class OnlineGameSession extends GameSession {
     const pos = this.world?.player.position;
     if (now - this.lastPresenceSent >= 200) {
       this.lastPresenceSent = now;
+      const look = requireProfile(this.username);
       const self: PeerState = {
         playerId: this.playerId,
         name:     this.username,
         is_host:  this.isHost,
         started:  this.gameInitialized,
         x:        pos?.x ?? 0,
+        y:        pos?.y ?? 0,
         z:        pos?.z ?? 8,
         rotY:     this.world?.playerYaw ?? 0,
         weapon:   this.save?.equippedWeapon ?? 'knife',
+        grounded: this.world?.playerGrounded ?? true,
+        sex:      look.sex,
+        color:    look.color,
         score:    this.save?.score ?? 0,
         lives:    this.waves?.lives ?? 3,
         coins:    this.save?.coins ?? 0,
