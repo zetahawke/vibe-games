@@ -31,12 +31,12 @@ import { World } from '@/game/world/World';
 
 export class GameSession {
   private wrap: HTMLElement;
-  private world: World | null = null;
+  protected world: World | null = null;
   private input: InputManager | null = null;
   private hud: Hud | null = null;
-  private save!: GameSave;
-  private waves!: WaveState;
-  private username: string;
+  protected save!: GameSave;
+  protected waves!: WaveState;
+  protected username: string;
   private raf = 0;
   private last = 0;
   private paused = false;
@@ -81,7 +81,7 @@ export class GameSession {
           }),
         );
       },
-      () => this.exit(),
+      () => this.dispose(),
     );
   }
 
@@ -90,7 +90,7 @@ export class GameSession {
     writeSave(this.username, this.syncSave());
   }
 
-  private beginWithSave(save: GameSave): void {
+  protected beginWithSave(save: GameSave): void {
     this.save = save;
     this.waves = {
       wave: save.wave,
@@ -326,7 +326,7 @@ export class GameSession {
     this.overlay = renderPauseOverlay(
       this.wrap,
       () => this.resume(),
-      () => this.exit(),
+      () => this.dispose(),
     );
   }
 
@@ -433,7 +433,7 @@ export class GameSession {
       this.wrap,
       this.waves.wave,
       best,
-      () => this.exit(),
+      () => this.dispose(),
       this.save.score,
     );
   }
@@ -451,7 +451,7 @@ export class GameSession {
     this.bannerUntil = performance.now() + 2200;
   }
 
-  private exit(): void {
+  public dispose(): void {
     if (this.waves && this.waves.status === 'playing') this.persist();
     cancelAnimationFrame(this.raf);
     this.input?.dispose();

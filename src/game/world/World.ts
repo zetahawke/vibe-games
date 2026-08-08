@@ -51,6 +51,8 @@ export class World {
   private phase: Phase = 'rest';
   private wave = 0;
   private spawnTimer = 0;
+  private spawnMultiplier = 1;
+  private enemyHpMultiplier = 1;
   private projectiles: Projectile[] = [];
   private equippedId: WeaponId | null = null;
   private textures: THREE.Texture[] = [];
@@ -136,6 +138,14 @@ export class World {
 
   setPaused(p: boolean): void {
     this.paused = p;
+  }
+
+  setSpawnMultiplier(n: number): void {
+    this.spawnMultiplier = Math.max(1, n);
+  }
+
+  setEnemyHpMultiplier(n: number): void {
+    this.enemyHpMultiplier = Math.max(1, n);
   }
 
   setWavePhase(phase: Phase, wave: number): void {
@@ -263,7 +273,9 @@ export class World {
     if (this.phase === 'wave') {
       this.spawnTimer -= dt;
       if (this.spawnTimer <= 0) {
-        this.spawnEnemy();
+        for (let i = 0; i < this.spawnMultiplier; i++) {
+          this.spawnEnemy();
+        }
         this.spawnTimer = spawnInterval(this.wave);
       }
 
@@ -368,7 +380,7 @@ export class World {
   private spawnEnemy(): void {
     const type = pickEnemyType(this.wave);
     const e = buildEnemy(type, (t) => this.textures.push(t), (m) => this.materials.push(m));
-    const hp = enemyHp(type, this.wave);
+    const hp = Math.round(enemyHp(type, this.wave) * this.enemyHpMultiplier);
     e.hp = hp;
     e.hpMax = hp;
     e.hpShowUntil = performance.now() + 2000;
