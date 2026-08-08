@@ -14,6 +14,8 @@ export interface HudModel {
   highScore: number;
   banner: string;
   showCrosshair: boolean;
+  skipCoins: number;
+  wavesCleared: number;
 }
 
 function formatTime(ms: number): string {
@@ -42,6 +44,8 @@ export class Hud {
   readonly jumpBtn: HTMLButtonElement;
   readonly stickZone: HTMLElement;
   readonly lookZone: HTMLElement;
+  readonly skipRestBtn: HTMLButtonElement;
+  readonly skipWaveBtn: HTMLButtonElement;
   private readonly _hiscoreEl: HTMLElement;
 
   constructor(parent: HTMLElement) {
@@ -94,6 +98,20 @@ export class Hud {
     ]);
     this.lookZone = el('div', { className: 'hud-look-zone', id: 'look-zone' });
 
+    this.skipRestBtn = el('button', {
+      type: 'button',
+      className: 'hud-skip-btn',
+      title: 'Saltar descanso',
+      hidden: 'true',
+    }, ['⏭ Saltar descanso']) as HTMLButtonElement;
+
+    this.skipWaveBtn = el('button', {
+      type: 'button',
+      className: 'hud-skip-btn hud-skip-wave-btn',
+      title: 'Saltar oleada (cuesta 1 moneda de salto)',
+      hidden: 'true',
+    }, ['⏭ Saltar oleada 🪙']) as HTMLButtonElement;
+
     const cornerBtns = el('div', { className: 'hud-corner' }, [
       this.shopBtn,
       this.pauseBtn,
@@ -104,6 +122,8 @@ export class Hud {
       this.bannerEl,
       this.crosshairEl,
       cornerBtns,
+      this.skipRestBtn,
+      this.skipWaveBtn,
     );
 
     if (this.touchMode) {
@@ -139,6 +159,16 @@ export class Hud {
     this._hiscoreEl.textContent = `🏆 ${model.highScore}`;
     this.bannerEl.textContent = model.banner;
     this.crosshairEl.hidden = !model.showCrosshair;
+
+    // Skip rest button: only during rest phase
+    this.skipRestBtn.hidden = model.phase !== 'rest';
+
+    // Skip wave button: only during wave phase and if player has skip coins
+    const canSkip = model.phase === 'wave' && model.skipCoins > 0;
+    this.skipWaveBtn.hidden = !canSkip;
+    if (canSkip) {
+      this.skipWaveBtn.textContent = `⏭ Saltar oleada (${model.skipCoins}🪙)`;
+    }
   }
 
   dispose(): void {

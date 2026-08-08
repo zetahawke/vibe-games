@@ -23,6 +23,12 @@ export interface GameSave {
   /** Path entrance half-width, rolled ±20% on each new game. */
   pathHalfW: number;
   score: number;
+  /** Skip coins available to instantly clear the current wave. Max 2. */
+  skipCoins: number;
+  /** Total waves fully cleared in this game — drives skip-coin awards and reward milestones. */
+  wavesCleared: number;
+  /** Consecutive correct quiz answers (resets on explicit quiz exit). */
+  quizStreak: number;
 }
 
 function saveKey(username: string): string {
@@ -56,6 +62,9 @@ export function defaultSave(opts: NewGameOptions): GameSave {
     englishGrade: opts.englishGrade,
     pathHalfW: rollPathHalfWidth(),
     score: 0,
+    skipCoins: 0,
+    wavesCleared: 0,
+    quizStreak: 0,
   };
 }
 
@@ -92,6 +101,9 @@ export function loadSave(username: string): GameSave | null {
     save.equippedWeapon = migrateWeaponId(save.equippedWeapon as string);
     save.ownedWeapons = save.ownedWeapons.map((w) => migrateWeaponId(w as string));
     save.mathTopic = migrateTopic(save.mathTopic as string);
+    if (!Number.isFinite(save.skipCoins))    save.skipCoins = 0;
+    if (!Number.isFinite(save.wavesCleared)) save.wavesCleared = 0;
+    if (!Number.isFinite(save.quizStreak))   save.quizStreak = 0;
     return save;
   } catch {
     return null;

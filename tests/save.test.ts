@@ -34,4 +34,14 @@ describe('save', () => {
     expect(updateHighScore('ana', 2)).toBe(3);
     expect(updateHighScore('ana', 10)).toBe(10);
   });
+
+  it('migrates old saves missing skipCoins, wavesCleared, quizStreak', () => {
+    const old = mathSave();
+    const { skipCoins: _sc, wavesCleared: _wc, quizStreak: _qs, ...rest } = old as any;
+    localStorage.setItem('juegos-de-casa:v1:save:ana', JSON.stringify(rest));
+    const loaded = loadSave('ana');
+    expect(loaded?.skipCoins).toBe(0);
+    expect(loaded?.wavesCleared).toBe(0);
+    expect(loaded?.quizStreak).toBe(0);
+  });
 });

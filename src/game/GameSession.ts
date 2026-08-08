@@ -1,5 +1,6 @@
-import { COINS_PER_ZOMBIE } from '@/config/gameConfig';
+import { COINS_PER_ZOMBIE, REST_DURATION_MS, WAVE_DURATION_MS } from '@/config/gameConfig';
 import { addCoins } from '@/domain/economy/economy';
+import { shouldAwardSkipCoin, canSkipWave, SKIP_COINS_MAX } from '@/domain/rewards/skipLogic';
 import { InputManager } from '@/game/input/InputManager';
 import {
   clearSave,
@@ -112,6 +113,8 @@ export class GameSession {
 
     hud.shopBtn.addEventListener('click', () => this.requestShop());
     hud.pauseBtn.addEventListener('click', () => this.togglePause());
+    hud.skipRestBtn.addEventListener('click', () => this.skipRest());
+    hud.skipWaveBtn.addEventListener('click', () => this.spendSkipCoin());
     hud.fireBtn.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       input.pressFire(true);
@@ -254,6 +257,40 @@ export class GameSession {
     }
   }
 
+  /** Skip the rest phase immediately (no cost). */
+  skipRest(): void {
+    if (this.waves.phase !== 'rest' || this.waves.status !== 'playing' || this.paused || this.uiBlocking) return;
+    this.waves = {
+      ...this.waves,
+      phase: 'wave',
+      wave: this.waves.wave + 1,
+      phaseTimeLeftMs: WAVE_DURATION_MS,
+    };
+    this.world?.setWavePhase(this.waves.phase, this.waves.wave);
+    this.showBanner(`¡Oleada ${this.waves.wave}!`);
+    this.persist();
+  }
+
+  /** Spend a skip coin to clear the current wave instantly. */
+  spendSkipCoin(): void {
+    if (this.waves.phase !== 'wave' || this.waves.status !== 'playing' || this.paused || this.uiBlocking) return;
+    if (!canSkipWave(this.save.skipCoins)) return;
+    this.save.skipCoins -= 1;
+    this.save.wavesCleared += 1;
+    // Award a skip coin if this cleared wave lands on a multiple of 10
+    if (shouldAwardSkipCoin(this.save.wavesCleared) && this.save.skipCoins < SKIP_COINS_MAX) {
+      this.save.skipCoins = Math.min(SKIP_COINS_MAX, this.save.skipCoins + 1);
+    }
+    this.waves = {
+      ...this.waves,
+      phase: 'rest',
+      phaseTimeLeftMs: REST_DURATION_MS,
+    };
+    this.world?.setWavePhase(this.waves.phase, this.waves.wave);
+    this.showBanner('Oleada saltada · Descanso');
+    this.persist();
+  }
+
   private togglePause(): void {
     if (this.uiBlocking || this.waves.status === 'gameover') return;
     if (this.paused) this.resume();
@@ -294,7 +331,18 @@ export class GameSession {
       if (this.waves.phase !== prevPhase || this.waves.wave !== prevWave) {
         this.world?.setWavePhase(this.waves.phase, this.waves.wave);
         if (this.waves.phase === 'rest') {
-          this.showBanner('Descanso');
+          if (prevPhase === 'wave') {
+            // Wave naturally completed (not fort breach)
+            this.save.wavesCleared += 1;
+            if (shouldAwardSkipCoin(this.save.wavesCleared) && this.save.skipCoins < SKIP_COINS_MAX) {
+              this.save.skipCoins = Math.min(SKIP_COINS_MAX, this.save.skipCoins + 1);
+              this.showBanner(`Descanso · +1 moneda de salto (${this.save.skipCoins}/${SKIP_COINS_MAX})`);
+            } else {
+              this.showBanner('Descanso');
+            }
+          } else {
+            this.showBanner('Descanso');
+          }
           this.persist();
         } else {
           this.showBanner(`¡Oleada ${this.waves.wave}!`);
@@ -340,6 +388,8 @@ export class GameSession {
       highScore: Math.max(getHighScore(this.username), this.save.score),
       banner: this.banner,
       showCrosshair: !equipped.isMelee && !this.uiBlocking && !this.paused,
+      skipCoins: this.save.skipCoins,
+      wavesCleared: this.save.wavesCleared,
     });
 
     this.raf = requestAnimationFrame(this.loop);

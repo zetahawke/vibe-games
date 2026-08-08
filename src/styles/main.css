@@ -361,6 +361,34 @@ input {
   min-height: 2rem;
 }
 
+/* Skip phase buttons — centered at bottom of HUD */
+.hud-skip-btn {
+  position: absolute;
+  bottom: 3.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 1.2rem;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  color: #f3f6f2;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.hud-skip-btn:hover,
+.hud-skip-btn:active {
+  background: rgba(30, 30, 30, 0.88);
+}
+.hud-skip-wave-btn {
+  border-color: rgba(201, 162, 39, 0.6);
+  color: #f5d060;
+}
+
 /* Top-right corner buttons */
 .hud-corner {
   position: absolute;
