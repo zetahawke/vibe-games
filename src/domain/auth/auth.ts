@@ -1,4 +1,5 @@
 import { STORAGE_PREFIX } from '@/config/gameConfig';
+import { clearOnlineIdentity } from '@/domain/online/playerService';
 
 const ACCOUNTS_KEY = `${STORAGE_PREFIX}accounts`;
 const SESSION_KEY = `${STORAGE_PREFIX}session`;
@@ -43,6 +44,31 @@ export function getSession(): string | null {
 
 export function logout(): void {
   sessionStorage.removeItem(SESSION_KEY);
+  clearOnlineIdentity();
+}
+
+export function getLocalPasswordHash(username: string): string | null {
+  const name = normalizeUsername(username);
+  return readAccounts().users[name]?.passwordHash ?? null;
+}
+
+/** Recreate a wiped local account after online recover. */
+export async function ensureLocalAccount(
+  username: string,
+  password: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const name = normalizeUsername(username);
+  if (!name) return { ok: false, error: 'Escribe un nombre' };
+  if (!password) return { ok: false, error: 'Escribe una contraseña' };
+  const accounts = readAccounts();
+  const passwordHash = await hashPassword(password);
+  const existing = accounts.users[name];
+  if (existing && existing.passwordHash !== passwordHash) {
+    return { ok: false, error: 'Ese nombre ya existe' };
+  }
+  accounts.users[name] = { passwordHash };
+  writeAccounts(accounts);
+  return { ok: true };
 }
 
 export async function register(

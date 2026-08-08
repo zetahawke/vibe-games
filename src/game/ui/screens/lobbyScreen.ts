@@ -1,6 +1,7 @@
 import { el, clear } from '@/shared/dom';
 import { createSession, joinSession } from '@/domain/online/sessionService';
-import { resolveIdentity, type PlayerIdentity } from '@/domain/online/playerService';
+import { getLocalPasswordHash } from '@/domain/auth/auth';
+import { getStoredPin, resolveIdentity, type PlayerIdentity } from '@/domain/online/playerService';
 
 export function renderLobbyScreen(
   root: HTMLElement,
@@ -49,7 +50,8 @@ function showMain(
   if (preloadedIdentity) {
     activate(preloadedIdentity);
   } else {
-    void resolveIdentity(username).then((result) => {
+    const pin = getStoredPin() ?? getLocalPasswordHash(username) ?? undefined;
+    void resolveIdentity(username, pin).then((result) => {
       if ('error' in result) {
         msg.className = 'error';
         msg.textContent = result.error;
@@ -90,7 +92,17 @@ function showJoinInput(
 ): void {
   clear(root);
   const s       = el('section', { className: 'screen' });
-  const input   = el('input', { type: 'text', maxlength: '4', placeholder: '1234', className: 'session-code-input' }) as HTMLInputElement;
+  const input   = el('input', {
+    type: 'text',
+    inputmode: 'numeric',
+    maxlength: '4',
+    placeholder: '1234',
+    className: 'session-code-input',
+    autocomplete: 'one-time-code',
+  }) as HTMLInputElement;
+  input.addEventListener('input', () => {
+    input.value = input.value.replace(/\D/g, '').slice(0, 4);
+  });
   const join2   = el('button', { type: 'button', className: 'btn primary' }, ['Unirse']) as HTMLButtonElement;
   const errMsg  = el('p', { className: 'error' }, ['']);
   const backBtn = el('button', { type: 'button', className: 'btn ghost' }, ['← Volver']) as HTMLButtonElement;

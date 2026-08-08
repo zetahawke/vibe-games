@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { register, login, listUsers, getSession, logout } from '@/domain/auth/auth';
+import { register, login, listUsers, getSession, logout, ensureLocalAccount, getLocalPasswordHash } from '@/domain/auth/auth';
 
 beforeEach(() => {
   localStorage.clear();
@@ -25,6 +25,20 @@ describe('auth', () => {
     const r = await login('miguel', 'clave123');
     expect(r.ok).toBe(true);
     expect(getSession()).toBe('miguel');
+  });
+
+  it('exposes the local password hash for online recover', async () => {
+    await register('hija', 'clave123');
+    expect(getLocalPasswordHash('hija')).toHaveLength(64);
+  });
+
+  it('recreates a wiped local account with the same password', async () => {
+    await register('papa', 'clave123');
+    localStorage.clear();
+    const ensured = await ensureLocalAccount('papa', 'clave123');
+    expect(ensured.ok).toBe(true);
+    const r = await login('papa', 'clave123');
+    expect(r.ok).toBe(true);
   });
 
   it('rejects wrong password', async () => {

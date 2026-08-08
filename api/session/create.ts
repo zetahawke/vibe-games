@@ -30,6 +30,20 @@ export default async function handler(req: Req, res: Res): Promise<void> {
     .single();
   if (playerErr || !player) { res.status(401).json({ error: 'Identidad no verificada.' }); return; }
 
+  // Close leftover open rooms hosted by this player so the 6-room cap stays usable.
+  const { data: hosted } = await getAdmin()
+    .from('session_players')
+    .select('session_id')
+    .eq('player_id', playerId)
+    .eq('is_host', true)
+    .is('left_at', null);
+  if (hosted?.length) {
+    const ids = hosted.map((h) => h.session_id);
+    const now = new Date().toISOString();
+    await getAdmin().from('game_sessions').update({ status: 'closed', closed_at: now }).in('id', ids).eq('status', 'open');
+    await getAdmin().from('session_players').update({ left_at: now }).in('session_id', ids).is('left_at', null);
+  }
+
   // Enforce session cap.
   const { count, error: countErr } = await getAdmin()
     .from('game_sessions')

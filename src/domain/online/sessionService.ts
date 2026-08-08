@@ -25,9 +25,13 @@ export async function joinSession(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code: normalized, playerId, sessionToken }),
   });
-  const json = await res.json() as { sessionId?: string; playerCount?: number; error?: string };
+  const json = await res.json() as { sessionId?: string; playerCount?: number; code?: string; error?: string };
   if (!res.ok) return { error: json.error ?? 'Sala no encontrada.' };
-  return { sessionId: json.sessionId!, playerCount: json.playerCount!, code: normalized };
+  return {
+    sessionId: json.sessionId!,
+    playerCount: json.playerCount!,
+    code: (json.code ?? normalized).replace(/\D/g, '').padStart(4, '0').slice(-4),
+  };
 }
 
 export async function closeSession(

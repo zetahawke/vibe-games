@@ -1,5 +1,5 @@
-import { login, register, hashPassword } from '@/domain/auth/auth';
-import { resolveIdentity } from '@/domain/online/playerService';
+import { ensureLocalAccount, hashPassword, login } from '@/domain/auth/auth';
+import { rememberPin, resolveIdentity } from '@/domain/online/playerService';
 import { clear, el } from '@/shared/dom';
 
 export function renderLoginScreen(
@@ -25,37 +25,59 @@ export function renderLoginScreen(
   const enterBtn = el('button', { type: 'button', className: 'btn primary' }, ['Entrar']);
   const createBtn = el('button', { type: 'button', className: 'btn' }, ['Crear jugador']);
 
-  async function syncOnline(username: string, password: string): Promise<void> {
-    // Use SHA-256 hash of the password as PIN — raw password never leaves the client.
+  async function enterOnline(username: string, password: string): Promise<string | null> {
+    const local = await ensureLocalAccount(username, password);
+    if (!local.ok) return local.error;
+    const session = await login(username, password);
+    if (!session.ok) return session.error;
     const pin = await hashPassword(password);
-    void resolveIdentity(username, pin).catch(() => undefined);
+    rememberPin(pin);
+    const online = await resolveIdentity(session.username, pin);
+    if ('error' in online) {
+      error.className = 'muted';
+      error.textContent = `${online.error} Podés jugar sin conexión.`;
+    }
+    return null;
   }
 
   enterBtn.addEventListener('click', async () => {
     error.textContent = '';
-    const result = await login(userInput.value, passInput.value);
-    if (!result.ok) {
-      error.textContent = result.error;
+    error.className = 'error';
+    enterBtn.setAttribute('disabled', 'true');
+    createBtn.setAttribute('disabled', 'true');
+    const fail = await enterOnline(userInput.value, passInput.value);
+    enterBtn.removeAttribute('disabled');
+    createBtn.removeAttribute('disabled');
+    if (fail) {
+      error.textContent = fail;
       return;
     }
-    void syncOnline(result.username, passInput.value);
-    onSuccess(result.username);
+    const session = await login(userInput.value, passInput.value);
+    if (!session.ok) {
+      error.textContent = session.error;
+      return;
+    }
+    onSuccess(session.username);
   });
 
   createBtn.addEventListener('click', async () => {
     error.textContent = '';
-    const created = await register(userInput.value, passInput.value);
-    if (!created.ok) {
-      error.textContent = created.error;
+    error.className = 'error';
+    enterBtn.setAttribute('disabled', 'true');
+    createBtn.setAttribute('disabled', 'true');
+    const fail = await enterOnline(userInput.value, passInput.value);
+    enterBtn.removeAttribute('disabled');
+    createBtn.removeAttribute('disabled');
+    if (fail) {
+      error.textContent = fail;
       return;
     }
-    const result = await login(userInput.value, passInput.value);
-    if (!result.ok) {
-      error.textContent = result.error;
+    const session = await login(userInput.value, passInput.value);
+    if (!session.ok) {
+      error.textContent = session.error;
       return;
     }
-    void syncOnline(result.username, passInput.value);
-    onSuccess(result.username);
+    onSuccess(session.username);
   });
 
   root.append(

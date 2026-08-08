@@ -29,21 +29,30 @@ export default async function handler(req: Req, res: Res): Promise<void> {
     .single();
   if (!player) { res.status(401).json({ error: 'Identidad no verificada.' }); return; }
 
-  // Find open session.
+  // Find open session. char(4) may come back padded.
   const { data: session, error: sessionErr } = await getAdmin()
     .from('game_sessions')
-    .select('id')
+    .select('id, code')
     .eq('code', normalized)
     .eq('status', 'open')
-    .single();
+    .maybeSingle();
   if (sessionErr || !session) { res.status(404).json({ error: 'Sala no encontrada.' }); return; }
+
+  const roomCode = String(session.code).trim();
 
   const { data: existing } = await getAdmin()
     .from('session_players')
-    .select('id, left_at')
+    .select('id, left_at, is_host')
     .eq('session_id', session.id)
     .eq('player_id', playerId)
     .maybeSingle();
+
+  if (existing?.is_host && !existing.left_at) {
+    res.status(409).json({
+      error: 'Ese jugador ya es el anfitrión. En la otra ventana usá otra cuenta.',
+    });
+    return;
+  }
 
   if (existing?.left_at) {
     await getAdmin()
@@ -58,9 +67,12 @@ export default async function handler(req: Req, res: Res): Promise<void> {
       .is('left_at', null);
     if ((count ?? 0) >= 4) { res.status(409).json({ error: 'La sala está llena.' }); return; }
 
-    await getAdmin()
+    const { error: insErr } = await getAdmin()
       .from('session_players')
       .insert({ session_id: session.id, player_id: playerId, is_host: false });
+    if (insErr && insErr.code !== '23505') {
+      res.status(500).json({ error: insErr.message }); return;
+    }
   }
 
   const { count: playerCount } = await getAdmin()
@@ -69,5 +81,5 @@ export default async function handler(req: Req, res: Res): Promise<void> {
     .eq('session_id', session.id)
     .is('left_at', null);
 
-  res.status(200).json({ sessionId: session.id, playerCount: playerCount ?? 1 });
+  res.status(200).json({ sessionId: session.id, playerCount: playerCount ?? 1, code: roomCode });
 }
