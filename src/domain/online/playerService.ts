@@ -1,6 +1,7 @@
-const STORAGE_KEY_ID    = 'game_player_id';
-const STORAGE_KEY_TOKEN = 'game_session_token';
-const STORAGE_KEY_NAME  = 'game_username';
+const KEY_ID    = 'game_player_id';
+const KEY_TOKEN = 'game_session_token';
+const KEY_NAME  = 'game_username';
+const KEY_PIN   = 'game_player_pin'; // PIN stored locally for auto-recovery
 
 export interface PlayerIdentity {
   playerId: string;
@@ -8,42 +9,95 @@ export interface PlayerIdentity {
   username: string;
 }
 
-// Resolves identity from localStorage or registers a new player.
-// Called before any create/join session action.
+/**
+ * Resolves identity from localStorage, or registers/recovers via the API.
+ * Pass `pin` only on first registration. On subsequent calls the PIN is read
+ * from localStorage so the caller doesn't need to prompt again.
+ */
 export async function resolveIdentity(
   username: string,
+  pin?: string,
 ): Promise<PlayerIdentity | { error: string }> {
-  const storedId    = localStorage.getItem(STORAGE_KEY_ID);
-  const storedToken = localStorage.getItem(STORAGE_KEY_TOKEN);
-  const storedName  = localStorage.getItem(STORAGE_KEY_NAME);
+  const storedId    = localStorage.getItem(KEY_ID);
+  const storedToken = localStorage.getItem(KEY_TOKEN);
+  const storedName  = localStorage.getItem(KEY_NAME);
+  const storedPin   = localStorage.getItem(KEY_PIN);
 
-  // If we have a cached identity for this exact username, verify it is still valid.
+  // Cached identity for this username — verify it's still valid.
   if (storedId && storedToken && storedName === username) {
-    const verifyRes = await fetch('/api/players/verify', {
+    const res = await fetch('/api/players/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, sessionToken: storedToken }),
     });
-    if (verifyRes.ok) {
+    if (res.ok) {
       return { playerId: storedId, sessionToken: storedToken, username };
     }
-    // Token revoked or username changed — clear cache and re-register.
-    localStorage.removeItem(STORAGE_KEY_ID);
-    localStorage.removeItem(STORAGE_KEY_TOKEN);
-    localStorage.removeItem(STORAGE_KEY_NAME);
+    // Token expired — try PIN recovery if we have one stored.
+    const recoveryPin = pin ?? storedPin;
+    if (recoveryPin) {
+      const recovered = await recoverWithPin(username, recoveryPin);
+      if (!('error' in recovered)) return recovered;
+    }
+    clearStored();
   }
 
-  // Register as a new player.
-  const registerRes = await fetch('/api/players/register', {
+  // Username taken — try recovering with PIN.
+  if (!pin && storedPin) {
+    const recovered = await recoverWithPin(username, storedPin);
+    if (!('error' in recovered)) return recovered;
+  }
+
+  // No PIN available — can't register on this call.
+  if (!pin) {
+    return { error: 'Necesitás estar conectado al iniciar sesión para jugar en línea.' };
+  }
+
+  // Register new player.
+  const res = await fetch('/api/players/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username }),
+    body: JSON.stringify({ username, pin }),
   });
-  const json = await registerRes.json() as { playerId?: string; sessionToken?: string; error?: string };
-  if (!registerRes.ok) return { error: json.error ?? 'Error de registro.' };
+  const json = await res.json() as { playerId?: string; sessionToken?: string; error?: string };
 
-  localStorage.setItem(STORAGE_KEY_ID,    json.playerId!);
-  localStorage.setItem(STORAGE_KEY_TOKEN, json.sessionToken!);
-  localStorage.setItem(STORAGE_KEY_NAME,  username);
+  if (res.status === 409) {
+    // Username taken — try recovering with the PIN provided.
+    const recovered = await recoverWithPin(username, pin);
+    if (!('error' in recovered)) return recovered;
+    return { error: 'Ese nombre ya existe. Verificá tu PIN.' };
+  }
+
+  if (!res.ok) return { error: json.error ?? 'Error de registro.' };
+
+  saveStored(json.playerId!, json.sessionToken!, username, pin);
   return { playerId: json.playerId!, sessionToken: json.sessionToken!, username };
+}
+
+async function recoverWithPin(
+  username: string,
+  pin: string,
+): Promise<PlayerIdentity | { error: string }> {
+  const res = await fetch('/api/players/recover', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, pin }),
+  });
+  const json = await res.json() as { playerId?: string; sessionToken?: string; error?: string };
+  if (!res.ok) return { error: json.error ?? 'PIN incorrecto.' };
+  saveStored(json.playerId!, json.sessionToken!, username, pin);
+  return { playerId: json.playerId!, sessionToken: json.sessionToken!, username };
+}
+
+function saveStored(playerId: string, sessionToken: string, username: string, pin: string): void {
+  localStorage.setItem(KEY_ID,    playerId);
+  localStorage.setItem(KEY_TOKEN, sessionToken);
+  localStorage.setItem(KEY_NAME,  username);
+  localStorage.setItem(KEY_PIN,   pin);
+}
+
+function clearStored(): void {
+  localStorage.removeItem(KEY_ID);
+  localStorage.removeItem(KEY_TOKEN);
+  localStorage.removeItem(KEY_NAME);
 }

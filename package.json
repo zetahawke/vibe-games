@@ -11,6 +11,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.2",
+    "@upstash/redis": "^1.38.2",
     "three": "^0.170.0"
   },
   "devDependencies": {

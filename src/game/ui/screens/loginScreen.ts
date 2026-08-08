@@ -1,4 +1,5 @@
 import { login, register } from '@/domain/auth/auth';
+import { resolveIdentity } from '@/domain/online/playerService';
 import { clear, el } from '@/shared/dom';
 
 export function renderLoginScreen(
@@ -24,6 +25,12 @@ export function renderLoginScreen(
   const enterBtn = el('button', { type: 'button', className: 'btn primary' }, ['Entrar']);
   const createBtn = el('button', { type: 'button', className: 'btn' }, ['Crear jugador']);
 
+  async function syncOnline(username: string, password: string): Promise<void> {
+    // Fire-and-forget: sync identity with Supabase using the game password as PIN.
+    // Works offline gracefully — any network error is silently ignored.
+    void resolveIdentity(username, password).catch(() => undefined);
+  }
+
   enterBtn.addEventListener('click', async () => {
     error.textContent = '';
     const result = await login(userInput.value, passInput.value);
@@ -31,6 +38,7 @@ export function renderLoginScreen(
       error.textContent = result.error;
       return;
     }
+    void syncOnline(result.username, passInput.value);
     onSuccess(result.username);
   });
 
@@ -46,6 +54,7 @@ export function renderLoginScreen(
       error.textContent = result.error;
       return;
     }
+    void syncOnline(result.username, passInput.value);
     onSuccess(result.username);
   });
 

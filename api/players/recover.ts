@@ -13,33 +13,29 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   if (req.method !== 'POST') { res.status(405).end(); return; }
 
   const ip = (req.headers['x-forwarded-for'] as string | undefined) ?? '0.0.0.0';
-  if (!(await checkLimit(ip, 'players/register', 10))) {
-    res.status(429).json({ error: 'Demasiadas solicitudes. Intenta más tarde.' }); return;
+  if (!(await checkLimit(ip, 'players/recover', 5))) {
+    res.status(429).json({ error: 'Demasiados intentos. Esperá un momento.' }); return;
   }
 
   const { username, pin } = req.body as { username?: string; pin?: string };
-  if (!username || username.trim().length < 2 || username.trim().length > 20) {
-    res.status(400).json({ error: 'Nombre de usuario inválido (2–20 caracteres).' }); return;
-  }
-  if (!pin || pin.trim().length < 4 || pin.trim().length > 20) {
-    res.status(400).json({ error: 'PIN inválido (mínimo 4 caracteres).' }); return;
-  }
-
-  const sessionToken = randomUUID();
-  const pin_hash = hashPin(pin.trim());
+  if (!username || !pin) { res.status(400).json({ error: 'Datos incompletos.' }); return; }
 
   const { data, error } = await supabaseAdmin
     .from('players')
-    .insert({ username: username.trim(), session_token: sessionToken, pin_hash })
     .select('id')
+    .eq('username', username.trim())
+    .eq('pin_hash', hashPin(pin.trim()))
     .single();
 
-  if (error) {
-    if (error.code === '23505') {
-      res.status(409).json({ error: 'Ese nombre ya está en uso.' }); return;
-    }
-    res.status(500).json({ error: error.message }); return;
+  if (error || !data) {
+    res.status(401).json({ error: 'Usuario o PIN incorrectos.' }); return;
   }
+
+  const sessionToken = randomUUID();
+  await supabaseAdmin
+    .from('players')
+    .update({ session_token: sessionToken, last_seen: new Date().toISOString() })
+    .eq('id', data.id);
 
   res.status(200).json({ playerId: data.id, sessionToken });
 }
