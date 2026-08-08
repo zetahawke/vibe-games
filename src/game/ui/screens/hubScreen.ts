@@ -13,6 +13,9 @@ import { getHighScore, loadSave } from '@/domain/save/save';
 import { renderAnimalsSettingsOverlay } from '@/game/ui/overlays/animalsSettingsOverlay';
 import { renderIdentifySettingsOverlay } from '@/game/ui/overlays/identifySettingsOverlay';
 import { clear, el } from '@/shared/dom';
+import { renderLobbyScreen } from './lobbyScreen';
+import { renderLeaderboardScreen } from './leaderboardScreen';
+import { renderAdminScreen } from './adminScreen';
 
 export function renderHubScreen(
   root: HTMLElement,
@@ -21,6 +24,14 @@ export function renderHubScreen(
   onPlayAnimals: (dropMode: DropMode, graphicsStyle: GraphicsStyle) => void,
   onPlayIdentify: (theme: IdentifyTheme, dropMode: DropMode) => void,
   onLogout: () => void,
+  onPlayOnline?: (
+    sessionId: string,
+    code: string,
+    playerId: string,
+    sessionToken: string,
+    playerCount: number,
+    isHost: boolean,
+  ) => void,
 ): void {
   clear(root);
   const save = loadSave(username);
@@ -40,6 +51,22 @@ export function renderHubScreen(
   const newBtn = el('button', { type: 'button', className: 'btn primary' }, ['Nueva partida']);
   const logoutBtn = el('button', { type: 'button', className: 'btn ghost' }, ['Cerrar sesión']);
 
+  const lbBtn = el('button', { type: 'button', className: 'btn ghost' }, ['📊 Clasificación']);
+  lbBtn.addEventListener('click', () =>
+    void renderLeaderboardScreen(
+      root,
+      () => renderHubScreen(root, username, onPlayShooter, onPlayAnimals, onPlayIdentify, onLogout, onPlayOnline),
+    ),
+  );
+
+  const adminBtn = el('button', { type: 'button', className: 'btn ghost' }, ['⚙ Admin']);
+  adminBtn.addEventListener('click', () =>
+    renderAdminScreen(
+      root,
+      () => renderHubScreen(root, username, onPlayShooter, onPlayAnimals, onPlayIdentify, onLogout, onPlayOnline),
+    ),
+  );
+
   continueBtn.addEventListener('click', () => {
     if (save) onPlayShooter('continue');
   });
@@ -51,6 +78,21 @@ export function renderHubScreen(
 
   const shooterActions = el('div', { className: 'card-actions' }, [newBtn]);
   if (save) shooterActions.prepend(continueBtn);
+
+  if (onPlayOnline) {
+    const onlineBtn = el('button', { type: 'button', className: 'btn' }, ['🌐 En línea']);
+    onlineBtn.addEventListener('click', () =>
+      renderLobbyScreen(
+        root,
+        username,
+        (sessionId, code, playerId, sessionToken, playerCount, isHost) => {
+          onPlayOnline(sessionId, code, playerId, sessionToken, playerCount, isHost);
+        },
+        () => renderHubScreen(root, username, onPlayShooter, onPlayAnimals, onPlayIdentify, onLogout, onPlayOnline),
+      ),
+    );
+    shooterActions.append(onlineBtn);
+  }
 
   const animalsPlay = el('button', { type: 'button', className: 'btn primary' }, [
     'Jugar',
@@ -97,7 +139,7 @@ export function renderHubScreen(
         highScore > 0
           ? el('p', { className: 'hiscore' }, [`Mejor puntuación: ${highScore}`])
           : el('p', { className: 'hiscore muted' }, ['Aún no hay récord']),
-        logoutBtn,
+        el('div', { className: 'hub-actions' }, [lbBtn, adminBtn, logoutBtn]),
       ]),
       el('div', { className: 'game-grid' }, [
         makeCard(

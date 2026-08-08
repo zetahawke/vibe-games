@@ -3,6 +3,7 @@ import { Router } from './app/router';
 import { AnimalsSession } from './game/animals/AnimalsSession';
 import { IdentifySession } from './game/identify/IdentifySession';
 import { GameSession } from './game/GameSession';
+import { OnlineGameSession } from './game/OnlineGameSession';
 
 const app = document.querySelector('#app');
 if (!app) {
@@ -26,6 +27,12 @@ router.setAnimalsStarter((username, dropMode, graphicsStyle) => {
 
 router.setIdentifyStarter((username, theme, dropMode) => {
   new IdentifySession(root, username, theme, dropMode, () => {
+    router.showHub();
+  });
+});
+
+router.setOnlineStarter((username, sessionId, _code, playerId, sessionToken, playerCount, isHost) => {
+  new OnlineGameSession(root, username, sessionId, playerId, sessionToken, playerCount, isHost, () => {
     router.showHub();
   });
 });

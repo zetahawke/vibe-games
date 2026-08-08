@@ -14,6 +14,17 @@ export class Router {
   private onStartIdentify:
     | ((username: string, theme: IdentifyTheme, dropMode: DropMode) => void)
     | null = null;
+  private onStartOnline:
+    | ((
+        username: string,
+        sessionId: string,
+        code: string,
+        playerId: string,
+        sessionToken: string,
+        playerCount: number,
+        isHost: boolean,
+      ) => void)
+    | null = null;
 
   constructor(root: HTMLElement) {
     this.root = root;
@@ -33,6 +44,20 @@ export class Router {
     handler: (username: string, theme: IdentifyTheme, dropMode: DropMode) => void,
   ): void {
     this.onStartIdentify = handler;
+  }
+
+  setOnlineStarter(
+    handler: (
+      username: string,
+      sessionId: string,
+      code: string,
+      playerId: string,
+      sessionToken: string,
+      playerCount: number,
+      isHost: boolean,
+    ) => void,
+  ): void {
+    this.onStartOnline = handler;
   }
 
   start(): void {
@@ -67,6 +92,11 @@ export class Router {
         this.onStartIdentify?.(user, theme, dropMode);
       },
       () => this.showLogin(),
+      this.onStartOnline
+        ? (sessionId, code, playerId, sessionToken, playerCount, isHost) => {
+            this.onStartOnline!(user, sessionId, code, playerId, sessionToken, playerCount, isHost);
+          }
+        : undefined,
     );
   }
 }

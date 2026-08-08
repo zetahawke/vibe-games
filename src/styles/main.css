@@ -974,3 +974,63 @@ input {
   font-size: 0.9rem;
 }
 
+/* Online Co-op & Leaderboard */
+.session-code {
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  color: #f5d060;
+  text-align: center;
+}
+
+.session-code-input {
+  font-size: 2rem;
+  text-align: center;
+  width: 8rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.4);
+  color: #f3f6f2;
+}
+
+.leaderboard-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+  padding: 0.4rem 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.leaderboard-table th {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+/* Admin dashboard */
+.admin-panel {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Hub header actions row */
+.hub-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+
