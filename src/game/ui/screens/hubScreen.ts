@@ -15,7 +15,6 @@ import { renderIdentifySettingsOverlay } from '@/game/ui/overlays/identifySettin
 import { clear, el } from '@/shared/dom';
 import { renderLobbyScreen } from './lobbyScreen';
 import { renderLeaderboardScreen } from './leaderboardScreen';
-import { renderAdminScreen } from './adminScreen';
 
 export function renderHubScreen(
   root: HTMLElement,
@@ -54,14 +53,6 @@ export function renderHubScreen(
   const lbBtn = el('button', { type: 'button', className: 'btn ghost' }, ['📊 Clasificación']);
   lbBtn.addEventListener('click', () =>
     void renderLeaderboardScreen(
-      root,
-      () => renderHubScreen(root, username, onPlayShooter, onPlayAnimals, onPlayIdentify, onLogout, onPlayOnline),
-    ),
-  );
-
-  const adminBtn = el('button', { type: 'button', className: 'btn ghost' }, ['⚙ Admin']);
-  adminBtn.addEventListener('click', () =>
-    renderAdminScreen(
       root,
       () => renderHubScreen(root, username, onPlayShooter, onPlayAnimals, onPlayIdentify, onLogout, onPlayOnline),
     ),
@@ -139,7 +130,7 @@ export function renderHubScreen(
         highScore > 0
           ? el('p', { className: 'hiscore' }, [`Mejor puntuación: ${highScore}`])
           : el('p', { className: 'hiscore muted' }, ['Aún no hay récord']),
-        el('div', { className: 'hub-actions' }, [lbBtn, adminBtn, logoutBtn]),
+        el('div', { className: 'hub-actions' }, [lbBtn, logoutBtn]),
       ]),
       el('div', { className: 'game-grid' }, [
         makeCard(

@@ -975,6 +975,32 @@ input {
 }
 
 /* Online Co-op & Leaderboard */
+/* ── Co-op player panel ────────────────────────────────── */
+.coop-panel {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  z-index: 30;
+  pointer-events: none;
+}
+.coop-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  color: #f3f6f2;
+}
+.coop-self { border-color: rgba(201, 162, 39, 0.5); color: #f5d060; }
+.coop-name { font-weight: 600; min-width: 5rem; }
+.coop-stat { opacity: 0.8; }
+
 .session-code {
   font-size: 3rem;
   font-weight: 900;

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../_supabase';
+import { getAdmin } from '../_supabase';
 import { checkLimit } from '../_rateLimit';
 
 type Req = { method?: string; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown>; query: Record<string, string | string[] | undefined> };
@@ -22,7 +22,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   if (!playerId || !sessionToken) { res.status(400).json({ error: 'Datos incompletos.' }); return; }
 
   // Verify player identity.
-  const { data: player, error: playerErr } = await supabaseAdmin
+  const { data: player, error: playerErr } = await getAdmin()
     .from('players')
     .select('id')
     .eq('id', playerId)
@@ -31,7 +31,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   if (playerErr || !player) { res.status(401).json({ error: 'Identidad no verificada.' }); return; }
 
   // Enforce session cap.
-  const { count, error: countErr } = await supabaseAdmin
+  const { count, error: countErr } = await getAdmin()
     .from('game_sessions')
     .select('id', { count: 'exact', head: true })
     .eq('status', 'open');
@@ -43,7 +43,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   // Generate a unique 4-digit code.
   let code = generateCode();
   for (let i = 0; i < 10; i++) {
-    const { data: existing } = await supabaseAdmin
+    const { data: existing } = await getAdmin()
       .from('game_sessions')
       .select('id')
       .eq('code', code)
@@ -54,7 +54,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   }
 
   // Insert session.
-  const { data: session, error: insertErr } = await supabaseAdmin
+  const { data: session, error: insertErr } = await getAdmin()
     .from('game_sessions')
     .insert({ code, status: 'open' })
     .select('id')
@@ -62,7 +62,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   if (insertErr || !session) { res.status(500).json({ error: 'Error creando sala.' }); return; }
 
   // Record host in session_players.
-  await supabaseAdmin
+  await getAdmin()
     .from('session_players')
     .insert({ session_id: session.id, player_id: playerId, is_host: true });
 

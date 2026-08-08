@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { WAVE_DURATION_MS } from '@/config/gameConfig';
 import type { Phase } from '@/domain/save/save';
-import { enemyHp, pickEnemyType, spawnInterval, ENEMY_DEFS } from '@/domain/waves/enemyConfig';
-import { WeaponDef, WeaponId } from '@/domain/weapons/weapons';
+import { enemyHp, pickEnemyType, spawnInterval, ENEMY_DEFS, type EnemyType } from '@/domain/waves/enemyConfig';
+import { reconcileEnemySnapshot } from '@/domain/online/enemySync';
+import { getWeapon, WeaponDef, WeaponId } from '@/domain/weapons/weapons';
 import type { InputState } from '@/game/input/InputManager';
 import { aabbFromCenter, overlaps } from './aabb';
 import { buildFort, buildGroundAndPath } from './environment';
@@ -63,6 +64,22 @@ export class World {
   private readonly fortHeight = FORT_HEIGHT;
   private hpBarsLayer: HTMLElement;
   private hpBarEls = new Map<Enemy, HTMLElement>();
+  private remoteAvatars = new Map<string, {
+    rig: PlayerRig;
+    walkPhase: number;
+    weaponId: WeaponId | null;
+  }>();
+  private remoteTargets = new Map<string, { x: number; z: number; rotY: number }>();
+  private guestMode = false;
+  private nextNetId = 1;
+  /** netIds killed locally — ignore lagging host snapshots until host drops them. */
+  private killedNetIds = new Set<number>();
+  /** Host-authored positions for guest puppet interpolation. */
+  private enemyNetTargets = new Map<number, { x: number; z: number }>();
+  private onEnemyHitCb: ((netId: number, dmg: number, killed: boolean) => void) | null = null;
+  private onEnemySpawnCb: ((state: {
+    id: number; type: EnemyType; x: number; z: number; hp: number; hpMax: number;
+  }) => void) | null = null;
 
   constructor(private container: HTMLElement, pathHalfW: number = rollPathHalfWidth()) {
     this.pathHalfW = pathHalfW;
@@ -122,12 +139,119 @@ export class World {
     window.addEventListener('resize', this.onResize);
   }
 
-  get canvas(): HTMLCanvasElement {
-    return this.renderer.domElement;
+  get canvas(): HTMLCanvasElement { return this.renderer.domElement; }
+  get player(): THREE.Group      { return this.playerRig.root; }
+  get playerYaw(): number        { return this.bodyYaw; }
+
+  // ── Remote player avatars ──────────────────────────────────────────────
+
+  upsertRemotePlayer(
+    playerId: string,
+    x: number,
+    z: number,
+    rotY: number,
+    weaponId?: string,
+  ): void {
+    this.remoteTargets.set(playerId, { x, z, rotY });
+    let avatar = this.remoteAvatars.get(playerId);
+    if (!avatar) {
+      const rig = buildPlayer((t) => this.textures.push(t), (m) => this.materials.push(m));
+      rig.root.position.set(x, 0, z);
+      rig.root.rotation.y = rotY;
+      this.scene.add(rig.root);
+      avatar = { rig, walkPhase: 0, weaponId: null };
+      this.remoteAvatars.set(playerId, avatar);
+    }
+    if (weaponId) {
+      avatar.weaponId = syncWeaponModel(avatar.rig.weaponSlot, avatar.weaponId, weaponId as WeaponId);
+    }
   }
 
-  get player(): THREE.Group {
-    return this.playerRig.root;
+  removeRemotePlayer(playerId: string): void {
+    const avatar = this.remoteAvatars.get(playerId);
+    if (avatar) {
+      this.scene.remove(avatar.rig.root);
+      this.remoteAvatars.delete(playerId);
+    }
+    this.remoteTargets.delete(playerId);
+  }
+
+  clearRemotePlayers(): void {
+    for (const id of [...this.remoteAvatars.keys()]) this.removeRemotePlayer(id);
+  }
+
+  setGuestMode(guest: boolean): void {
+    this.guestMode = guest;
+  }
+
+  setCombatNetHandlers(handlers: {
+    onHit: (netId: number, dmg: number, killed: boolean) => void;
+    onSpawn: (state: {
+      id: number; type: EnemyType; x: number; z: number; hp: number; hpMax: number;
+    }) => void;
+  }): void {
+    this.onEnemyHitCb = handlers.onHit;
+    this.onEnemySpawnCb = handlers.onSpawn;
+  }
+
+  getEnemySnapshot(): Array<{
+    id: number; type: EnemyType; x: number; z: number; hp: number; hpMax: number;
+  }> {
+    return this.enemies.map((e) => ({
+      id: e.netId,
+      type: e.type,
+      x: e.root.position.x,
+      z: e.root.position.z,
+      hp: e.hp,
+      hpMax: e.hpMax,
+    }));
+  }
+
+  spawnRemoteEnemy(state: {
+    id: number; type: EnemyType; x: number; z: number; hp: number; hpMax: number;
+  }): void {
+    if (this.killedNetIds.has(state.id)) return;
+    this.enemyNetTargets.set(state.id, { x: state.x, z: state.z });
+    if (this.enemies.some((e) => e.netId === state.id)) return;
+    this.nextNetId = Math.max(this.nextNetId, state.id + 1);
+    this.placeEnemy(state.type, state.id, state.x, state.z, state.hp, state.hpMax);
+  }
+
+  applyRemoteHit(netId: number, dmg: number): number {
+    const e = this.enemies.find((x) => x.netId === netId);
+    if (!e) return 0;
+    return this.damageEnemy(e, dmg, true);
+  }
+
+  applyEnemySnapshot(states: Array<{
+    id: number; type: EnemyType; x: number; z: number; hp: number; hpMax: number;
+  }>): void {
+    // An empty snapshot during combat is almost certainly a dropped/partial
+    // packet — never wipe living enemies because of it.
+    if (states.length === 0 && this.phase === 'wave' && this.enemies.length > 0) return;
+
+    const { apply, tombs } = reconcileEnemySnapshot(states, this.killedNetIds);
+    this.killedNetIds = tombs;
+
+    const seen = new Set(apply.map((s) => s.id));
+    for (const s of apply) {
+      this.enemyNetTargets.set(s.id, { x: s.x, z: s.z });
+      const existing = this.enemies.find((e) => e.netId === s.id);
+      if (!existing) {
+        this.spawnRemoteEnemy(s);
+      } else {
+        // Never rewind HP above what we already applied locally (in-flight hit).
+        existing.hp = Math.min(existing.hp, s.hp);
+        existing.hpMax = s.hpMax;
+        existing.hpShowUntil = performance.now() + 2000;
+      }
+    }
+    for (const e of [...this.enemies]) {
+      if (!seen.has(e.netId)) this.removeEnemyVisual(e);
+    }
+    for (const id of [...this.enemyNetTargets.keys()]) {
+      if (!seen.has(id) && !this.killedNetIds.has(id)) this.enemyNetTargets.delete(id);
+    }
   }
 
   isPlayerInFort(): boolean {
@@ -164,12 +288,9 @@ export class World {
   }
 
   clearEnemies(): void {
-    for (const e of this.enemies) {
-      this.scene.remove(e.root);
-      this.hpBarEls.get(e)?.remove();
-      this.hpBarEls.delete(e);
-    }
-    this.enemies = [];
+    for (const e of [...this.enemies]) this.removeEnemyVisual(e);
+    this.killedNetIds.clear();
+    this.enemyNetTargets.clear();
   }
 
   /** @deprecated use clearEnemies() */
@@ -271,36 +392,41 @@ export class World {
     events.kills += proj.kills;
 
     if (this.phase === 'wave') {
-      this.spawnTimer -= dt;
-      if (this.spawnTimer <= 0) {
-        for (let i = 0; i < this.spawnMultiplier; i++) {
-          this.spawnEnemy();
+      if (this.guestMode) {
+        this.lerpNetworkEnemies(dt);
+      } else {
+        this.spawnTimer -= dt;
+        if (this.spawnTimer <= 0) {
+          for (let i = 0; i < this.spawnMultiplier; i++) {
+            this.spawnEnemy();
+          }
+          this.spawnTimer = spawnInterval(this.wave);
         }
-        this.spawnTimer = spawnInterval(this.wave);
-      }
 
-      const fortAabb = aabbFromCenter(0, 0, this.fortHalf);
-      for (const e of this.enemies) {
-        const dir = new THREE.Vector3(0, 0, 0).sub(e.root.position);
-        dir.y = 0;
-        if (dir.lengthSq() > 0.001) dir.normalize();
-        e.root.position.addScaledVector(dir, e.speed * dt);
-        e.root.position.x = THREE.MathUtils.clamp(
-          e.root.position.x,
-          -this.pathHalfW + 0.8,
-          this.pathHalfW - 0.8,
-        );
-        e.root.rotation.y = Math.atan2(dir.x, dir.z);
-        animateEnemyWalk(e, dt);
-        const eab = aabbFromCenter(e.root.position.x, e.root.position.z, 0.7 * ENEMY_DEFS[e.type].scale);
-        if (overlaps(eab, fortAabb)) {
-          events.fortBreached = true;
-          break;
+        const fortAabb = aabbFromCenter(0, 0, this.fortHalf);
+        for (const e of this.enemies) {
+          const dir = new THREE.Vector3(0, 0, 0).sub(e.root.position);
+          dir.y = 0;
+          if (dir.lengthSq() > 0.001) dir.normalize();
+          e.root.position.addScaledVector(dir, e.speed * dt);
+          e.root.position.x = THREE.MathUtils.clamp(
+            e.root.position.x,
+            -this.pathHalfW + 0.8,
+            this.pathHalfW - 0.8,
+          );
+          e.root.rotation.y = Math.atan2(dir.x, dir.z);
+          animateEnemyWalk(e, dt);
+          const eab = aabbFromCenter(e.root.position.x, e.root.position.z, 0.7 * ENEMY_DEFS[e.type].scale);
+          if (overlaps(eab, fortAabb)) {
+            events.fortBreached = true;
+            break;
+          }
         }
+        if (events.fortBreached) this.clearEnemies();
       }
-      if (events.fortBreached) this.clearEnemies();
     }
 
+    this.lerpRemoteAvatars(dt);
     this.updateHpBars();
     this.renderer.render(this.scene, this.camera);
     return events;
@@ -332,6 +458,7 @@ export class World {
 
   dispose(): void {
     window.removeEventListener('resize', this.onResize);
+    this.clearRemotePlayers();
     this.clearEnemies();
     this.hpBarsLayer.remove();
     clearProjectiles(this.scene, this.projectiles);
@@ -364,28 +491,82 @@ export class World {
     return best ? this.damageEnemy(best, equipped.damage) : 0;
   }
 
-  private damageEnemy(e: Enemy, dmg: number): number {
+  private lerpNetworkEnemies(dt: number): void {
+    const t = Math.min(1, dt * 14);
+    for (const e of this.enemies) {
+      const target = this.enemyNetTargets.get(e.netId);
+      if (!target) continue;
+      const px = e.root.position.x;
+      const pz = e.root.position.z;
+      e.root.position.x = THREE.MathUtils.lerp(px, target.x, t);
+      e.root.position.z = THREE.MathUtils.lerp(pz, target.z, t);
+      const dx = target.x - px;
+      const dz = target.z - pz;
+      if (dx * dx + dz * dz > 0.00005) {
+        e.root.rotation.y = Math.atan2(dx, dz);
+        animateEnemyWalk(e, dt);
+      }
+    }
+  }
+
+  private lerpRemoteAvatars(dt: number): void {
+    const t = Math.min(1, dt * 18);
+    const knife = getWeapon('knife');
+    for (const [id, avatar] of this.remoteAvatars) {
+      const target = this.remoteTargets.get(id);
+      if (!target) continue;
+      const root = avatar.rig.root;
+      const prevX = root.position.x;
+      const prevZ = root.position.z;
+      root.position.x = THREE.MathUtils.lerp(prevX, target.x, t);
+      root.position.z = THREE.MathUtils.lerp(prevZ, target.z, t);
+      root.rotation.y = lerpAngle(root.rotation.y, target.rotY, t);
+      const dx = root.position.x - prevX;
+      const dz = root.position.z - prevZ;
+      const moving = dx * dx + dz * dz > 0.00002;
+      if (moving) avatar.walkPhase += dt * 9;
+      animatePlayer(avatar.rig, avatar.walkPhase, 0, moving, true, dt, knife);
+    }
+  }
+
+  private damageEnemy(e: Enemy, dmg: number, remote = false): number {
     e.hp = Math.max(0, e.hp - dmg);
     e.hpShowUntil = performance.now() + 2000;
-    if (e.hp <= 0) {
-      this.scene.remove(e.root);
-      this.hpBarEls.get(e)?.remove();
-      this.hpBarEls.delete(e);
-      this.enemies = this.enemies.filter((x) => x !== e);
+    const killed = e.hp <= 0;
+    if (!remote && e.netId > 0) this.onEnemyHitCb?.(e.netId, dmg, killed);
+    if (killed) {
+      if (e.netId > 0) this.killedNetIds.add(e.netId);
+      this.removeEnemyVisual(e);
       return 1;
     }
     return 0;
   }
 
   private spawnEnemy(): void {
+    if (this.guestMode) return;
     const type = pickEnemyType(this.wave);
-    const e = buildEnemy(type, (t) => this.textures.push(t), (m) => this.materials.push(m));
     const hp = Math.round(enemyHp(type, this.wave) * this.enemyHpMultiplier);
+    const x = (Math.random() - 0.5) * (this.pathHalfW - 1.2) * 2;
+    const z = this.pathEndZ + Math.random() * 2;
+    const netId = this.nextNetId++;
+    this.placeEnemy(type, netId, x, z, hp, hp);
+    this.onEnemySpawnCb?.({ id: netId, type, x, z, hp, hpMax: hp });
+  }
+
+  private placeEnemy(
+    type: EnemyType,
+    netId: number,
+    x: number,
+    z: number,
+    hp: number,
+    hpMax: number,
+  ): Enemy {
+    const e = buildEnemy(type, (t) => this.textures.push(t), (m) => this.materials.push(m));
+    e.netId = netId;
     e.hp = hp;
-    e.hpMax = hp;
+    e.hpMax = hpMax;
     e.hpShowUntil = performance.now() + 2000;
-    const lane = (Math.random() - 0.5) * (this.pathHalfW - 1.2) * 2;
-    e.root.position.set(lane, 0, this.pathEndZ + Math.random() * 2);
+    e.root.position.set(x, 0, z);
     this.scene.add(e.root);
     this.enemies.push(e);
 
@@ -394,6 +575,14 @@ export class World {
     bar.innerHTML = '<div class="zombie-hp-fill"></div>';
     this.hpBarsLayer.append(bar);
     this.hpBarEls.set(e, bar);
+    return e;
+  }
+
+  private removeEnemyVisual(e: Enemy): void {
+    this.scene.remove(e.root);
+    this.hpBarEls.get(e)?.remove();
+    this.hpBarEls.delete(e);
+    this.enemies = this.enemies.filter((x) => x !== e);
   }
 
   private onResize = (): void => {

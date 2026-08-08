@@ -44,6 +44,7 @@ export interface NewGameOptions {
   grade: GradeLevel;
   englishGrade: EnglishGrade;
   mathTopic: MathTopic;
+  pathHalfW?: number;
 }
 
 export function defaultSave(opts: NewGameOptions): GameSave {
@@ -60,7 +61,7 @@ export function defaultSave(opts: NewGameOptions): GameSave {
     subject: opts.subject,
     grade: opts.grade,
     englishGrade: opts.englishGrade,
-    pathHalfW: rollPathHalfWidth(),
+    pathHalfW: opts.pathHalfW ?? rollPathHalfWidth(),
     score: 0,
     skipCoins: 0,
     wavesCleared: 0,

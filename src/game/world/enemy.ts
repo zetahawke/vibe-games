@@ -17,6 +17,8 @@ export interface Enemy {
   speed: number;
   walkPhase: number;
   type: EnemyType;
+  /** Shared id across co-op clients. 0 = unassigned (solo). */
+  netId: number;
 }
 
 function buildBodyMesh(def: EnemyDef, trackMat: (m: THREE.Material) => void) {
@@ -89,6 +91,7 @@ export function buildEnemy(
     speed: BASE_ZOMBIE_SPEED * def.speedFactor,
     walkPhase: Math.random() * Math.PI * 2,
     type,
+    netId: 0,
   };
 }
 

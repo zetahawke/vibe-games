@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'crypto';
-import { supabaseAdmin } from '../_supabase';
+import { getAdmin } from '../_supabase';
 import { checkLimit } from '../_rateLimit';
 
 type Req = { method?: string; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown>; query: Record<string, string | string[] | undefined> };
@@ -18,9 +18,11 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   }
 
   const { username, pin } = req.body as { username?: string; pin?: string };
-  if (!username || !pin) { res.status(400).json({ error: 'Datos incompletos.' }); return; }
+  if (!username || !pin || pin.trim().length < 4) {
+    res.status(400).json({ error: 'Datos incompletos.' }); return;
+  }
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getAdmin()
     .from('players')
     .select('id')
     .eq('username', username.trim())
@@ -32,7 +34,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   }
 
   const sessionToken = randomUUID();
-  await supabaseAdmin
+  await getAdmin()
     .from('players')
     .update({ session_token: sessionToken, last_seen: new Date().toISOString() })
     .eq('id', data.id);

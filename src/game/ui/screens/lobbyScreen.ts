@@ -18,8 +18,6 @@ export function renderLobbyScreen(
   showMain(root, username, null, onStart, onCancel);
 }
 
-// ── Main lobby ────────────────────────────────────────────────────────────────
-
 function showMain(
   root: HTMLElement,
   username: string,
@@ -74,7 +72,7 @@ function showMain(
       joinBtn.disabled = false;
       return;
     }
-    showWaitingCode(root, result.sessionId, result.code, cachedIdentity, onStart, onCancel);
+    onStart(result.sessionId, result.code, cachedIdentity.playerId, cachedIdentity.sessionToken, 1, true);
   });
 
   joinBtn.addEventListener('click', () =>
@@ -82,36 +80,6 @@ function showMain(
   );
   cancelBtn.addEventListener('click', onCancel);
 }
-
-// ── Waiting room (host) ───────────────────────────────────────────────────────
-
-function showWaitingCode(
-  root: HTMLElement,
-  sessionId: string,
-  code: string,
-  identity: PlayerIdentity,
-  onStart: Parameters<typeof renderLobbyScreen>[2],
-  onCancel: () => void,
-): void {
-  clear(root);
-  const s = el('section', { className: 'screen' });
-  s.append(
-    el('h1', {}, ['Sala creada']),
-    el('p', {}, ['Comparte este código con tus amigos:']),
-    el('h2', { className: 'session-code' }, [code]),
-    el('p', { className: 'muted' }, ['Esperando jugadores… (máx. 4)']),
-  );
-  const startBtn   = el('button', { type: 'button', className: 'btn primary' }, ['▶ Comenzar']) as HTMLButtonElement;
-  const cancelBtn2 = el('button', { type: 'button', className: 'btn ghost' },   ['Cancelar']) as HTMLButtonElement;
-  startBtn.addEventListener('click', () =>
-    onStart(sessionId, code, identity.playerId, identity.sessionToken, 1, true),
-  );
-  cancelBtn2.addEventListener('click', onCancel);
-  s.append(el('div', { className: 'btn-col' }, [startBtn, cancelBtn2]));
-  root.append(s);
-}
-
-// ── Join by code ──────────────────────────────────────────────────────────────
 
 function showJoinInput(
   root: HTMLElement,
@@ -139,7 +107,7 @@ function showJoinInput(
       join2.disabled = false;
       return;
     }
-    onStart(result.sessionId, input.value.trim(), identity.playerId, identity.sessionToken, result.playerCount, false);
+    onStart(result.sessionId, result.code, identity.playerId, identity.sessionToken, result.playerCount, false);
   });
 
   backBtn.addEventListener('click', () =>

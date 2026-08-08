@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../_supabase';
+import { getAdmin } from '../_supabase';
 import { checkLimit } from '../_rateLimit';
 
 type Req = { method?: string; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown>; query: Record<string, string | string[] | undefined> };
@@ -18,7 +18,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   }
 
   // Check for active season — no data shown if no season is running.
-  const { data: season } = await supabaseAdmin
+  const { data: season } = await getAdmin()
     .from('seasons')
     .select('name')
     .eq('is_active', true)
@@ -28,7 +28,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
     res.status(200).json({ entries: [], seasonName: null }); return;
   }
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getAdmin()
     .from('scoreboard_entries')
     .select('personal_score, coins_earned, last_weapon, players(username)')
     .eq('player_count', playerCount)

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../_supabase';
+import { getAdmin } from '../_supabase';
 import { checkLimit } from '../_rateLimit';
 
 type Req = { method?: string; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown>; query: Record<string, string | string[] | undefined> };
@@ -21,13 +21,13 @@ export default async function handler(req: Req, res: Res): Promise<void> {
 
   // Verify player owns this identity AND is the host.
   const [{ data: player }, { data: hostEntry }] = await Promise.all([
-    supabaseAdmin
+    getAdmin()
       .from('players')
       .select('id')
       .eq('id', playerId)
       .eq('session_token', sessionToken)
       .single(),
-    supabaseAdmin
+    getAdmin()
       .from('session_players')
       .select('id')
       .eq('session_id', sessionId)
@@ -37,10 +37,17 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   ]);
   if (!player || !hostEntry) { res.status(403).json({ error: 'No autorizado.' }); return; }
 
-  await supabaseAdmin
+  const now = new Date().toISOString();
+  await getAdmin()
     .from('game_sessions')
-    .update({ status: 'closed', closed_at: new Date().toISOString() })
+    .update({ status: 'closed', closed_at: now })
     .eq('id', sessionId);
+
+  await getAdmin()
+    .from('session_players')
+    .update({ left_at: now })
+    .eq('session_id', sessionId)
+    .is('left_at', null);
 
   res.status(200).json({ ok: true });
 }

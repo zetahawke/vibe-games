@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../_supabase';
+import { getAdmin } from '../_supabase';
 import { checkLimit } from '../_rateLimit';
 
 type Req = { method?: string; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown>; query: Record<string, string | string[] | undefined> };
@@ -15,12 +15,13 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   const { playerId, sessionToken, code } = req.body as {
     playerId?: string; sessionToken?: string; code?: string;
   };
-  if (!playerId || !sessionToken || !code) {
+  const normalized = String(code ?? '').replace(/\D/g, '').padStart(4, '0').slice(-4);
+  if (!playerId || !sessionToken || normalized.length !== 4) {
     res.status(400).json({ error: 'Datos incompletos.' }); return;
   }
 
   // Verify player identity.
-  const { data: player } = await supabaseAdmin
+  const { data: player } = await getAdmin()
     .from('players')
     .select('id')
     .eq('id', playerId)
@@ -29,26 +30,44 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   if (!player) { res.status(401).json({ error: 'Identidad no verificada.' }); return; }
 
   // Find open session.
-  const { data: session, error: sessionErr } = await supabaseAdmin
+  const { data: session, error: sessionErr } = await getAdmin()
     .from('game_sessions')
     .select('id')
-    .eq('code', code)
+    .eq('code', normalized)
     .eq('status', 'open')
     .single();
   if (sessionErr || !session) { res.status(404).json({ error: 'Sala no encontrada.' }); return; }
 
-  // Count active players (left_at is null means still in session).
-  const { count } = await supabaseAdmin
+  const { data: existing } = await getAdmin()
+    .from('session_players')
+    .select('id, left_at')
+    .eq('session_id', session.id)
+    .eq('player_id', playerId)
+    .maybeSingle();
+
+  if (existing?.left_at) {
+    await getAdmin()
+      .from('session_players')
+      .update({ left_at: null })
+      .eq('id', existing.id);
+  } else if (!existing) {
+    const { count } = await getAdmin()
+      .from('session_players')
+      .select('id', { count: 'exact', head: true })
+      .eq('session_id', session.id)
+      .is('left_at', null);
+    if ((count ?? 0) >= 4) { res.status(409).json({ error: 'La sala está llena.' }); return; }
+
+    await getAdmin()
+      .from('session_players')
+      .insert({ session_id: session.id, player_id: playerId, is_host: false });
+  }
+
+  const { count: playerCount } = await getAdmin()
     .from('session_players')
     .select('id', { count: 'exact', head: true })
     .eq('session_id', session.id)
     .is('left_at', null);
-  if ((count ?? 0) >= 4) { res.status(409).json({ error: 'La sala está llena.' }); return; }
 
-  // Add player to session.
-  await supabaseAdmin
-    .from('session_players')
-    .insert({ session_id: session.id, player_id: playerId, is_host: false });
-
-  res.status(200).json({ sessionId: session.id, playerCount: (count ?? 0) + 1 });
+  res.status(200).json({ sessionId: session.id, playerCount: playerCount ?? 1 });
 }

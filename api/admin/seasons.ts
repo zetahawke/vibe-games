@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../_supabase';
+import { getAdmin } from '../_supabase';
 import { checkLimit } from '../_rateLimit';
 import { verifyAdminJwt } from './_verifyAdmin';
 
@@ -13,7 +13,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
     res.status(429).json({ error: 'Demasiadas solicitudes.' }); return;
   }
 
-  if (!(await verifyAdminJwt(req.headers.authorization as string | undefined))) {
+  if (!(await verifyAdminJwt(req.headers))) {
     res.status(403).json({ error: 'No autorizado.' }); return;
   }
 
@@ -21,11 +21,11 @@ export default async function handler(req: Req, res: Res): Promise<void> {
 
   if (action === 'start') {
     if (!name?.trim()) { res.status(400).json({ error: 'Nombre de temporada requerido.' }); return; }
-    await supabaseAdmin
+    await getAdmin()
       .from('seasons')
       .update({ is_active: false, ended_at: new Date().toISOString() })
       .eq('is_active', true);
-    const { error } = await supabaseAdmin
+    const { error } = await getAdmin()
       .from('seasons')
       .insert({ name: name.trim(), is_active: true });
     if (error) { res.status(500).json({ error: error.message }); return; }
@@ -33,7 +33,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   }
 
   if (action === 'end') {
-    await supabaseAdmin
+    await getAdmin()
       .from('seasons')
       .update({ is_active: false, ended_at: new Date().toISOString() })
       .eq('is_active', true);

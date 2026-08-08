@@ -31,8 +31,8 @@ router.setIdentifyStarter((username, theme, dropMode) => {
   });
 });
 
-router.setOnlineStarter((username, sessionId, _code, playerId, sessionToken, playerCount, isHost) => {
-  new OnlineGameSession(root, username, sessionId, playerId, sessionToken, playerCount, isHost, () => {
+router.setOnlineStarter((username, sessionId, code, playerId, sessionToken, playerCount, isHost) => {
+  new OnlineGameSession(root, username, sessionId, code, playerId, sessionToken, playerCount, isHost, () => {
     router.showHub();
   });
 });

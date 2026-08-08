@@ -30,7 +30,7 @@ import { getWeapon } from '@/domain/weapons/weapons';
 import { World } from '@/game/world/World';
 
 export class GameSession {
-  private wrap: HTMLElement;
+  protected wrap: HTMLElement;
   protected world: World | null = null;
   private input: InputManager | null = null;
   private hud: Hud | null = null;
@@ -68,6 +68,14 @@ export class GameSession {
       }
     }
 
+    this.startOrPick();
+  }
+
+  /**
+   * Shows the level/subject picker and starts the game on selection.
+   * Overridable by subclasses (e.g. OnlineGameSession for guests).
+   */
+  protected startOrPick(): void {
     renderLevelPicker(
       this.wrap,
       (choice: LevelSubjectChoice) => {
@@ -86,9 +94,22 @@ export class GameSession {
   }
 
   persist(): void {
-    if (!this.waves) return;
+    if (!this.shouldPersist() || !this.waves) return;
     writeSave(this.username, this.syncSave());
   }
+
+  /** Offline sessions persist to localStorage; online co-op must not. */
+  protected shouldPersist(): boolean {
+    return true;
+  }
+
+  /** Host/solo advance the wave timer. Online guests follow the host tick. */
+  protected advancesWaveLocally(): boolean {
+    return true;
+  }
+
+  /** Hook after World exists, before the first animation frame. */
+  protected configureWorld(_world: World): void {}
 
   protected beginWithSave(save: GameSave): void {
     this.save = save;
@@ -106,9 +127,10 @@ export class GameSession {
     this.input = new InputManager(this.world.canvas);
     this.hud = new Hud(this.wrap);
     this.wireHud();
+    this.configureWorld(this.world);
     this.world.setWavePhase(this.waves.phase, this.waves.wave);
     this.showBanner(this.waves.phase === 'wave' ? `¡Oleada ${this.waves.wave}!` : 'Descanso');
-    writeSave(this.username, this.save);
+    if (this.shouldPersist()) writeSave(this.username, this.save);
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.loop);
   }
@@ -279,9 +301,9 @@ export class GameSession {
     }
   }
 
-  /** Skip the rest phase immediately (no cost). */
-  skipRest(): void {
-    if (this.waves.phase !== 'rest' || this.waves.status !== 'playing' || this.paused || this.uiBlocking) return;
+  /** Skip the rest phase immediately (no cost). Returns false if ignored. */
+  skipRest(): boolean {
+    if (this.waves.phase !== 'rest' || this.waves.status !== 'playing' || this.paused || this.uiBlocking) return false;
     this.waves = {
       ...this.waves,
       phase: 'wave',
@@ -291,18 +313,18 @@ export class GameSession {
     this.world?.setWavePhase(this.waves.phase, this.waves.wave);
     this.showBanner(`¡Oleada ${this.waves.wave}!`);
     this.persist();
+    return true;
   }
 
-  /** Spend a skip coin to clear the current wave instantly. */
-  spendSkipCoin(): void {
-    if (this.waves.phase !== 'wave' || this.waves.status !== 'playing' || this.paused || this.uiBlocking) return;
-    if (!canSkipWave(this.save.skipCoins)) return;
+  /** Spend a skip coin to clear the current wave instantly. Returns false if ignored. */
+  spendSkipCoin(): boolean {
+    if (this.waves.phase !== 'wave' || this.waves.status !== 'playing' || this.paused || this.uiBlocking) return false;
+    if (!canSkipWave(this.save.skipCoins)) return false;
     this.save.skipCoins -= 1;
     this.save.wavesCleared += 1;
-    // Award a skip coin if this cleared wave lands on a multiple of 10
-    if (shouldAwardSkipCoin(this.save.wavesCleared) && this.save.skipCoins < SKIP_COINS_MAX) {
-      this.save.skipCoins = Math.min(SKIP_COINS_MAX, this.save.skipCoins + 1);
-    }
+    // Note: skip-coin award for multiples of 10 only fires on *natural* wave
+    // completion (wave→rest transition), not here — prevents the coin from
+    // being immediately refunded.
     this.waves = {
       ...this.waves,
       phase: 'rest',
@@ -311,6 +333,7 @@ export class GameSession {
     this.world?.setWavePhase(this.waves.phase, this.waves.wave);
     this.showBanner('Oleada saltada · Descanso');
     this.persist();
+    return true;
   }
 
   private togglePause(): void {
@@ -349,7 +372,15 @@ export class GameSession {
     const prevWave = this.waves.wave;
 
     if (!this.paused && this.waves.status === 'playing') {
-      this.waves = tickWave(this.waves, dt * 1000);
+      if (this.advancesWaveLocally()) {
+        this.waves = tickWave(this.waves, dt * 1000);
+      } else {
+        // Display-only countdown — phase changes come from the host.
+        this.waves = {
+          ...this.waves,
+          phaseTimeLeftMs: Math.max(0, this.waves.phaseTimeLeftMs - dt * 1000),
+        };
+      }
       if (this.waves.phase !== prevPhase || this.waves.wave !== prevWave) {
         this.world?.setWavePhase(this.waves.phase, this.waves.wave);
         if (this.waves.phase === 'rest') {
@@ -424,10 +455,10 @@ export class GameSession {
     this.raf = requestAnimationFrame(this.loop);
   };
 
-  private handleGameOver(): void {
+  protected handleGameOver(): void {
     cancelAnimationFrame(this.raf);
     const best = updateHighScore(this.username, this.save.score);
-    clearSave(this.username);
+    if (this.shouldPersist()) clearSave(this.username);
     this.world?.setPaused(true);
     this.overlay = renderGameOverOverlay(
       this.wrap,

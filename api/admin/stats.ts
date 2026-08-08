@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../_supabase';
+import { getAdmin } from '../_supabase';
 import { checkLimit } from '../_rateLimit';
 import { verifyAdminJwt } from './_verifyAdmin';
 
@@ -13,13 +13,13 @@ export default async function handler(req: Req, res: Res): Promise<void> {
     res.status(429).json({ error: 'Demasiadas solicitudes.' }); return;
   }
 
-  if (!(await verifyAdminJwt(req.headers.authorization as string | undefined))) {
+  if (!(await verifyAdminJwt(req.headers))) {
     res.status(403).json({ error: 'No autorizado.' }); return;
   }
 
   const limit = Math.min(Number(req.query['limit'] ?? 10), 100);
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getAdmin()
     .from('scoreboard_entries')
     .select('personal_score, players(username)')
     .order('personal_score', { ascending: false })

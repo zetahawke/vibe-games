@@ -18,15 +18,16 @@ export async function joinSession(
   code: string,
   playerId: string,
   sessionToken: string,
-): Promise<{ sessionId: string; playerCount: number } | { error: string }> {
+): Promise<{ sessionId: string; playerCount: number; code: string } | { error: string }> {
+  const normalized = String(code).replace(/\D/g, '').padStart(4, '0').slice(-4);
   const res = await fetch('/api/session/join', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, playerId, sessionToken }),
+    body: JSON.stringify({ code: normalized, playerId, sessionToken }),
   });
   const json = await res.json() as { sessionId?: string; playerCount?: number; error?: string };
   if (!res.ok) return { error: json.error ?? 'Sala no encontrada.' };
-  return { sessionId: json.sessionId!, playerCount: json.playerCount! };
+  return { sessionId: json.sessionId!, playerCount: json.playerCount!, code: normalized };
 }
 
 export async function closeSession(
@@ -38,5 +39,19 @@ export async function closeSession(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sessionId, playerId, sessionToken }),
+    keepalive: true,
+  });
+}
+
+export async function leaveSession(
+  sessionId: string,
+  playerId: string,
+  sessionToken: string,
+): Promise<void> {
+  await fetch('/api/session/leave', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, playerId, sessionToken }),
+    keepalive: true,
   });
 }

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../_supabase';
+import { getAdmin } from '../_supabase';
 import { checkLimit } from '../_rateLimit';
 
 type Req = { method?: string; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown>; query: Record<string, string | string[] | undefined> };
@@ -26,7 +26,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   }
 
   // Verify player identity.
-  const { data: player } = await supabaseAdmin
+  const { data: player } = await getAdmin()
     .from('players')
     .select('id')
     .eq('id', playerId)
@@ -35,12 +35,12 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   if (!player) { res.status(401).json({ error: 'Identidad no verificada.' }); return; }
 
   // Derive player count from session_players at time of recording.
-  const { count: playerCount } = await supabaseAdmin
+  const { count: playerCount } = await getAdmin()
     .from('session_players')
     .select('id', { count: 'exact', head: true })
     .eq('session_id', sessionId);
 
-  const { error } = await supabaseAdmin.from('scoreboard_entries').insert({
+  const { error } = await getAdmin().from('scoreboard_entries').insert({
     session_id:     sessionId,
     player_id:      playerId,
     player_count:   playerCount ?? 1,

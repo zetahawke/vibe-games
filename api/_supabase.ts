@@ -12,16 +12,9 @@ export function getAdmin(): SupabaseClient {
         `SUPABASE_SERVICE_ROLE_KEY=${key ? 'ok' : 'MISSING'}`,
       );
     }
-    _admin = createClient(url, key, { auth: { persistSession: false } });
+    _admin = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
   }
   return _admin;
 }
-
-// Proxy so existing `supabaseAdmin.from(...)` calls still work without changes.
-export const supabaseAdmin = new Proxy({} as SupabaseClient, {
-  get(_t, prop) {
-    const admin = getAdmin();
-    const val = (admin as Record<string, unknown>)[prop as string];
-    return typeof val === 'function' ? (val as Function).bind(admin) : val;
-  },
-});

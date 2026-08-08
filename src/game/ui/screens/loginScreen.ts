@@ -1,4 +1,4 @@
-import { login, register } from '@/domain/auth/auth';
+import { login, register, hashPassword } from '@/domain/auth/auth';
 import { resolveIdentity } from '@/domain/online/playerService';
 import { clear, el } from '@/shared/dom';
 
@@ -26,9 +26,9 @@ export function renderLoginScreen(
   const createBtn = el('button', { type: 'button', className: 'btn' }, ['Crear jugador']);
 
   async function syncOnline(username: string, password: string): Promise<void> {
-    // Fire-and-forget: sync identity with Supabase using the game password as PIN.
-    // Works offline gracefully — any network error is silently ignored.
-    void resolveIdentity(username, password).catch(() => undefined);
+    // Use SHA-256 hash of the password as PIN — raw password never leaves the client.
+    const pin = await hashPassword(password);
+    void resolveIdentity(username, pin).catch(() => undefined);
   }
 
   enterBtn.addEventListener('click', async () => {

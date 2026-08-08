@@ -1,17 +1,20 @@
 /// <reference types="vite/client" />
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 let _client: SupabaseClient | null = null;
 
-// Used only for Supabase Realtime broadcast channels and Supabase Auth.
-// All database access goes through Vercel Functions via SUPABASE_SERVICE_ROLE_KEY.
-export function getSupabase(): SupabaseClient {
+/** Isolated Auth client for the ops page — not shared with game Realtime. */
+export function getAdminAuth(): SupabaseClient {
   if (!_client) {
     const url = import.meta.env.VITE_SUPABASE_URL;
     const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
     if (!url || !key) throw new Error('Supabase env vars not set');
     _client = createClient(url, key, {
-      realtime: { params: { eventsPerSecond: 40 } },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        storageKey: 'jdc-admin-auth',
+      },
     });
   }
   return _client;

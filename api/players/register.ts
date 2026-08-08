@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'crypto';
-import { supabaseAdmin } from '../_supabase';
+import { getAdmin } from '../_supabase';
 import { checkLimit } from '../_rateLimit';
 
 type Req = { method?: string; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown>; query: Record<string, string | string[] | undefined> };
@@ -21,14 +21,14 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   if (!username || username.trim().length < 2 || username.trim().length > 20) {
     res.status(400).json({ error: 'Nombre de usuario inválido (2–20 caracteres).' }); return;
   }
-  if (!pin || pin.trim().length < 4 || pin.trim().length > 20) {
-    res.status(400).json({ error: 'PIN inválido (mínimo 4 caracteres).' }); return;
+  if (!pin || pin.trim().length < 4) {
+    res.status(400).json({ error: 'PIN inválido.' }); return;
   }
 
   const sessionToken = randomUUID();
   const pin_hash = hashPin(pin.trim());
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getAdmin()
     .from('players')
     .insert({ username: username.trim(), session_token: sessionToken, pin_hash })
     .select('id')
