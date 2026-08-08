@@ -1,6 +1,12 @@
 import { COINS_PER_ZOMBIE, REST_DURATION_MS, WAVE_DURATION_MS } from '@/config/gameConfig';
 import { addCoins } from '@/domain/economy/economy';
 import { shouldAwardSkipCoin, canSkipWave, SKIP_COINS_MAX } from '@/domain/rewards/skipLogic';
+import {
+  quizCoinsForWave,
+  shouldHealOnWave,
+  streakBonusCoins,
+  MAX_LIVES,
+} from '@/domain/rewards/rewardLogic';
 import { InputManager } from '@/game/input/InputManager';
 import {
   clearSave,
@@ -226,7 +232,14 @@ export class GameSession {
         this.wrap,
         this.save.englishGrade,
         (coins, score) => {
-          this.save.coins = addCoins(this.save.coins, coins);
+          const scaledCoins = quizCoinsForWave(coins, this.waves.wave);
+          this.save.coins = addCoins(this.save.coins, scaledCoins);
+          this.save.quizStreak += 1;
+          const bonus = streakBonusCoins(this.save.coins, this.save.quizStreak);
+          if (bonus > 0) {
+            this.save.coins = addCoins(this.save.coins, bonus);
+            this.showBanner(`🎉 ¡Racha! +${bonus} monedas`);
+          }
           this.save.score += score;
           this.persist();
           this.quizOverlay?.remove();
@@ -234,6 +247,8 @@ export class GameSession {
           this.requestShop();
         },
         () => {
+          this.save.quizStreak = 0;
+          this.persist();
           this.quizOverlay?.remove();
           this.quizOverlay = null;
           this.requestShop();
@@ -245,7 +260,14 @@ export class GameSession {
         this.save.mathTopic,
         this.save.quizDifficulty,
         (coins, score, finalDifficulty) => {
-          this.save.coins = addCoins(this.save.coins, coins);
+          const scaledCoins = quizCoinsForWave(coins, this.waves.wave);
+          this.save.coins = addCoins(this.save.coins, scaledCoins);
+          this.save.quizStreak += 1;
+          const bonus = streakBonusCoins(this.save.coins, this.save.quizStreak);
+          if (bonus > 0) {
+            this.save.coins = addCoins(this.save.coins, bonus);
+            this.showBanner(`🎉 ¡Racha! +${bonus} monedas`);
+          }
           this.save.score += score;
           this.save.quizDifficulty = finalDifficulty;
           this.persist();
@@ -334,9 +356,16 @@ export class GameSession {
           if (prevPhase === 'wave') {
             // Wave naturally completed (not fort breach)
             this.save.wavesCleared += 1;
+            const healed = shouldHealOnWave(this.save.wavesCleared) && this.waves.lives < MAX_LIVES;
+            if (healed) {
+              this.waves = { ...this.waves, lives: this.waves.lives + 1 };
+            }
             if (shouldAwardSkipCoin(this.save.wavesCleared) && this.save.skipCoins < SKIP_COINS_MAX) {
               this.save.skipCoins = Math.min(SKIP_COINS_MAX, this.save.skipCoins + 1);
-              this.showBanner(`Descanso · +1 moneda de salto (${this.save.skipCoins}/${SKIP_COINS_MAX})`);
+              const healMsg = healed ? ' · ❤️ +1 vida' : '';
+              this.showBanner(`Descanso · +1 moneda de salto (${this.save.skipCoins}/${SKIP_COINS_MAX})${healMsg}`);
+            } else if (healed) {
+              this.showBanner('Descanso · ❤️ +1 vida');
             } else {
               this.showBanner('Descanso');
             }
