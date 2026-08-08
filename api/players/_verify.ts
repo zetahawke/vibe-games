@@ -1,5 +1,5 @@
-import { getAdmin } from '../_supabase';
-import { checkLimit } from '../_rateLimit';
+import { getAdmin } from '../_supabase.js';
+import { checkLimit } from '../_rateLimit.js';
 
 type Req = { method?: string; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown>; query: Record<string, string | string[] | undefined> };
 type Res = { status: (n: number) => Res; json: (b: unknown) => void; end: () => void };
@@ -8,31 +8,28 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   if (req.method !== 'POST') { res.status(405).end(); return; }
 
   const ip = (req.headers['x-forwarded-for'] as string | undefined) ?? '0.0.0.0';
-  if (!(await checkLimit(ip, 'session/leave', 30))) {
+  if (!(await checkLimit(ip, 'players/verify', 20))) {
     res.status(429).json({ error: 'Demasiadas solicitudes.' }); return;
   }
 
-  const { sessionId, playerId, sessionToken } = req.body as {
-    sessionId?: string; playerId?: string; sessionToken?: string;
-  };
-  if (!sessionId || !playerId || !sessionToken) {
+  const { username, sessionToken } = req.body as { username?: string; sessionToken?: string };
+  if (!username || !sessionToken) {
     res.status(400).json({ error: 'Datos incompletos.' }); return;
   }
 
-  const { data: player } = await getAdmin()
+  const { data, error } = await getAdmin()
     .from('players')
     .select('id')
-    .eq('id', playerId)
+    .eq('username', username)
     .eq('session_token', sessionToken)
     .single();
-  if (!player) { res.status(401).json({ error: 'Identidad no verificada.' }); return; }
+
+  if (error || !data) { res.status(401).json({ error: 'Credenciales inválidas.' }); return; }
 
   await getAdmin()
-    .from('session_players')
-    .update({ left_at: new Date().toISOString() })
-    .eq('session_id', sessionId)
-    .eq('player_id', playerId)
-    .is('left_at', null);
+    .from('players')
+    .update({ last_seen: new Date().toISOString() })
+    .eq('id', data.id);
 
-  res.status(200).json({ ok: true });
+  res.status(200).json({ playerId: data.id });
 }

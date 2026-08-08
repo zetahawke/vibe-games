@@ -1,6 +1,7 @@
-import { getAdmin } from '../_supabase';
-import { checkLimit } from '../_rateLimit';
-import { verifyAdminJwt } from './_verifyAdmin';
+import { getAdmin } from '../_supabase.js';
+import { checkLimit } from '../_rateLimit.js';
+import { embeddedUsername } from '../_scores.js';
+import { verifyAdminJwt } from './_verifyAdmin.js';
 
 type Req = { method?: string; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown>; query: Record<string, string | string[] | undefined> };
 type Res = { status: (n: number) => Res; json: (b: unknown) => void; end: () => void };
@@ -35,7 +36,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
 
   for (const row of rows ?? []) {
     if (season?.id && row.season_id && row.season_id !== season.id) continue;
-    const username = (row.players as { username: string } | null)?.username ?? 'Desconocido';
+    const username = embeddedUsername(row.players);
     const score = Number(row.personal_score) || 0;
     const prev = byPlayer.get(row.player_id as string);
     if (!prev) {

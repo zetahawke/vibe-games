@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
-import { getAdmin } from '../_supabase';
-import { checkLimit } from '../_rateLimit';
-import { hashPin } from '../_pinHash';
+import { getAdmin } from '../_supabase.js';
+import { checkLimit } from '../_rateLimit.js';
+import { hashPin } from '../_pinHash.js';
 
 type Req = { method?: string; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown>; query: Record<string, string | string[] | undefined> };
 type Res = { status: (n: number) => Res; json: (b: unknown) => void; end: () => void };

@@ -1,5 +1,8 @@
-import { checkLimit } from './_rateLimit';
-import { normalizeSpeechText } from '../src/shared/speech';
+import { checkLimit } from './_rateLimit.js';
+
+function normalizeSpeechText(text: string): string {
+  return text.trim().replace(/\s+/g, ' ').slice(0, 80);
+}
 
 type Req = {
   method?: string;

@@ -1,6 +1,6 @@
-import { getAdmin } from '../_supabase';
-import { checkLimit } from '../_rateLimit';
-import { bestEntriesPerPlayer } from '../../src/domain/score/leaderboard';
+import { getAdmin } from '../_supabase.js';
+import { checkLimit } from '../_rateLimit.js';
+import { bestEntriesPerPlayer, embeddedUsername } from '../_scores.js';
 
 type Req = { method?: string; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown>; query: Record<string, string | string[] | undefined> };
 type Res = { status: (n: number) => Res; json: (b: unknown) => void; end: () => void };
@@ -39,7 +39,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   if (error) { res.status(500).json({ error: error.message }); return; }
 
   const rows = (data ?? []).map((row) => ({
-    username:      (row.players as { username: string } | null)?.username ?? 'Desconocido',
+    username:      embeddedUsername(row.players),
     personalScore: Number(row.personal_score) || 0,
     coinsEarned:   Number(row.coins_earned) || 0,
     lastWeapon:    String(row.last_weapon ?? 'knife'),

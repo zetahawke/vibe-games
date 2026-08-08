@@ -1,3 +1,5 @@
+import { applyLookGain } from './lookGain';
+
 export interface InputState {
   moveX: number;
   moveZ: number;
@@ -42,8 +44,9 @@ export class InputManager {
   }
 
   setTouchLook(dx: number, dy: number): void {
-    this.lookDx += dx;
-    this.lookDy += dy;
+    const look = applyLookGain(dx, dy, 'touch');
+    this.lookDx += look.dx;
+    this.lookDy += look.dy;
   }
 
   pressFire(down: boolean): void {
@@ -125,8 +128,9 @@ export class InputManager {
 
   private onMouseMove = (e: MouseEvent): void => {
     if (document.pointerLockElement === this.canvas) {
-      this.lookDx += e.movementX;
-      this.lookDy += e.movementY;
+      const look = applyLookGain(e.movementX, e.movementY, 'mouse');
+      this.lookDx += look.dx;
+      this.lookDy += look.dy;
     }
   };
 }

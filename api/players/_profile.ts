@@ -1,6 +1,6 @@
-import { getAdmin } from '../_supabase';
-import { checkLimit } from '../_rateLimit';
-import { migrateGrade } from '../../src/domain/profile/profile';
+import { getAdmin } from '../_supabase.js';
+import { checkLimit } from '../_rateLimit.js';
+import { migrateGrade } from '../_grade.js';
 
 type Req = { method?: string; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown>; query: Record<string, string | string[] | undefined> };
 type Res = { status: (n: number) => Res; json: (b: unknown) => void; end: () => void };

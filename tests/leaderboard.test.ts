@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bestEntriesPerPlayer } from '@/domain/score/leaderboard';
+import { bestEntriesPerPlayer, embeddedUsername } from '@/domain/score/leaderboard';
 
 describe('bestEntriesPerPlayer', () => {
   it('keeps only the highest personal score per username', () => {
@@ -22,5 +22,13 @@ describe('bestEntriesPerPlayer', () => {
       { username: 'c', personalScore: 6, coinsEarned: 0, lastWeapon: 'knife' },
     ];
     expect(bestEntriesPerPlayer(rows, 2).map((e) => e.username)).toEqual(['b', 'c']);
+  });
+});
+
+describe('embeddedUsername', () => {
+  it('reads a many-to-one object or a one-row array from PostgREST', () => {
+    expect(embeddedUsername({ username: 'hija' })).toBe('hija');
+    expect(embeddedUsername([{ username: 'papa' }])).toBe('papa');
+    expect(embeddedUsername(null)).toBe('Desconocido');
   });
 });

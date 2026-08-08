@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { bearerFromHeaders, isAdminUser } from '../../src/domain/admin/adminIdentity';
+import { bearerFromHeaders, isAdminUser } from '../_adminIdentity.js';
 
 export async function verifyAdminJwt(
   headers: Record<string, string | string[] | undefined>,

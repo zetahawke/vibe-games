@@ -5,7 +5,6 @@ export interface ScoreRow {
   lastWeapon: string;
 }
 
-/** PostgREST may embed `players` as an object or a one-row array. */
 export function embeddedUsername(players: unknown): string {
   const row = Array.isArray(players) ? players[0] : players;
   if (row && typeof row === 'object' && 'username' in row) {
@@ -15,7 +14,6 @@ export function embeddedUsername(players: unknown): string {
   return 'Desconocido';
 }
 
-/** One row per player: their best personal score, ranked high to low. */
 export function bestEntriesPerPlayer(rows: ScoreRow[], limit = 20): ScoreRow[] {
   const best = new Map<string, ScoreRow>();
   for (const row of rows) {
