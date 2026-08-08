@@ -1,18 +1,16 @@
 /// <reference types="vite/client" />
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { RealtimeClient } from '@supabase/supabase-js';
+import { realtimeClientOptions, realtimeEndpoint } from '@/lib/supabaseConfig';
 
-let _client: SupabaseClient | null = null;
+let _realtime: RealtimeClient | null = null;
 
-// Used only for Supabase Realtime broadcast channels and Supabase Auth.
-// All database access goes through Vercel Functions via SUPABASE_SERVICE_ROLE_KEY.
-export function getSupabase(): SupabaseClient {
-  if (!_client) {
+/** Shared Phoenix socket for co-op. Not createClient — Auth would reconnect it. */
+export function getRealtime(): RealtimeClient {
+  if (!_realtime) {
     const url = import.meta.env.VITE_SUPABASE_URL;
     const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
     if (!url || !key) throw new Error('Supabase env vars not set');
-    _client = createClient(url, key, {
-      realtime: { params: { eventsPerSecond: 40 } },
-    });
+    _realtime = new RealtimeClient(realtimeEndpoint(url), realtimeClientOptions(key));
   }
-  return _client;
+  return _realtime;
 }

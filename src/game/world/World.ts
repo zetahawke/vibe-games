@@ -34,6 +34,22 @@ import { animateEnemyWalk, BASE_ZOMBIE_SPEED, buildEnemy, type Enemy } from './e
 
 export type WorldEvents = { kills: number; fortBreached: boolean };
 
+const _scratchDir = new THREE.Vector3();
+
+function disposeObject3D(root: THREE.Object3D): void {
+  root.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.geometry?.dispose();
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    for (const m of mats) {
+      const map = (m as THREE.MeshStandardMaterial).map;
+      map?.dispose();
+      m.dispose();
+    }
+  });
+}
+
 export class World {
   readonly renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
@@ -170,6 +186,7 @@ export class World {
   removeRemotePlayer(playerId: string): void {
     const avatar = this.remoteAvatars.get(playerId);
     if (avatar) {
+      disposeObject3D(avatar.rig.root);
       this.scene.remove(avatar.rig.root);
       this.remoteAvatars.delete(playerId);
     }
@@ -404,8 +421,9 @@ export class World {
         }
 
         const fortAabb = aabbFromCenter(0, 0, this.fortHalf);
+        const dir = _scratchDir;
         for (const e of this.enemies) {
-          const dir = new THREE.Vector3(0, 0, 0).sub(e.root.position);
+          dir.copy(e.root.position).multiplyScalar(-1);
           dir.y = 0;
           if (dir.lengthSq() > 0.001) dir.normalize();
           e.root.position.addScaledVector(dir, e.speed * dt);
@@ -561,7 +579,7 @@ export class World {
     hp: number,
     hpMax: number,
   ): Enemy {
-    const e = buildEnemy(type, (t) => this.textures.push(t), (m) => this.materials.push(m));
+    const e = buildEnemy(type, () => undefined, () => undefined);
     e.netId = netId;
     e.hp = hp;
     e.hpMax = hpMax;
@@ -579,6 +597,7 @@ export class World {
   }
 
   private removeEnemyVisual(e: Enemy): void {
+    disposeObject3D(e.root);
     this.scene.remove(e.root);
     this.hpBarEls.get(e)?.remove();
     this.hpBarEls.delete(e);
