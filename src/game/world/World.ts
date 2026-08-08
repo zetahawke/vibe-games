@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { WAVE_DURATION_MS } from '@/config/gameConfig';
 import type { Phase } from '@/domain/save/save';
-import { zombiesToSpawnForWave } from '@/domain/waves/waveLogic';
-import { WeaponDef, WeaponId, zombieHpForWave } from '@/domain/weapons/weapons';
+import { enemyHp, pickEnemyType, spawnInterval, ENEMY_DEFS } from '@/domain/waves/enemyConfig';
+import { WeaponDef, WeaponId } from '@/domain/weapons/weapons';
 import type { InputState } from '@/game/input/InputManager';
 import { aabbFromCenter, overlaps } from './aabb';
 import { buildFort, buildGroundAndPath } from './environment';
@@ -29,7 +29,7 @@ import {
   type Projectile,
 } from './projectiles';
 import { makeSkyTexture } from './textures';
-import { animateZombieWalk, BASE_ZOMBIE_SPEED, buildZombie, type Zombie } from './zombie';
+import { animateEnemyWalk, BASE_ZOMBIE_SPEED, buildEnemy, type Enemy } from './enemy';
 
 export type WorldEvents = { kills: number; fortBreached: boolean };
 
@@ -42,7 +42,7 @@ export class World {
   /** Body facing (can differ from camera yaw while strafing). */
   private bodyYaw = Math.PI;
   private pitch = 0.2;
-  private zombies: Zombie[] = [];
+  private enemies: Enemy[] = [];
   private fireCooldown = 0;
   private attackAnim = 0;
   private walkPhase = 0;
@@ -50,8 +50,6 @@ export class World {
   private paused = false;
   private phase: Phase = 'rest';
   private wave = 0;
-  private toSpawn = 0;
-  private spawnInterval = 3;
   private spawnTimer = 0;
   private projectiles: Projectile[] = [];
   private equippedId: WeaponId | null = null;
@@ -62,7 +60,7 @@ export class World {
   private readonly fortHalf = FORT_HALF;
   private readonly fortHeight = FORT_HEIGHT;
   private hpBarsLayer: HTMLElement;
-  private hpBarEls = new Map<Zombie, HTMLElement>();
+  private hpBarEls = new Map<Enemy, HTMLElement>();
 
   constructor(private container: HTMLElement, pathHalfW: number = rollPathHalfWidth()) {
     this.pathHalfW = pathHalfW;
@@ -146,26 +144,26 @@ export class World {
     this.phase = phase;
     this.wave = wave;
     if (phase === 'wave' && (phaseChanged || waveChanged)) {
-      this.toSpawn = zombiesToSpawnForWave(wave);
-      this.spawnInterval = WAVE_DURATION_MS / 1000 / Math.max(1, this.toSpawn);
-      this.spawnTimer = 0;
+      this.spawnTimer = spawnInterval(wave);
     }
     if (phase === 'rest') {
-      this.clearZombies();
+      this.clearEnemies();
       clearProjectiles(this.scene, this.projectiles);
       this.projectiles = [];
-      this.toSpawn = 0;
     }
   }
 
-  clearZombies(): void {
-    for (const z of this.zombies) {
-      this.scene.remove(z.root);
-      this.hpBarEls.get(z)?.remove();
-      this.hpBarEls.delete(z);
+  clearEnemies(): void {
+    for (const e of this.enemies) {
+      this.scene.remove(e.root);
+      this.hpBarEls.get(e)?.remove();
+      this.hpBarEls.delete(e);
     }
-    this.zombies = [];
+    this.enemies = [];
   }
+
+  /** @deprecated use clearEnemies() */
+  clearZombies(): void { this.clearEnemies(); }
 
   update(dt: number, input: InputState, equipped: WeaponDef): WorldEvents {
     const events: WorldEvents = { kills: 0, fortBreached: false };
@@ -255,41 +253,40 @@ export class World {
     const proj = updateProjectiles(
       this.scene,
       this.projectiles,
-      this.zombies,
+      this.enemies,
       dt,
-      (z, dmg) => this.damageZombie(z, dmg),
+      (e, dmg) => this.damageEnemy(e, dmg),
     );
     this.projectiles = proj.remaining;
     events.kills += proj.kills;
 
     if (this.phase === 'wave') {
-      this.spawnTimer += dt;
-      while (this.toSpawn > 0 && this.spawnTimer >= this.spawnInterval) {
-        this.spawnTimer -= this.spawnInterval;
-        this.spawnZombie();
-        this.toSpawn -= 1;
+      this.spawnTimer -= dt;
+      if (this.spawnTimer <= 0) {
+        this.spawnEnemy();
+        this.spawnTimer = spawnInterval(this.wave);
       }
 
       const fortAabb = aabbFromCenter(0, 0, this.fortHalf);
-      for (const z of this.zombies) {
-        const dir = new THREE.Vector3(0, 0, 0).sub(z.root.position);
+      for (const e of this.enemies) {
+        const dir = new THREE.Vector3(0, 0, 0).sub(e.root.position);
         dir.y = 0;
         if (dir.lengthSq() > 0.001) dir.normalize();
-        z.root.position.addScaledVector(dir, z.speed * dt);
-        z.root.position.x = THREE.MathUtils.clamp(
-          z.root.position.x,
+        e.root.position.addScaledVector(dir, e.speed * dt);
+        e.root.position.x = THREE.MathUtils.clamp(
+          e.root.position.x,
           -this.pathHalfW + 0.8,
           this.pathHalfW - 0.8,
         );
-        z.root.rotation.y = Math.atan2(dir.x, dir.z);
-        animateZombieWalk(z, dt);
-        const zab = aabbFromCenter(z.root.position.x, z.root.position.z, 0.7);
-        if (overlaps(zab, fortAabb)) {
+        e.root.rotation.y = Math.atan2(dir.x, dir.z);
+        animateEnemyWalk(e, dt);
+        const eab = aabbFromCenter(e.root.position.x, e.root.position.z, 0.7 * ENEMY_DEFS[e.type].scale);
+        if (overlaps(eab, fortAabb)) {
           events.fortBreached = true;
           break;
         }
       }
-      if (events.fortBreached) this.clearZombies();
+      if (events.fortBreached) this.clearEnemies();
     }
 
     this.updateHpBars();
@@ -302,27 +299,28 @@ export class World {
     const w = this.container.clientWidth;
     const h = this.container.clientHeight;
     const above = new THREE.Vector3();
-    for (const z of this.zombies) {
-      const bar = this.hpBarEls.get(z);
+    for (const e of this.enemies) {
+      const bar = this.hpBarEls.get(e);
       if (!bar) continue;
-      const visible = now < z.hpShowUntil;
+      const visible = now < e.hpShowUntil;
       bar.hidden = !visible;
       if (!visible) continue;
-      above.set(z.root.position.x, 2.8, z.root.position.z);
+      const headY = 2.8 * ENEMY_DEFS[e.type].scale;
+      above.set(e.root.position.x, headY, e.root.position.z);
       above.project(this.camera);
       if (above.z > 1) { bar.hidden = true; continue; }
       const sx = ((above.x + 1) / 2) * w;
       const sy = ((-above.y + 1) / 2) * h;
       bar.style.left = `${sx - 30}px`;
       bar.style.top = `${sy - 8}px`;
-      const pct = Math.max(0, Math.min(1, z.hp / z.hpMax)) * 100;
+      const pct = Math.max(0, Math.min(1, e.hp / e.hpMax)) * 100;
       (bar.firstElementChild as HTMLElement).style.width = `${pct}%`;
     }
   }
 
   dispose(): void {
     window.removeEventListener('resize', this.onResize);
-    this.clearZombies();
+    this.clearEnemies();
     this.hpBarsLayer.remove();
     clearProjectiles(this.scene, this.projectiles);
     this.projectiles = [];
@@ -338,54 +336,52 @@ export class World {
     const dir = aimDirection(this.yaw, this.pitch);
     dir.y = 0;
     dir.normalize();
-    let best: Zombie | null = null;
+    let best: Enemy | null = null;
     let bestDist = Infinity;
 
-    for (const z of this.zombies) {
-      const toZ = z.root.position.clone().sub(origin);
-      toZ.y = 0;
-      const dist = toZ.length();
-      if (dist > equipped.range) continue;
-      if (toZ.clone().normalize().dot(dir) > 0.15 && dist < bestDist) {
-        best = z;
+    for (const e of this.enemies) {
+      const toE = e.root.position.clone().sub(origin);
+      toE.y = 0;
+      const dist = toE.length();
+      if (dist > equipped.range * 1.2) continue;
+      if (toE.clone().normalize().dot(dir) > 0.15 && dist < bestDist) {
+        best = e;
         bestDist = dist;
       }
     }
-    return best ? this.damageZombie(best, equipped.damage) : 0;
+    return best ? this.damageEnemy(best, equipped.damage) : 0;
   }
 
-  private damageZombie(z: Zombie, damage: number): number {
-    z.hp -= damage;
-    z.hpShowUntil = performance.now() + 2000;
-    if (z.hp > 0) return 0;
-    this.scene.remove(z.root);
-    this.hpBarEls.get(z)?.remove();
-    this.hpBarEls.delete(z);
-    this.zombies = this.zombies.filter((o) => o !== z);
-    return 1;
+  private damageEnemy(e: Enemy, dmg: number): number {
+    e.hp = Math.max(0, e.hp - dmg);
+    e.hpShowUntil = performance.now() + 2000;
+    if (e.hp <= 0) {
+      this.scene.remove(e.root);
+      this.hpBarEls.get(e)?.remove();
+      this.hpBarEls.delete(e);
+      this.enemies = this.enemies.filter((x) => x !== e);
+      return 1;
+    }
+    return 0;
   }
 
-  private spawnZombie(): void {
-    const z = buildZombie(
-      (t) => this.textures.push(t),
-      (m) => this.materials.push(m),
-    );
-    const lane = (Math.random() * 2 - 1) * (this.pathHalfW - 1.2);
-    z.root.position.set(lane, 0, this.pathEndZ + Math.random() * 2);
-    this.scene.add(z.root);
-    const hp = zombieHpForWave(this.wave);
-    z.hp = hp;
-    z.hpMax = hp;
-    z.hpShowUntil = performance.now() + 2000;
-    const waveBoost = 1 + (this.wave - 1) * 0.04;
-    z.speed = BASE_ZOMBIE_SPEED * waveBoost * (0.9 + Math.random() * 0.2);
-    this.zombies.push(z);
+  private spawnEnemy(): void {
+    const type = pickEnemyType(this.wave);
+    const e = buildEnemy(type, (t) => this.textures.push(t), (m) => this.materials.push(m));
+    const hp = enemyHp(type, this.wave);
+    e.hp = hp;
+    e.hpMax = hp;
+    e.hpShowUntil = performance.now() + 2000;
+    const lane = (Math.random() - 0.5) * (this.pathHalfW - 1.2) * 2;
+    e.root.position.set(lane, 0, this.pathEndZ + Math.random() * 2);
+    this.scene.add(e.root);
+    this.enemies.push(e);
 
     const bar = document.createElement('div');
     bar.className = 'zombie-hp-bar';
     bar.innerHTML = '<div class="zombie-hp-fill"></div>';
     this.hpBarsLayer.append(bar);
-    this.hpBarEls.set(z, bar);
+    this.hpBarEls.set(e, bar);
   }
 
   private onResize = (): void => {

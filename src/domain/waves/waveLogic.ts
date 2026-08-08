@@ -23,11 +23,6 @@ export function createWaveState(): WaveState {
   };
 }
 
-export function zombiesToSpawnForWave(wave: number): number {
-  // Progressive: ~10 on wave 1 up to 20 later, spread across the full minute
-  return Math.min(20, 9 + Math.max(1, wave));
-}
-
 export function tickWave(state: WaveState, dtMs: number): WaveState {
   if (state.status !== 'playing') return state;
 

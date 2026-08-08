@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { WeaponDef } from '@/domain/weapons/weapons';
-import type { Zombie } from './zombie';
+import type { Enemy } from './enemy';
 
 export interface Projectile {
   mesh: THREE.Mesh;
@@ -53,9 +53,9 @@ export function spawnProjectiles(
 export function updateProjectiles(
   scene: THREE.Scene,
   projectiles: Projectile[],
-  zombies: Zombie[],
+  enemies: Enemy[],
   dt: number,
-  onHit: (z: Zombie, damage: number) => number,
+  onHit: (e: Enemy, damage: number) => number,
 ): { remaining: Projectile[]; kills: number } {
   let kills = 0;
   const remaining: Projectile[] = [];
@@ -63,10 +63,10 @@ export function updateProjectiles(
     p.life -= dt;
     p.mesh.position.addScaledVector(p.velocity, dt);
     let hit = false;
-    for (const z of zombies) {
-      const d = p.mesh.position.distanceTo(z.root.position.clone().setY(1.2));
+    for (const e of enemies) {
+      const d = p.mesh.position.distanceTo(e.root.position.clone().setY(1.2));
       if (d < 1.1) {
-        kills += onHit(z, p.damage);
+        kills += onHit(e, p.damage);
         hit = true;
         break;
       }
