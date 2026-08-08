@@ -1,6 +1,7 @@
 import { buyWeapon } from '@/domain/economy/economy';
 import { GameSave } from '@/domain/save/save';
-import { getWeapon, WEAPON_IDS } from '@/domain/weapons/weapons';
+import { getWeapon, WEAPON_IDS, weaponUpgradeSfxIndex } from '@/domain/weapons/weapons';
+import { playWeaponUpgrade } from '@/shared/sfx';
 import { weaponIconSvg } from '@/domain/weapons/weaponVisuals';
 import { makeOverlayCard } from '@/shared/overlay';
 import { el } from '@/shared/dom';
@@ -67,6 +68,7 @@ export function renderShopOverlay(
           }
           save.coins = result.coins;
           save.ownedWeapons = result.owned;
+          playWeaponUpgrade(weaponUpgradeSfxIndex(id));
           onChange(save);
           render();
         });

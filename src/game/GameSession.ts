@@ -18,6 +18,7 @@ import {
   updateHighScore,
   writeSave,
 } from '@/domain/save/save';
+import { splitSimulationDt } from '@/domain/online/backgroundTick';
 import { scoreForKill } from '@/domain/score';
 import { Hud } from '@/game/ui/hud';
 import { renderGameOverOverlay } from '@/game/ui/overlays/gameOverOverlay';
@@ -39,6 +40,7 @@ export class GameSession {
   protected waves!: WaveState;
   protected username: string;
   private raf = 0;
+  private bgTimer: ReturnType<typeof setInterval> | null = null;
   private last = 0;
   private paused = false;
   private uiBlocking = false;
@@ -103,6 +105,11 @@ export class GameSession {
     return true;
   }
 
+  /** Online host must keep simulating when the tab is backgrounded (rAF stops). */
+  protected keepsTickingWhileHidden(): boolean {
+    return false;
+  }
+
   /** Hook after World exists, before the first animation frame. */
   protected configureWorld(_world: World): void {}
 
@@ -128,7 +135,9 @@ export class GameSession {
     this.showBanner(this.waves.phase === 'wave' ? `¡Oleada ${this.waves.wave}!` : 'Descanso');
     if (this.shouldPersist()) writeSave(this.username, this.save);
     this.last = performance.now();
-    this.raf = requestAnimationFrame(this.loop);
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
+    if (document.hidden && this.keepsTickingWhileHidden()) this.startBackgroundTicker();
+    else this.raf = requestAnimationFrame(this.loop);
   }
 
   private wireHud(): void {
@@ -357,14 +366,53 @@ export class GameSession {
     this.overlay = null;
   }
 
+  private onVisibilityChange = (): void => {
+    if (!this.keepsTickingWhileHidden()) return;
+    if (document.hidden) this.startBackgroundTicker();
+    else this.startForegroundLoop();
+  };
+
+  private startForegroundLoop(): void {
+    this.stopBackgroundTicker();
+    this.last = performance.now();
+    this.raf = requestAnimationFrame(this.loop);
+  }
+
+  private startBackgroundTicker(): void {
+    cancelAnimationFrame(this.raf);
+    this.raf = 0;
+    this.last = performance.now();
+    if (this.bgTimer !== null) return;
+    this.bgTimer = setInterval(() => this.loop(performance.now()), 100);
+  }
+
+  private stopBackgroundTicker(): void {
+    if (this.bgTimer === null) return;
+    clearInterval(this.bgTimer);
+    this.bgTimer = null;
+  }
+
+  private scheduleNextFrame(): void {
+    if (this.waves?.status === 'gameover') return;
+    if (document.hidden && this.keepsTickingWhileHidden()) {
+      if (this.bgTimer === null) this.startBackgroundTicker();
+      return;
+    }
+    this.raf = requestAnimationFrame(this.loop);
+  }
+
   private loop = (now: number): void => {
-    const dt = Math.min(0.05, (now - this.last) / 1000);
+    const elapsedMs = now - this.last;
     this.last = now;
     const input = this.input!.consume(this.uiBlocking || this.paused);
 
     if (!this.uiBlocking && input.pause) this.togglePause();
     if (!this.uiBlocking && input.shop) this.requestShop();
 
+    const background = document.hidden && this.keepsTickingWhileHidden();
+    const steps = splitSimulationDt(elapsedMs, { background });
+    const idleInput = { moveX: 0, moveZ: 0, lookDx: 0, lookDy: 0, fire: false, jump: false, shop: false, pause: false };
+    for (const dt of steps.length > 0 ? steps : [0]) {
     const prevPhase = this.waves.phase;
     const prevWave = this.waves.wave;
 
@@ -410,9 +458,7 @@ export class GameSession {
     const equipped = getWeapon(this.save.equippedWeapon);
     const events = this.world!.update(
       dt,
-      this.uiBlocking || this.paused
-        ? { moveX: 0, moveZ: 0, lookDx: 0, lookDy: 0, fire: false, jump: false, shop: false, pause: false }
-        : input,
+      this.uiBlocking || this.paused || background ? idleInput : input,
       equipped,
     );
 
@@ -433,9 +479,11 @@ export class GameSession {
       this.showBanner('¡El fuerte fue atacado! Descanso');
       this.persist();
     }
+    }
 
     if (now > this.bannerUntil) this.banner = '';
 
+    const equipped = getWeapon(this.save.equippedWeapon);
     this.hud?.update({
       coins: this.save.coins,
       lives: this.waves.lives,
@@ -451,11 +499,12 @@ export class GameSession {
       wavesCleared: this.save.wavesCleared,
     });
 
-    this.raf = requestAnimationFrame(this.loop);
+    this.scheduleNextFrame();
   };
 
   protected handleGameOver(): void {
     cancelAnimationFrame(this.raf);
+    this.stopBackgroundTicker();
     const best = updateHighScore(this.username, this.save.score);
     if (this.shouldPersist()) clearSave(this.username);
     this.world?.setPaused(true);
@@ -483,7 +532,9 @@ export class GameSession {
 
   public dispose(): void {
     if (this.waves && this.waves.status === 'playing') this.persist();
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
     cancelAnimationFrame(this.raf);
+    this.stopBackgroundTicker();
     this.input?.dispose();
     this.world?.dispose();
     this.hud?.dispose();

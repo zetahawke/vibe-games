@@ -6,6 +6,7 @@ import { isNightWave, nightSpeedMul } from '@/domain/waves/dayNight';
 import { enemyHp, pickEnemyType, spawnInterval, ENEMY_DEFS, type EnemyType } from '@/domain/waves/enemyConfig';
 import { reconcileEnemySnapshot } from '@/domain/online/enemySync';
 import { getWeapon, WeaponDef, WeaponId } from '@/domain/weapons/weapons';
+import { playGunshot } from '@/shared/sfx';
 import type { InputState } from '@/game/input/InputManager';
 import { aabbFromCenter, overlaps } from './aabb';
 import { buildFort, buildGroundAndPath } from './environment';
@@ -456,6 +457,7 @@ export class World {
     if (input.fire && this.fireCooldown <= 0) {
       this.fireCooldown = equipped.cooldownMs;
       this.attackAnim = 1;
+      playGunshot(equipped.kind);
       if (equipped.isMelee) {
         const killed = this.tryMelee(equipped);
         if (killed) events.kills.push({ type: killed });

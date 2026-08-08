@@ -108,6 +108,21 @@ export function getWeapon(id: WeaponId): WeaponDef {
   return WEAPONS[id];
 }
 
+const UPGRADE_SFX_ORDER: WeaponId[] = [
+  'pistol',
+  'pistol_upgraded',
+  'shotgun',
+  'shotgun_upgraded',
+  'rifle',
+  'rifle_upgraded',
+];
+
+/** Four short jingles recycled across shop weapons. */
+export function weaponUpgradeSfxIndex(id: WeaponId): number {
+  const i = UPGRADE_SFX_ORDER.indexOf(id);
+  return i < 0 ? 0 : i % 4;
+}
+
 /** HP curve: wave 1 = 2 knife hits; wave 5 = 5 pistol / 1 shotgun. */
 export function zombieHpForWave(wave: number): number {
   const w = Math.max(1, Math.floor(wave));

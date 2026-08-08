@@ -44,9 +44,6 @@ export class IdentifySession {
       onPick: (item) => {
         speak(spokenLabel(theme, item.id));
       },
-      onSuccess: (item) => {
-        speak(spokenLabel(theme, item.id));
-      },
       onExit,
     });
   }

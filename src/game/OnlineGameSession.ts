@@ -1,4 +1,5 @@
 import { GameSession } from './GameSession';
+import { shouldTickWhileHidden } from '@/domain/online/backgroundTick';
 import { connectRoom, type RoomBus, type RoomStatus } from '@/domain/online/roomBus';
 import {
   createMatchStore,
@@ -138,6 +139,9 @@ export class OnlineGameSession extends GameSession {
 
   protected override shouldPersist(): boolean { return false; }
   protected override advancesWaveLocally(): boolean { return this.isHost; }
+  protected override keepsTickingWhileHidden(): boolean {
+    return shouldTickWhileHidden(this.isHost);
+  }
 
   private showHostLobby(): void {
     clear(this.wrap);

@@ -1,34 +1,7 @@
 import { resolveDrop, type DropMode } from '@/domain/animals/dropRules';
 import { clear, el } from '@/shared/dom';
+import { playSoftFail, playSuccessPing } from '@/shared/sfx';
 import type { MatchItem, MatchSessionOptions } from './types';
-
-function playTone(freq: number, durationMs: number, type: OscillatorType = 'sine'): void {
-  try {
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = type;
-    osc.frequency.value = freq;
-    gain.gain.value = 0.08;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + durationMs / 1000);
-    osc.stop(ctx.currentTime + durationMs / 1000);
-    osc.onended = () => void ctx.close();
-  } catch {
-    /* audio optional */
-  }
-}
-
-function playSoftFail(): void {
-  playTone(180, 180, 'triangle');
-}
-
-function playSuccessPing(): void {
-  playTone(520, 120, 'sine');
-  setTimeout(() => playTone(720, 140, 'sine'), 90);
-}
 
 function shuffleItems<T>(items: T[]): T[] {
   for (let i = items.length - 1; i > 0; i--) {

@@ -12,4 +12,4 @@ export {
   type GraphicsStyle,
 } from './settings';
 export { animalSvg } from './visuals';
-export { animalArtHtml, animalPhotoUrl } from './art';
+export { animalArtHtml, animalPhotoUrl, animalSoundUrl } from './art';

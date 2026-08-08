@@ -1,12 +1,15 @@
 import {
   animalArtHtml,
   animalName,
+  animalSoundUrl,
   pickRound,
+  type AnimalId,
   type DropMode,
   type GraphicsStyle,
 } from '@/domain/animals';
 import { MatchSession } from '@/game/match/MatchSession';
 import type { MatchItem } from '@/game/match/types';
+import { speakClip } from '@/shared/speech';
 
 export class AnimalsSession {
   private match: MatchSession;
@@ -39,6 +42,9 @@ export class AnimalsSession {
           className: classes.join(' '),
           html: animalArtHtml(item.id as Parameters<typeof animalArtHtml>[0], graphicsStyle, variant),
         };
+      },
+      onPick: (item) => {
+        void speakClip(animalSoundUrl(item.id as AnimalId), item.label);
       },
       onExit,
     });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { WEAPONS, zombieHpForWave, getWeapon } from '@/domain/weapons/weapons';
+import { WEAPONS, zombieHpForWave, getWeapon, weaponUpgradeSfxIndex } from '@/domain/weapons/weapons';
 
 describe('weapons', () => {
   it('starts with free knife', () => {
@@ -24,5 +24,19 @@ describe('weapons', () => {
     expect(WEAPONS.shotgun_upgraded.damage).toBeGreaterThan(WEAPONS.shotgun.damage);
     expect(WEAPONS.rifle_upgraded.price).toBeGreaterThan(WEAPONS.rifle.price);
     expect(WEAPONS.rifle_upgraded.damage).toBeGreaterThan(WEAPONS.rifle.damage);
+  });
+
+  it('maps shop weapons onto four recycled upgrade jingles', () => {
+    const indices = [
+      weaponUpgradeSfxIndex('pistol'),
+      weaponUpgradeSfxIndex('pistol_upgraded'),
+      weaponUpgradeSfxIndex('shotgun'),
+      weaponUpgradeSfxIndex('shotgun_upgraded'),
+      weaponUpgradeSfxIndex('rifle'),
+      weaponUpgradeSfxIndex('rifle_upgraded'),
+    ];
+    expect(new Set(indices).size).toBe(4);
+    expect(indices.every((i) => i >= 0 && i <= 3)).toBe(true);
+    expect(weaponUpgradeSfxIndex('rifle')).toBe(weaponUpgradeSfxIndex('pistol'));
   });
 });

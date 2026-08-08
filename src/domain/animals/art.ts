@@ -4,7 +4,12 @@ import { animalSvg } from './visuals';
 
 /** Public URL for a realistic PNG portrait. */
 export function animalPhotoUrl(id: AnimalId): string {
-  return `/animals/${id}.png`;
+  return `/animals/images/${id}.png`;
+}
+
+/** Public URL for the pre-recorded spoken name. */
+export function animalSoundUrl(id: AnimalId): string {
+  return `/animals/sounds/${id}.mp3`;
 }
 
 /**
