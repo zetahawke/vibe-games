@@ -212,7 +212,7 @@ export class World {
     }
     avatar.grounded = grounded;
     if (weaponId) {
-      avatar.weaponId = syncWeaponModel(avatar.rig.weaponSlot, avatar.weaponId, weaponId as WeaponId);
+      avatar.weaponId = syncWeaponModel(avatar.rig, avatar.weaponId, weaponId as WeaponId);
     }
   }
 
@@ -388,7 +388,7 @@ export class World {
   update(dt: number, input: InputState, equipped: WeaponDef): WorldEvents {
     const events: WorldEvents = { kills: [], fortBreached: false };
     this.equippedId = syncWeaponModel(
-      this.playerRig.weaponSlot,
+      this.playerRig,
       this.equippedId,
       equipped.id,
     );

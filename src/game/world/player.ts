@@ -4,8 +4,9 @@ import {
   makeClothTexture,
   makeSkinTexture,
 } from './textures';
-import { createWeaponModel } from '@/domain/weapons/weaponVisuals';
-import type { WeaponDef, WeaponId } from '@/domain/weapons/weapons';
+import { createBoxingModel } from '@/assets/boxing';
+import { weaponPieceIds } from '@/assets/boxing/manifest';
+import { getWeapon, resolveWeaponId, type WeaponDef, type WeaponId } from '@/domain/weapons/weapons';
 
 export interface PlayerLook {
   sex?: AvatarSex;
@@ -25,7 +26,13 @@ export interface PlayerRig {
   rightArm: THREE.Object3D;
   leftLeg: THREE.Object3D;
   rightLeg: THREE.Object3D;
+  rightHand: THREE.Group;
+  leftHand: THREE.Group;
+  /** @deprecated alias for rightHand */
   weaponSlot: THREE.Group;
+  hatSlot: THREE.Group;
+  shirtSlot: THREE.Group;
+  pantsSlot: THREE.Group;
 }
 
 export const PLAYER_SPEED = 10;
@@ -77,17 +84,19 @@ export function buildPlayer(
   const la = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.9, 0.28), skin);
   la.position.y = -0.35;
   la.castShadow = true;
-  leftArm.add(la);
+  const leftHand = new THREE.Group();
+  leftHand.position.set(0, -0.8, 0);
+  leftArm.add(la, leftHand);
 
   const rightArm = new THREE.Group();
   rightArm.position.set(0.55, 1.7, 0);
   const ra = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.9, 0.28), skin);
   ra.position.y = -0.35;
   ra.castShadow = true;
-  const weaponSlot = new THREE.Group();
+  const rightHand = new THREE.Group();
   // At the hand (end of the 0.9-tall arm mesh centered at y=-0.35).
-  weaponSlot.position.set(0, -0.8, 0);
-  rightArm.add(ra, weaponSlot);
+  rightHand.position.set(0, -0.8, 0);
+  rightArm.add(ra, rightHand);
 
   const leftLeg = new THREE.Group();
   leftLeg.position.set(-0.22, 0.85, 0);
@@ -104,6 +113,14 @@ export function buildPlayer(
   rightLeg.add(rl);
 
   root.add(body, head, leftArm, rightArm, leftLeg, rightLeg);
+
+  const hatSlot = new THREE.Group();
+  hatSlot.position.set(0, 2.45, 0);
+  const shirtSlot = new THREE.Group();
+  shirtSlot.position.set(0, girl ? 1.52 : 1.35, 0);
+  const pantsSlot = new THREE.Group();
+  pantsSlot.position.set(0, 0.45, 0);
+  root.add(hatSlot, shirtSlot, pantsSlot);
 
   if (girl) {
     const hairTop = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.2, 0.76), hairMat);
@@ -131,20 +148,41 @@ export function buildPlayer(
     root.add(hair);
   }
 
-  return { root, leftArm, rightArm, leftLeg, rightLeg, weaponSlot };
+  return {
+    root,
+    leftArm,
+    rightArm,
+    leftLeg,
+    rightLeg,
+    rightHand,
+    leftHand,
+    weaponSlot: rightHand,
+    hatSlot,
+    shirtSlot,
+    pantsSlot,
+  };
 }
 
 export function syncWeaponModel(
-  slot: THREE.Group,
+  rig: PlayerRig,
   currentId: WeaponId | null,
   nextId: WeaponId,
 ): WeaponId {
-  if (currentId === nextId) return currentId;
-  slot.clear();
-  const model = createWeaponModel(nextId);
-  model.position.set(0, 0, 0);
-  slot.add(model);
-  return nextId;
+  const id = resolveWeaponId(nextId);
+  if (currentId === id) return id;
+  const def = getWeapon(id);
+  const pieces = weaponPieceIds(id);
+  rig.rightHand.clear();
+  rig.leftHand.clear();
+  const right = createBoxingModel({ type: 'boxes', id: pieces.right });
+  right.position.set(0, 0, 0);
+  rig.rightHand.add(right);
+  if (def.grip === 'paired' && pieces.left) {
+    const left = createBoxingModel({ type: 'boxes', id: pieces.left });
+    left.position.set(0, 0, 0);
+    rig.leftHand.add(left);
+  }
+  return id;
 }
 
 /** Shortest-path angle blend for body facing. */
@@ -193,24 +231,24 @@ export function animatePlayer(
     if (equipped.isMelee) {
       rig.rightArm.rotation.x = 1.35 * t;
       rig.rightArm.rotation.z = 0.25 * t;
-      rig.weaponSlot.rotation.set(0, 0, 0);
-      rig.weaponSlot.position.set(0, -0.8, 0);
+      rig.rightHand.rotation.set(0, 0, 0);
+      rig.rightHand.position.set(0, -0.8, 0);
     } else {
       rig.rightArm.rotation.x = aimForward - 0.25 * t;
       rig.rightArm.rotation.z = aimTuck;
-      rig.weaponSlot.rotation.set(gunSlotRot, 0, 0);
-      rig.weaponSlot.position.set(0, -0.78, 0.02);
+      rig.rightHand.rotation.set(gunSlotRot, 0, 0);
+      rig.rightHand.position.set(0, -0.78, 0.02);
     }
   } else if (equipped.isMelee) {
     rig.rightArm.rotation.x = swing * 0.7;
     rig.rightArm.rotation.z = 0;
-    rig.weaponSlot.rotation.set(0, 0, 0);
-    rig.weaponSlot.position.set(0, -0.8, 0);
+    rig.rightHand.rotation.set(0, 0, 0);
+    rig.rightHand.position.set(0, -0.8, 0);
   } else {
     rig.rightArm.rotation.x = aimForward + swing * 0.08;
     rig.rightArm.rotation.z = aimTuck;
-    rig.weaponSlot.rotation.set(gunSlotRot, 0, 0);
-    rig.weaponSlot.position.set(0, -0.78, 0.02);
+    rig.rightHand.rotation.set(gunSlotRot, 0, 0);
+    rig.rightHand.position.set(0, -0.78, 0.02);
   }
   return nextAttack;
 }
@@ -244,7 +282,7 @@ const MUZZLE_LOCAL = new THREE.Vector3(0, 0.02, -0.7);
 /** World position of the equipped weapon muzzle (right arm). */
 export function getMuzzleWorldPosition(rig: PlayerRig): THREE.Vector3 {
   rig.root.updateWorldMatrix(true, true);
-  return MUZZLE_LOCAL.clone().applyMatrix4(rig.weaponSlot.matrixWorld);
+  return MUZZLE_LOCAL.clone().applyMatrix4(rig.rightHand.matrixWorld);
 }
 
 /**
