@@ -126,7 +126,13 @@ export class GameSession {
     const canvasHost = el('div', { className: 'canvas-host' });
     this.wrap.append(canvasHost);
     const look = requireProfile(this.username);
-    this.world = new World(canvasHost, save.pathHalfW, { sex: look.sex, color: look.color });
+    this.world = new World(canvasHost, save.pathHalfW, {
+      sex: look.sex,
+      color: look.color,
+      hatId: look.hatId,
+      shirtId: look.shirtId,
+      pantsId: look.pantsId,
+    });
     this.input = new InputManager(this.world.canvas);
     this.hud = new Hud(this.wrap);
     this.wireHud();

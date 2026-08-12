@@ -9,11 +9,25 @@ import {
   saveProfile,
   type AvatarSex,
   type ChileGrade,
+  type HatId,
+  type PantsId,
   type PlayerProfile,
+  type ShirtId,
 } from '@/domain/profile/profile';
+import { HAT_IDS, PANTS_IDS, SHIRT_IDS } from '@/assets/boxing/manifest';
 import { getStoredSessionToken } from '@/domain/online/playerService';
 import { buildPlayer, type PlayerLook, type PlayerRig } from '@/game/world/player';
 import { clear, el } from '@/shared/dom';
+
+function lookFromDraft(d: PlayerProfile): PlayerLook {
+  return {
+    sex: d.sex,
+    color: d.color,
+    hatId: d.hatId,
+    shirtId: d.shirtId,
+    pantsId: d.pantsId,
+  };
+}
 
 export function renderProfileScreen(
   root: HTMLElement,
@@ -28,7 +42,7 @@ export function renderProfileScreen(
     : { ...defaultProfile(username), displayName: username };
 
   const previewHost = el('div', { className: 'profile-preview' });
-  const preview = mountPreview(previewHost, { sex: draft.sex, color: draft.color });
+  const preview = mountPreview(previewHost, lookFromDraft(draft));
 
   const nameInput = el('input', {
     type: 'text',
@@ -59,7 +73,7 @@ export function renderProfileScreen(
   const sexRow = el('div', { className: 'profile-sex' });
   const setSex = (sex: AvatarSex) => {
     draft.sex = sex;
-    preview.setLook({ sex: draft.sex, color: draft.color });
+    preview.setLook(lookFromDraft(draft));
     boyBtn.classList.toggle('primary', sex === 'boy');
     girlBtn.classList.toggle('primary', sex === 'girl');
     boyBtn.classList.toggle('ghost', sex !== 'boy');
@@ -87,7 +101,7 @@ export function renderProfileScreen(
     }) as HTMLButtonElement;
     sw.addEventListener('click', () => {
       draft.color = hex;
-      preview.setLook({ sex: draft.sex, color: draft.color });
+      preview.setLook(lookFromDraft(draft));
       for (const child of swatches.children) {
         child.classList.toggle('selected', child === sw);
       }
@@ -125,6 +139,9 @@ export function renderProfileScreen(
             sex: profile.sex,
             color: profile.color,
             displayName: profile.displayName,
+            hatId: profile.hatId,
+            shirtId: profile.shirtId,
+            pantsId: profile.pantsId,
           }),
         });
       } catch {
@@ -145,6 +162,52 @@ export function renderProfileScreen(
     actions.append(back);
   }
 
+  const overlayLabels: Record<string, string> = {
+    none: 'Ninguno',
+    cap: 'Gorra',
+    jersey: 'Camiseta',
+    armor: 'Armadura',
+    shinguards: 'Canilleras',
+  };
+
+  function overlayRow(
+    title: string,
+    ids: readonly string[],
+    current: string,
+    onPick: (id: string) => void,
+  ): HTMLElement {
+    const row = el('div', { className: 'profile-sex' });
+    for (const id of ids) {
+      const btn = el('button', {
+        type: 'button',
+        className: `btn ${current === id ? 'primary' : 'ghost'}`,
+      }, [overlayLabels[id] ?? id]) as HTMLButtonElement;
+      btn.addEventListener('click', () => {
+        onPick(id);
+        for (const child of row.children) {
+          child.classList.toggle('primary', child === btn);
+          child.classList.toggle('ghost', child !== btn);
+        }
+        preview.setLook(lookFromDraft(draft));
+      });
+      row.append(btn);
+    }
+    return el('div', {}, [
+      el('p', { className: 'muted' }, [title]),
+      row,
+    ]);
+  }
+
+  const hatRow = overlayRow('Sombrero', HAT_IDS, draft.hatId, (id) => {
+    draft.hatId = id as HatId;
+  });
+  const shirtRow = overlayRow('Camiseta', SHIRT_IDS, draft.shirtId, (id) => {
+    draft.shirtId = id as ShirtId;
+  });
+  const pantsRow = overlayRow('Pantalón', PANTS_IDS, draft.pantsId, (id) => {
+    draft.pantsId = id as PantsId;
+  });
+
   root.append(
     el('section', { className: 'screen profile-screen' }, [
       el('h1', {}, ['Mi perfil']),
@@ -162,6 +225,9 @@ export function renderProfileScreen(
       sexRow,
       el('p', { className: 'muted' }, ['Color de camiseta']),
       swatches,
+      hatRow,
+      shirtRow,
+      pantsRow,
       err,
       actions,
     ]),
