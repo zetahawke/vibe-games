@@ -17,9 +17,10 @@ Suite de juegos de navegador en español para jugar en casa (PC y tablet).
 ```
 src/
   app/                 # Router / shell de la suite
+  assets/boxing/       # Catálogos de cajas + loader (armas / overlays)
   config/              # Constantes de juego
   shared/              # Utilidades compartidas (DOM, device)
-  domain/              # Lógica pura (…, animals, identify)
+  domain/              # Lógica pura (…, animals, identify, weapons)
   game/
     GameSession.ts     # Orquestación de una partida (shooter)
     match/             # Motor compartido drag-a-sombra
@@ -27,11 +28,14 @@ src/
     identify/          # Sesión Identificar
     input/             # Controles teclado/mouse/touch
     ui/
-      screens/         # Login, hub
+      screens/         # Login, hub, perfil
       overlays/        # Tienda, quiz, pausa, game over, ajustes
       hud.ts
     world/             # Three.js: mundo, player, zombies, proyectiles, entorno
   styles/
+public/
+  animals/             # Fotos y voces del juego Animales
+  boxing/              # Futuros GLB (hoy vacío; cajas viven en src/assets/boxing)
 ```
 
 Alias de imports: `@/` → `src/` (ej. `import { World } from '@/game/world'`).
