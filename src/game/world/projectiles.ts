@@ -25,7 +25,7 @@ export function spawnProjectiles(
   const kind = equipped.kind;
   const count = kind === 'shotgun' ? 10 : 1;
   const spread = (kind === 'shotgun' ? 0.12 : 0.01) * (opts?.spreadScale ?? 1);
-  const speed = kind === 'rifle' ? 55 : kind === 'shotgun' ? 42 : 48;
+  const speed = kind === 'rifle' ? 55 : kind === 'bow' ? 40 : kind === 'shotgun' ? 42 : 48;
   const damage = randomizeWeaponDamage(equipped.damage);
   const pelletDamage = kind === 'shotgun' ? Math.ceil(damage / count) : damage;
   const created: Projectile[] = [];
@@ -36,16 +36,18 @@ export function spawnProjectiles(
     dir.y += (Math.random() - 0.5) * spread * 0.5;
     dir.z += (Math.random() - 0.5) * spread;
     dir.normalize();
-    const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(kind === 'shotgun' ? 0.08 : 0.07, 6, 6),
-      new THREE.MeshStandardMaterial({
-        color: kind === 'rifle' ? 0xffe066 : 0xffcc33,
-        emissive: 0xaa7700,
-        metalness: 0.2,
-        roughness: 0.4,
-      }),
-    );
-    // Start at the muzzle; tiny forward nudge avoids clipping into the arm mesh.
+    const mat = new THREE.MeshStandardMaterial({
+      color: kind === 'bow' ? 0xc8a050 : kind === 'rifle' ? 0xffe066 : 0xffcc33,
+      emissive: kind === 'bow' ? 0x664400 : 0xaa7700,
+      metalness: 0.2,
+      roughness: 0.4,
+    });
+    const mesh = kind === 'bow'
+      ? new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.55), mat)
+      : new THREE.Mesh(new THREE.SphereGeometry(kind === 'shotgun' ? 0.08 : 0.07, 6, 6), mat);
+    if (kind === 'bow') {
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), dir);
+    }
     mesh.position.copy(origin).addScaledVector(dir, 0.25);
     scene.add(mesh);
     created.push({

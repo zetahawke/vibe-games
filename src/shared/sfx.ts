@@ -95,8 +95,13 @@ function playNoise(durationMs: number, volume: number, bandHz: number): void {
 }
 
 export function playGunshot(kind: WeaponKind): void {
-  if (kind === 'knife') {
+  if (kind === 'knife' || kind === 'sword_shield' || kind === 'longsword') {
     playTone(240, 70, 'triangle');
+    return;
+  }
+  if (kind === 'bow') {
+    playTone(480, 50, 'triangle');
+    playTone(320, 80, 'sine');
     return;
   }
   if (kind === 'pistol') {
