@@ -108,6 +108,9 @@ export function renderProfileScreen(
       sex: draft.sex,
       color: /^#[0-9a-fA-F]{6}$/.test(draft.color) ? draft.color : DEFAULT_AVATAR_COLOR,
       displayName: nameInput.value.trim() || username,
+      hatId: draft.hatId,
+      shirtId: draft.shirtId,
+      pantsId: draft.pantsId,
     };
     saveProfile(username, profile);
     const token = getStoredSessionToken();
