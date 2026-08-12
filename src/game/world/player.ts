@@ -5,12 +5,20 @@ import {
   makeSkinTexture,
 } from './textures';
 import { createBoxingModel } from '@/assets/boxing';
-import { weaponPieceIds } from '@/assets/boxing/manifest';
+import {
+  normalizeHatId,
+  normalizePantsId,
+  normalizeShirtId,
+  weaponPieceIds,
+} from '@/assets/boxing/manifest';
 import { getWeapon, resolveWeaponId, type WeaponDef, type WeaponId } from '@/domain/weapons/weapons';
 
 export interface PlayerLook {
   sex?: AvatarSex;
   color?: string;
+  hatId?: string;
+  shirtId?: string;
+  pantsId?: string;
 }
 
 function darkenHex(hex: string, amount = 0.22): string {
@@ -148,7 +156,7 @@ export function buildPlayer(
     root.add(hair);
   }
 
-  return {
+  const rig: PlayerRig = {
     root,
     leftArm,
     rightArm,
@@ -161,6 +169,31 @@ export function buildPlayer(
     shirtSlot,
     pantsSlot,
   };
+  applyOverlays(rig, look);
+  return rig;
+}
+
+function clearSlot(slot: THREE.Group): void {
+  while (slot.children.length) slot.remove(slot.children[0]!);
+}
+
+/** Attach free cosmetic overlays (invalid ids → none). */
+export function applyOverlays(rig: PlayerRig, look: PlayerLook): void {
+  clearSlot(rig.hatSlot);
+  clearSlot(rig.shirtSlot);
+  clearSlot(rig.pantsSlot);
+  const hatId = normalizeHatId(look.hatId);
+  const shirtId = normalizeShirtId(look.shirtId);
+  const pantsId = normalizePantsId(look.pantsId);
+  if (hatId !== 'none') {
+    rig.hatSlot.add(createBoxingModel({ type: 'boxes', id: hatId }));
+  }
+  if (shirtId !== 'none') {
+    rig.shirtSlot.add(createBoxingModel({ type: 'boxes', id: shirtId }));
+  }
+  if (pantsId !== 'none') {
+    rig.pantsSlot.add(createBoxingModel({ type: 'boxes', id: pantsId }));
+  }
 }
 
 export function syncWeaponModel(

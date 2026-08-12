@@ -35,6 +35,12 @@ describe('boxing registry', () => {
       expect(getBoxParts(id)?.length ?? 0, id).toBeGreaterThan(0);
     }
   });
+
+  it('overlay catalogs exist', () => {
+    for (const id of ['cap', 'jersey', 'armor', 'shinguards']) {
+      expect(getBoxParts(id)?.length ?? 0, id).toBeGreaterThan(0);
+    }
+  });
 });
 
 describe('weaponPieceIds', () => {

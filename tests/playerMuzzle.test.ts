@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { getWeapon } from '@/domain/weapons/weapons';
 import {
   animatePlayer,
+  applyOverlays,
   getMuzzleWorldPosition,
   syncWeaponModel,
   type PlayerRig,
@@ -60,6 +61,20 @@ describe('syncWeaponModel', () => {
     syncWeaponModel(rig, null, 'bow');
     expect(rig.rightHand.children.length).toBe(1);
     expect(rig.leftHand.children.length).toBe(0);
+  });
+});
+
+describe('applyOverlays', () => {
+  it('attaches jersey into shirtSlot', () => {
+    const rig = fakeRig();
+    applyOverlays(rig, { shirtId: 'jersey' });
+    expect(rig.shirtSlot.children.length).toBe(1);
+  });
+
+  it('ignores invalid overlay ids', () => {
+    const rig = fakeRig();
+    applyOverlays(rig, { hatId: 'nope' });
+    expect(rig.hatSlot.children.length).toBe(0);
   });
 });
 
