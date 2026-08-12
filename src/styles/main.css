@@ -395,7 +395,7 @@ input {
   min-height: 2rem;
 }
 
-/* Skip phase buttons — centered at bottom of HUD */
+/* Skip phase buttons — centered at bottom of HUD, above touch zones */
 .hud-skip-btn {
   position: absolute;
   bottom: 3.5rem;
@@ -413,6 +413,8 @@ input {
   pointer-events: auto;
   transition: background 0.15s;
   white-space: nowrap;
+  /* Stick/look zones cover the bottom half and are appended later in the DOM. */
+  z-index: 4;
 }
 .hud-skip-btn:hover,
 .hud-skip-btn:active {
@@ -421,6 +423,11 @@ input {
 .hud-skip-wave-btn {
   border-color: rgba(201, 162, 39, 0.6);
   color: #f5d060;
+}
+
+.hud-touch .hud-skip-btn {
+  /* Sit above the stick/look hit areas and the fire button cluster. */
+  bottom: 8.5rem;
 }
 
 /* Top-right corner buttons */
