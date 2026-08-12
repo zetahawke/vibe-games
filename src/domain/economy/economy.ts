@@ -8,9 +8,11 @@ const ENEMY_COIN_TIER: Record<EnemyType, number> = {
   yeti: 4,
 };
 
+// Not yet enabled since rewards got players too feed
 export function coinsForKill(wave: number, type: EnemyType): number {
-  const w = Math.max(1, Math.floor(wave));
-  return w + (ENEMY_COIN_TIER[type] ?? 1);
+  // const w = Math.max(1, Math.floor(wave));
+  // return w + (ENEMY_COIN_TIER[type] ?? 1);
+  return 0;
 }
 
 export function canAfford(coins: number, weaponId: WeaponId): boolean {

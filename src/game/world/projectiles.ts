@@ -11,6 +11,10 @@ export interface Projectile {
   visualOnly?: boolean;
 }
 
+const randomizeWeaponDamage = (damage: number) => {
+  return Math.floor(Math.random() * (Math.floor(damage * 1.4) - Math.floor(damage * 0.6) + 1) + Math.floor(damage * 0.6));
+};
+
 export function spawnProjectiles(
   scene: THREE.Scene,
   origin: THREE.Vector3,
@@ -19,10 +23,11 @@ export function spawnProjectiles(
   opts?: { spreadScale?: number },
 ): Projectile[] {
   const kind = equipped.kind;
-  const count = kind === 'shotgun' ? 5 : 1;
+  const count = kind === 'shotgun' ? 10 : 1;
   const spread = (kind === 'shotgun' ? 0.12 : 0.01) * (opts?.spreadScale ?? 1);
   const speed = kind === 'rifle' ? 55 : kind === 'shotgun' ? 42 : 48;
-  const pelletDamage = kind === 'shotgun' ? Math.ceil(equipped.damage / count) : equipped.damage;
+  const damage = randomizeWeaponDamage(equipped.damage);
+  const pelletDamage = kind === 'shotgun' ? Math.ceil(damage / count) : damage;
   const created: Projectile[] = [];
 
   for (let i = 0; i < count; i++) {

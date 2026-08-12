@@ -14,10 +14,14 @@ export const QUIZ_SCORE: Record<MathTopic, number> = {
   mixed:           4, // fallback; mixed always resolves to a real sub-topic
 };
 
+const randomizeScoreBetween = (min: number, max: number) => {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
+
 /** Quiz score for the resolved sub-topic of a question. */
 export function scoreForQuiz(topic: MathTopic): number {
-  return QUIZ_SCORE[topic] ?? 4;
+  return randomizeScoreBetween(QUIZ_SCORE[topic] * 0.5, QUIZ_SCORE[topic] * 1.5) ?? 4;
 }
 
 /** English quiz gives a flat score per correct answer. */
-export const ENGLISH_QUIZ_SCORE = 6;
+export const ENGLISH_QUIZ_SCORE = randomizeScoreBetween(2, 10);
