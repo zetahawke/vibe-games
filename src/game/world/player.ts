@@ -40,7 +40,10 @@ export interface PlayerRig {
   weaponSlot: THREE.Group;
   hatSlot: THREE.Group;
   shirtSlot: THREE.Group;
+  /** Root-level pants slot (unused by per-leg overlays like shinguards). */
   pantsSlot: THREE.Group;
+  leftPantsSlot: THREE.Group;
+  rightPantsSlot: THREE.Group;
 }
 
 export const PLAYER_SPEED = 10;
@@ -111,14 +114,18 @@ export function buildPlayer(
   const ll = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.85, 0.32), girl ? skin : pants);
   ll.position.y = -0.4;
   ll.castShadow = true;
-  leftLeg.add(ll);
+  const leftPantsSlot = new THREE.Group();
+  leftPantsSlot.position.set(0, -0.55, 0.08);
+  leftLeg.add(ll, leftPantsSlot);
 
   const rightLeg = new THREE.Group();
   rightLeg.position.set(0.22, 0.85, 0);
   const rl = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.85, 0.32), girl ? skin : pants);
   rl.position.y = -0.4;
   rl.castShadow = true;
-  rightLeg.add(rl);
+  const rightPantsSlot = new THREE.Group();
+  rightPantsSlot.position.set(0, -0.55, 0.08);
+  rightLeg.add(rl, rightPantsSlot);
 
   root.add(body, head, leftArm, rightArm, leftLeg, rightLeg);
 
@@ -168,6 +175,8 @@ export function buildPlayer(
     hatSlot,
     shirtSlot,
     pantsSlot,
+    leftPantsSlot,
+    rightPantsSlot,
   };
   applyOverlays(rig, look);
   return rig;
@@ -182,6 +191,8 @@ export function applyOverlays(rig: PlayerRig, look: PlayerLook): void {
   clearSlot(rig.hatSlot);
   clearSlot(rig.shirtSlot);
   clearSlot(rig.pantsSlot);
+  clearSlot(rig.leftPantsSlot);
+  clearSlot(rig.rightPantsSlot);
   const hatId = normalizeHatId(look.hatId);
   const shirtId = normalizeShirtId(look.shirtId);
   const pantsId = normalizePantsId(look.pantsId);
@@ -191,7 +202,10 @@ export function applyOverlays(rig: PlayerRig, look: PlayerLook): void {
   if (shirtId !== 'none') {
     rig.shirtSlot.add(createBoxingModel({ type: 'boxes', id: shirtId }));
   }
-  if (pantsId !== 'none') {
+  if (pantsId === 'shinguards') {
+    rig.leftPantsSlot.add(createBoxingModel({ type: 'boxes', id: 'shinguard' }));
+    rig.rightPantsSlot.add(createBoxingModel({ type: 'boxes', id: 'shinguard' }));
+  } else if (pantsId !== 'none') {
     rig.pantsSlot.add(createBoxingModel({ type: 'boxes', id: pantsId }));
   }
 }
@@ -252,27 +266,57 @@ export function animatePlayer(
   const aimForward = 1.45;
   const aimTuck = -0.25;
   const gunSlotRot = -Math.PI / 2;
+  const shieldGuardX = 0.55;
+  const shieldGuardZ = 0.45;
+  // Right −Z / left +Z tucks hands toward the midline (same sign as aimTuck).
+  const twoHandIn = 0.78;
   const grip = equipped.grip;
   const melee = equipped.isMelee;
+
+  const holdShield = () => {
+    rig.leftArm.rotation.x = shieldGuardX;
+    rig.leftArm.rotation.z = shieldGuardZ;
+    // Undo arm pitch so the shield face stays vertical, then yaw so it faces −Z.
+    rig.leftHand.rotation.set(-shieldGuardX, Math.PI, 0);
+  };
+
+  const holdLongsword = (attackT: number) => {
+    if (attackT > 0) {
+      rig.rightArm.rotation.x = 0.75 + 0.7 * attackT;
+      rig.rightArm.rotation.z = -twoHandIn;
+      rig.leftArm.rotation.x = 0.9 + 0.55 * attackT;
+      rig.leftArm.rotation.z = twoHandIn;
+    } else {
+      rig.rightArm.rotation.x = 0.75 + swing * 0.06;
+      rig.rightArm.rotation.z = -twoHandIn;
+      rig.leftArm.rotation.x = 0.95 + swing * 0.06;
+      rig.leftArm.rotation.z = twoHandIn;
+    }
+    rig.rightHand.rotation.set(0, 0, 0);
+    rig.rightHand.position.set(0, -0.8, 0);
+    rig.leftHand.rotation.set(0, 0, 0);
+    rig.leftHand.position.set(0, -0.8, 0);
+  };
 
   let nextAttack = attackAnim;
   if (nextAttack > 0) {
     nextAttack = Math.max(0, nextAttack - dt * (melee ? 4 : 6));
     const t = nextAttack;
     if (melee) {
-      rig.rightArm.rotation.x = 1.35 * t;
-      rig.rightArm.rotation.z = 0.25 * t;
-      rig.rightHand.rotation.set(0, 0, 0);
-      rig.rightHand.position.set(0, -0.8, 0);
       if (grip === 'twoHand') {
-        rig.leftArm.rotation.x = 1.2 * t;
-        rig.leftArm.rotation.z = -0.2 * t;
-      } else if (grip === 'paired') {
-        rig.leftArm.rotation.x = -0.15;
-        rig.leftArm.rotation.z = 0.2;
+        holdLongsword(t);
       } else {
-        rig.leftArm.rotation.x = grounded ? -swing * 0.7 : -0.4;
-        rig.leftArm.rotation.z = 0;
+        rig.rightArm.rotation.x = 1.35 * t;
+        rig.rightArm.rotation.z = 0.25 * t;
+        rig.rightHand.rotation.set(0, 0, 0);
+        rig.rightHand.position.set(0, -0.8, 0);
+        if (grip === 'paired') {
+          holdShield();
+        } else {
+          rig.leftArm.rotation.x = grounded ? -swing * 0.7 : -0.4;
+          rig.leftArm.rotation.z = 0;
+          rig.leftHand.rotation.set(0, 0, 0);
+        }
       }
     } else {
       rig.rightArm.rotation.x = aimForward - 0.25 * t;
@@ -286,26 +330,26 @@ export function animatePlayer(
         rig.leftArm.rotation.x = grounded ? -swing * 0.7 : -0.4;
         rig.leftArm.rotation.z = 0;
       }
+      rig.leftHand.rotation.set(0, 0, 0);
     }
   } else if (melee) {
     if (grip === 'twoHand') {
-      rig.rightArm.rotation.x = swing * 0.5;
-      rig.rightArm.rotation.z = 0.1;
-      rig.leftArm.rotation.x = -swing * 0.45;
-      rig.leftArm.rotation.z = -0.1;
+      holdLongsword(0);
     } else if (grip === 'paired') {
       rig.rightArm.rotation.x = swing * 0.7;
       rig.rightArm.rotation.z = 0;
-      rig.leftArm.rotation.x = -0.15;
-      rig.leftArm.rotation.z = 0.2;
+      rig.rightHand.rotation.set(0, 0, 0);
+      rig.rightHand.position.set(0, -0.8, 0);
+      holdShield();
     } else {
       rig.rightArm.rotation.x = swing * 0.7;
       rig.rightArm.rotation.z = 0;
+      rig.rightHand.rotation.set(0, 0, 0);
+      rig.rightHand.position.set(0, -0.8, 0);
       rig.leftArm.rotation.x = grounded ? -swing * 0.7 : -0.4;
       rig.leftArm.rotation.z = 0;
+      rig.leftHand.rotation.set(0, 0, 0);
     }
-    rig.rightHand.rotation.set(0, 0, 0);
-    rig.rightHand.position.set(0, -0.8, 0);
   } else {
     rig.rightArm.rotation.x = aimForward + swing * 0.08;
     rig.rightArm.rotation.z = aimTuck;
@@ -318,6 +362,7 @@ export function animatePlayer(
       rig.leftArm.rotation.x = grounded ? -swing * 0.7 : -0.4;
       rig.leftArm.rotation.z = 0;
     }
+    rig.leftHand.rotation.set(0, 0, 0);
   }
   return nextAttack;
 }

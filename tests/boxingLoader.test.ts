@@ -51,6 +51,26 @@ describe('weaponPieceIds', () => {
   });
 });
 
+describe('weapon facing conventions', () => {
+  it('bow curves toward −Z (target) with string on +Z (wielder)', () => {
+    const parts = getBoxParts('bow') ?? [];
+    const string = parts.find((p) => p.size[0] <= 0.02 && p.size[2] <= 0.02);
+    const limb = parts.find((p) => p.rotation != null);
+    expect(string).toBeTruthy();
+    expect(limb).toBeTruthy();
+    expect(string!.position[2]).toBeGreaterThan(0);
+    expect(limb!.position[2]).toBeLessThan(0);
+  });
+
+  it('shield face is larger than a torso plate', () => {
+    const parts = getBoxParts('shield') ?? [];
+    const face = parts.reduce((best, p) =>
+      p.size[0] * p.size[1] > best.size[0] * best.size[1] ? p : best,
+    );
+    expect(face.size[0]).toBeGreaterThanOrEqual(0.75);
+    expect(face.size[1]).toBeGreaterThanOrEqual(0.9);
+  });
+});
 describe('createBoxingModel', () => {
   it('builds a Group with meshes from boxes', () => {
     const g = createBoxingModel({ type: 'boxes', id: 'knife' });
