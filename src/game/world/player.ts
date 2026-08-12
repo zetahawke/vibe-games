@@ -212,36 +212,65 @@ export function animatePlayer(
     rig.leftLeg.rotation.x = swing;
     rig.rightLeg.rotation.x = -swing;
   } else {
-    // Light tuck while airborne
     rig.leftLeg.rotation.x = -0.35;
     rig.rightLeg.rotation.x = -0.2;
   }
-  rig.leftArm.rotation.x = grounded ? -swing * 0.7 : -0.4;
 
-  // Raise arm forward (~horizontal) and rotate the slot so the barrel
-  // points along the arm (models are built with barrel on local −Z).
   const aimForward = 1.45;
-  const aimTuck = -0.25; // right arm slightly toward center, not out to the side
+  const aimTuck = -0.25;
   const gunSlotRot = -Math.PI / 2;
+  const grip = equipped.grip;
+  const melee = equipped.isMelee;
 
   let nextAttack = attackAnim;
   if (nextAttack > 0) {
-    nextAttack = Math.max(0, nextAttack - dt * (equipped.isMelee ? 4 : 6));
+    nextAttack = Math.max(0, nextAttack - dt * (melee ? 4 : 6));
     const t = nextAttack;
-    if (equipped.isMelee) {
+    if (melee) {
       rig.rightArm.rotation.x = 1.35 * t;
       rig.rightArm.rotation.z = 0.25 * t;
       rig.rightHand.rotation.set(0, 0, 0);
       rig.rightHand.position.set(0, -0.8, 0);
+      if (grip === 'twoHand') {
+        rig.leftArm.rotation.x = 1.2 * t;
+        rig.leftArm.rotation.z = -0.2 * t;
+      } else if (grip === 'paired') {
+        rig.leftArm.rotation.x = -0.15;
+        rig.leftArm.rotation.z = 0.2;
+      } else {
+        rig.leftArm.rotation.x = grounded ? -swing * 0.7 : -0.4;
+        rig.leftArm.rotation.z = 0;
+      }
     } else {
       rig.rightArm.rotation.x = aimForward - 0.25 * t;
       rig.rightArm.rotation.z = aimTuck;
       rig.rightHand.rotation.set(gunSlotRot, 0, 0);
       rig.rightHand.position.set(0, -0.78, 0.02);
+      if (grip === 'twoHand') {
+        rig.leftArm.rotation.x = aimForward - 0.2 * t;
+        rig.leftArm.rotation.z = 0.25;
+      } else {
+        rig.leftArm.rotation.x = grounded ? -swing * 0.7 : -0.4;
+        rig.leftArm.rotation.z = 0;
+      }
     }
-  } else if (equipped.isMelee) {
-    rig.rightArm.rotation.x = swing * 0.7;
-    rig.rightArm.rotation.z = 0;
+  } else if (melee) {
+    if (grip === 'twoHand') {
+      rig.rightArm.rotation.x = swing * 0.5;
+      rig.rightArm.rotation.z = 0.1;
+      rig.leftArm.rotation.x = -swing * 0.45;
+      rig.leftArm.rotation.z = -0.1;
+    } else if (grip === 'paired') {
+      rig.rightArm.rotation.x = swing * 0.7;
+      rig.rightArm.rotation.z = 0;
+      rig.leftArm.rotation.x = -0.15;
+      rig.leftArm.rotation.z = 0.2;
+    } else {
+      rig.rightArm.rotation.x = swing * 0.7;
+      rig.rightArm.rotation.z = 0;
+      rig.leftArm.rotation.x = grounded ? -swing * 0.7 : -0.4;
+      rig.leftArm.rotation.z = 0;
+    }
     rig.rightHand.rotation.set(0, 0, 0);
     rig.rightHand.position.set(0, -0.8, 0);
   } else {
@@ -249,6 +278,13 @@ export function animatePlayer(
     rig.rightArm.rotation.z = aimTuck;
     rig.rightHand.rotation.set(gunSlotRot, 0, 0);
     rig.rightHand.position.set(0, -0.78, 0.02);
+    if (grip === 'twoHand') {
+      rig.leftArm.rotation.x = aimForward;
+      rig.leftArm.rotation.z = 0.25;
+    } else {
+      rig.leftArm.rotation.x = grounded ? -swing * 0.7 : -0.4;
+      rig.leftArm.rotation.z = 0;
+    }
   }
   return nextAttack;
 }

@@ -62,3 +62,19 @@ describe('syncWeaponModel', () => {
     expect(rig.leftHand.children.length).toBe(0);
   });
 });
+
+describe('animatePlayer grips', () => {
+  it('paired idle keeps left arm near shield tuck', () => {
+    const rig = fakeRig();
+    animatePlayer(rig, 0, 0, false, true, 0.016, getWeapon('sword_shield'));
+    expect(rig.leftArm.rotation.x).toBeLessThan(0.05);
+    expect(Math.abs(rig.leftArm.rotation.z)).toBeGreaterThan(0.1);
+  });
+
+  it('bow idle raises both arms to aim', () => {
+    const rig = fakeRig();
+    animatePlayer(rig, 0, 0, false, true, 0.016, getWeapon('bow'));
+    expect(rig.rightArm.rotation.x).toBeGreaterThan(1.0);
+    expect(rig.leftArm.rotation.x).toBeGreaterThan(1.0);
+  });
+});
