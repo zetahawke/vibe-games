@@ -88,6 +88,7 @@ export class World {
     walkPhase: number;
     weaponId: WeaponId | null;
     grounded: boolean;
+    lookKey: string;
   }>();
   private remoteTargets = new Map<string, { x: number; y: number; z: number; rotY: number }>();
   private guestMode = false;
@@ -201,13 +202,24 @@ export class World {
     look?: PlayerLook,
   ): void {
     this.remoteTargets.set(playerId, { x, y, z, rotY });
+    const lookKey = [
+      look?.sex ?? 'boy',
+      look?.color ?? '',
+      look?.hatId ?? 'none',
+      look?.shirtId ?? 'none',
+      look?.pantsId ?? 'none',
+    ].join('|');
     let avatar = this.remoteAvatars.get(playerId);
+    if (avatar && avatar.lookKey !== lookKey) {
+      this.removeRemotePlayer(playerId);
+      avatar = undefined;
+    }
     if (!avatar) {
       const rig = buildPlayer((t) => this.textures.push(t), (m) => this.materials.push(m), look);
       rig.root.position.set(x, y, z);
       rig.root.rotation.y = rotY;
       this.scene.add(rig.root);
-      avatar = { rig, walkPhase: 0, weaponId: null, grounded };
+      avatar = { rig, walkPhase: 0, weaponId: null, grounded, lookKey };
       this.remoteAvatars.set(playerId, avatar);
     }
     avatar.grounded = grounded;

@@ -13,6 +13,9 @@ export interface PeerState {
   grounded: boolean;
   sex: 'boy' | 'girl';
   color: string;
+  hatId: string;
+  shirtId: string;
+  pantsId: string;
   score: number;
   lives: number;
   coins: number;
@@ -50,6 +53,9 @@ export function parsePeer(raw: unknown, fallbackId = ''): PeerState | null {
     grounded: r.grounded !== false,
     sex: r.sex === 'girl' ? 'girl' : 'boy',
     color: typeof r.color === 'string' ? r.color : '#2f6fed',
+    hatId: typeof r.hatId === 'string' ? r.hatId : 'none',
+    shirtId: typeof r.shirtId === 'string' ? r.shirtId : 'none',
+    pantsId: typeof r.pantsId === 'string' ? r.pantsId : 'none',
     score: Number(r.score) || 0,
     lives: Number(r.lives) || 0,
     coins: Number(r.coins) || 0,

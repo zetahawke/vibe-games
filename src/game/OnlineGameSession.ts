@@ -121,6 +121,9 @@ export class OnlineGameSession extends GameSession {
         grounded: true,
         sex: look.sex,
         color: look.color,
+        hatId: look.hatId,
+        shirtId: look.shirtId,
+        pantsId: look.pantsId,
         score: 0, lives: 3, coins: 0,
       };
       this.store.applyPeer(hello);
@@ -299,7 +302,13 @@ export class OnlineGameSession extends GameSession {
       }
       this.world.upsertRemotePlayer(
         p.playerId, p.x, p.z, p.rotY, p.weapon, p.y, p.grounded,
-        { sex: p.sex, color: p.color },
+        {
+          sex: p.sex,
+          color: p.color,
+          hatId: p.hatId,
+          shirtId: p.shirtId,
+          pantsId: p.pantsId,
+        },
       );
     }
   }
@@ -390,6 +399,9 @@ export class OnlineGameSession extends GameSession {
         grounded: this.world?.playerGrounded ?? true,
         sex:      look.sex,
         color:    look.color,
+        hatId:    look.hatId,
+        shirtId:  look.shirtId,
+        pantsId:  look.pantsId,
         score:    this.save?.score ?? 0,
         lives:    this.waves?.lives ?? 3,
         coins:    this.save?.coins ?? 0,

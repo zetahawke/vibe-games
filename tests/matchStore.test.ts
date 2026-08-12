@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { createMatchStore, type PeerState } from '@/domain/online/matchStore';
+import { createMatchStore, parsePeer, type PeerState } from '@/domain/online/matchStore';
 
 function peer(over: Partial<PeerState> & Pick<PeerState, 'playerId' | 'name'>): PeerState {
   return {
     is_host: false, started: false, x: 0, y: 0, z: 8, rotY: 0,
     weapon: 'knife', grounded: true, sex: 'boy', color: '#2f6fed',
+    hatId: 'none', shirtId: 'none', pantsId: 'none',
     score: 0, lives: 3, coins: 0, ...over,
   };
 }
@@ -37,5 +38,18 @@ describe('createMatchStore', () => {
     expect(first.map((h) => h.seq)).toEqual([1, 2]);
     const again = s.takeHitsForHost('g', [{ seq: 2, netId: 9, dmg: 10 }, { seq: 3, netId: 8, dmg: 5 }]);
     expect(again.map((h) => h.seq)).toEqual([3]);
+  });
+
+  it('parses overlay fields on peer', () => {
+    const p = parsePeer({
+      playerId: 'a', name: 'x', hatId: 'cap', shirtId: 'jersey', pantsId: 'shinguards',
+    });
+    expect(p?.hatId).toBe('cap');
+    expect(p?.shirtId).toBe('jersey');
+  });
+
+  it('defaults missing overlays to none', () => {
+    const p = parsePeer({ playerId: 'a', name: 'x' });
+    expect(p?.hatId).toBe('none');
   });
 });
