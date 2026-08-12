@@ -5,7 +5,16 @@ import { migrateGrade } from '../_grade.js';
 type Req = { method?: string; headers: Record<string, string | string[] | undefined>; body: Record<string, unknown>; query: Record<string, string | string[] | undefined> };
 type Res = { status: (n: number) => Res; json: (b: unknown) => void; end: () => void };
 
-const PROFILE_COLS = 'id, username, grade, avatar_sex, avatar_color, display_name';
+const PROFILE_COLS = 'id, username, grade, avatar_sex, avatar_color, display_name, avatar_hat, avatar_shirt, avatar_pants';
+
+const HAT = new Set(['none', 'cap']);
+const SHIRT = new Set(['none', 'jersey', 'armor']);
+const PANTS = new Set(['none', 'shinguards']);
+
+function normOverlay(raw: unknown, allowed: Set<string>): string {
+  const s = typeof raw === 'string' ? raw : 'none';
+  return allowed.has(s) ? s : 'none';
+}
 
 function tokenOf(req: Req): string {
   const q = req.query['sessionToken'];
@@ -20,12 +29,18 @@ function serialize(row: {
   avatar_color?: string;
   display_name?: string | null;
   username?: string;
+  avatar_hat?: string;
+  avatar_shirt?: string;
+  avatar_pants?: string;
 }) {
   return {
     grade: migrateGrade(row.grade),
     avatar_sex: row.avatar_sex === 'girl' ? 'girl' : 'boy',
     avatar_color: typeof row.avatar_color === 'string' ? row.avatar_color : '#2f6fed',
     display_name: row.display_name || row.username || '',
+    avatar_hat: normOverlay(row.avatar_hat, HAT),
+    avatar_shirt: normOverlay(row.avatar_shirt, SHIRT),
+    avatar_pants: normOverlay(row.avatar_pants, PANTS),
   };
 }
 
@@ -63,6 +78,9 @@ export default async function handler(req: Req, res: Res): Promise<void> {
   const displayName = typeof req.body.displayName === 'string'
     ? req.body.displayName.trim().slice(0, 20)
     : (typeof req.body.display_name === 'string' ? req.body.display_name.trim().slice(0, 20) : player.display_name);
+  const hat = normOverlay(req.body.hatId ?? req.body.avatar_hat ?? player.avatar_hat, HAT);
+  const shirt = normOverlay(req.body.shirtId ?? req.body.avatar_shirt ?? player.avatar_shirt, SHIRT);
+  const pants = normOverlay(req.body.pantsId ?? req.body.avatar_pants ?? player.avatar_pants, PANTS);
 
   const { data: updated, error: upErr } = await getAdmin()
     .from('players')
@@ -71,6 +89,9 @@ export default async function handler(req: Req, res: Res): Promise<void> {
       avatar_sex: sex,
       avatar_color: color,
       display_name: displayName || player.username,
+      avatar_hat: hat,
+      avatar_shirt: shirt,
+      avatar_pants: pants,
       last_seen: new Date().toISOString(),
     })
     .eq('id', player.id)

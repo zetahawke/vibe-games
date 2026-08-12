@@ -21,7 +21,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
 
   const { data, error } = await getAdmin()
     .from('players')
-    .select('id, grade, avatar_sex, avatar_color, display_name')
+    .select('id, grade, avatar_sex, avatar_color, display_name, avatar_hat, avatar_shirt, avatar_pants')
     .eq('username', username.trim())
     .eq('pin_hash', hashPin(pin.trim()))
     .single();

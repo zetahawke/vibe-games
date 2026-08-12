@@ -114,6 +114,9 @@ type ProfileApi = {
   avatar_sex?: string;
   avatar_color?: string;
   display_name?: string;
+  avatar_hat?: string;
+  avatar_shirt?: string;
+  avatar_pants?: string;
 };
 
 function maybeSaveRemoteProfile(username: string, json: ProfileApi): void {
