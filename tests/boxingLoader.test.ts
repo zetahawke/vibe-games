@@ -2,12 +2,28 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { getBoxParts, listBoxIds } from '@/assets/boxing/registry';
 import { createBoxingModel, createBoxingModelWithMaterial } from '@/assets/boxing/loader';
-import '@/assets/boxing/boxes/weapons/knife';
+import '@/assets/boxing';
+
+const V1_WEAPON_IDS = [
+  'knife',
+  'pistol',
+  'pistol_upgraded',
+  'shotgun',
+  'shotgun_upgraded',
+  'rifle',
+  'rifle_upgraded',
+] as const;
 
 describe('boxing registry', () => {
   it('registers knife parts', () => {
     expect(getBoxParts('knife')?.length).toBeGreaterThan(0);
     expect(listBoxIds()).toContain('knife');
+  });
+
+  it('every v1 weapon id has box parts', () => {
+    for (const id of V1_WEAPON_IDS) {
+      expect(getBoxParts(id)?.length ?? 0, id).toBeGreaterThan(0);
+    }
   });
 });
 
