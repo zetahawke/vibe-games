@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { getBoxParts, listBoxIds } from '@/assets/boxing/registry';
 import { createBoxingModel, createBoxingModelWithMaterial } from '@/assets/boxing/loader';
+import { weaponPieceIds } from '@/assets/boxing/manifest';
 import '@/assets/boxing';
 
 const V1_WEAPON_IDS = [
@@ -24,6 +25,23 @@ describe('boxing registry', () => {
     for (const id of V1_WEAPON_IDS) {
       expect(getBoxParts(id)?.length ?? 0, id).toBeGreaterThan(0);
     }
+  });
+
+  it('registers new arsenal pieces', () => {
+    for (const id of [
+      'sword', 'sword_upgraded', 'shield', 'shield_upgraded',
+      'longsword', 'longsword_upgraded', 'bow', 'bow_upgraded',
+    ]) {
+      expect(getBoxParts(id)?.length ?? 0, id).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('weaponPieceIds', () => {
+  it('pairs sword_shield and maps twoHand pieces', () => {
+    expect(weaponPieceIds('sword_shield')).toEqual({ right: 'sword', left: 'shield' });
+    expect(weaponPieceIds('bow')).toEqual({ right: 'bow' });
+    expect(weaponPieceIds('pistol')).toEqual({ right: 'pistol' });
   });
 });
 
