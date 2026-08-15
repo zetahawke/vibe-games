@@ -17,12 +17,13 @@ function normOverlay(raw: unknown, allowed: Set<string>): string {
   return allowed.has(s) ? s : 'none';
 }
 
-function normOwned(raw: unknown, allowed: Set<string>, legacy: string[]): string[] {
+function normOwned(raw: unknown, allowed: Set<string>): string[] {
+  const revoked = new Set(['cap', 'jersey', 'armor', 'shinguards']);
   const base = Array.isArray(raw) ? raw.map(String) : [];
   const out: string[] = [];
   const seen = new Set<string>();
-  for (const id of [...legacy, ...base]) {
-    if (!allowed.has(id) || seen.has(id)) continue;
+  for (const id of base) {
+    if (!allowed.has(id) || seen.has(id) || revoked.has(id)) continue;
     seen.add(id);
     out.push(id);
   }
@@ -35,10 +36,10 @@ function inventoryOf(row: { cosmetic_inventory?: unknown; ownedHats?: unknown; o
     ? row.cosmetic_inventory as Record<string, unknown>
     : {};
   return {
-    hats: normOwned(row.ownedHats ?? inv.hats, HAT, ['none', 'cap']),
-    shirts: normOwned(row.ownedShirts ?? inv.shirts, SHIRT, ['none', 'jersey', 'armor']),
-    pants: normOwned(row.ownedPants ?? inv.pants, PANTS, ['none', 'shinguards']),
-    hairs: normOwned(row.ownedHairs ?? inv.hairs, HAIR, ['none']),
+    hats: normOwned(row.ownedHats ?? inv.hats, HAT),
+    shirts: normOwned(row.ownedShirts ?? inv.shirts, SHIRT),
+    pants: normOwned(row.ownedPants ?? inv.pants, PANTS),
+    hairs: normOwned(row.ownedHairs ?? inv.hairs, HAIR),
   };
 }
 

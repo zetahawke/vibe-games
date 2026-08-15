@@ -12,6 +12,7 @@ import {
   profileFromApi,
   saveProfile,
   tryBuyCosmetic,
+  type PlayerProfile,
 } from '@/domain/profile/profile';
 
 describe('migrateGrade', () => {
@@ -38,37 +39,41 @@ describe('chile grades', () => {
 describe('local profile', () => {
   beforeEach(() => localStorage.clear());
 
-  it('defaults overlays to none and gems to 0 with legacy owned', () => {
+  it('defaults overlays to none and gems to 0 without preowned cosmetics', () => {
     const d = defaultProfile();
     expect(d.hatId).toBe('none');
     expect(d.hairId).toBe('none');
     expect(d.gems).toBe(0);
-    expect(d.ownedHats).toEqual(expect.arrayContaining(['none', 'cap']));
-    expect(d.ownedShirts).toEqual(expect.arrayContaining(['none', 'jersey', 'armor']));
+    expect(d.ownedHats).toEqual(['none']);
+    expect(d.ownedShirts).toEqual(['none']);
+    expect(d.ownedPants).toEqual(['none']);
   });
 
-  it('roundtrips grade sex color and overlays', () => {
-    const p = {
+  it('roundtrips paid cosmetics', () => {
+    const p: PlayerProfile = {
       ...defaultProfile(),
-      sex: 'girl' as const,
+      sex: 'girl',
       color: '#c94c4c',
       displayName: 'hija',
-      hatId: 'cap' as const,
-      shirtId: 'jersey' as const,
-      pantsId: 'shinguards' as const,
+      ownedHats: ['none', 'beanie'],
+      ownedShirts: ['none', 'jersey_argentina'],
+      ownedPants: ['none', 'shorts_football'],
+      hatId: 'beanie',
+      shirtId: 'jersey_argentina',
+      pantsId: 'shorts_football',
     };
     saveProfile('hija', p);
     expect(loadProfile('hija')).toEqual(p);
   });
 
-  it('old saves without overlays become none and seed legacy owned', () => {
+  it('old saves without overlays become none with empty inventory', () => {
     localStorage.setItem(`${STORAGE_PREFIX}profile:old`, JSON.stringify({
       grade: '2do', sex: 'boy', color: '#2f6fed', displayName: 'old',
     }));
     const loaded = loadProfile('old');
     expect(loaded?.shirtId).toBe('none');
     expect(loaded?.gems).toBe(0);
-    expect(loaded?.ownedHats).toEqual(expect.arrayContaining(['cap']));
+    expect(loaded?.ownedHats).toEqual(['none']);
     expect(loaded?.hairId).toBe('none');
   });
 
@@ -77,7 +82,7 @@ describe('local profile', () => {
     expect(normalizeShirtId('armor')).toBe('armor');
   });
 
-  it('profileFromApi reads avatar overlay columns', () => {
+  it('profileFromApi unequips complimentary cosmetics without ownership', () => {
     const p = profileFromApi({
       grade: '2do',
       avatar_sex: 'girl',
@@ -87,8 +92,8 @@ describe('local profile', () => {
       avatar_shirt: 'armor',
       avatar_pants: 'nope',
     });
-    expect(p.hatId).toBe('cap');
-    expect(p.shirtId).toBe('armor');
+    expect(p.hatId).toBe('none');
+    expect(p.shirtId).toBe('none');
     expect(p.pantsId).toBe('none');
   });
 
@@ -96,9 +101,23 @@ describe('local profile', () => {
     const p = normalizeProfile({
       ...defaultProfile(),
       hatId: 'beanie',
-      ownedHats: ['none', 'cap'],
+      ownedHats: ['none'],
     });
     expect(p.hatId).toBe('none');
+  });
+
+  it('revokes previously free complimentary cosmetics from inventory', () => {
+    const p = normalizeProfile({
+      ...defaultProfile(),
+      ownedHats: ['none', 'cap', 'beanie'],
+      ownedShirts: ['none', 'jersey', 'armor'],
+      hatId: 'cap',
+      shirtId: 'jersey',
+    });
+    expect(p.ownedHats).toEqual(['none', 'beanie']);
+    expect(p.ownedShirts).toEqual(['none']);
+    expect(p.hatId).toBe('none');
+    expect(p.shirtId).toBe('none');
   });
 
   it('tryBuyCosmetic spends gems and unlocks', () => {
@@ -114,6 +133,13 @@ describe('local profile', () => {
   it('tryBuyCosmetic fails without funds', () => {
     const r = tryBuyCosmetic(defaultProfile(), 'shirt', 'jersey_argentina');
     expect(r).toEqual({ ok: false, reason: 'funds' });
+  });
+
+  it('cap jersey armor and shinguards cost gems', () => {
+    expect(tryBuyCosmetic({ ...defaultProfile(), gems: 10 }, 'hat', 'cap').ok).toBe(true);
+    expect(tryBuyCosmetic({ ...defaultProfile(), gems: 10 }, 'shirt', 'jersey').ok).toBe(true);
+    expect(tryBuyCosmetic({ ...defaultProfile(), gems: 20 }, 'shirt', 'armor').ok).toBe(true);
+    expect(tryBuyCosmetic({ ...defaultProfile(), gems: 10 }, 'pants', 'shinguards').ok).toBe(true);
   });
 
   it('returns null when never saved', () => {

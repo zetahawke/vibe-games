@@ -1,9 +1,10 @@
 import { STORAGE_PREFIX } from '@/config/gameConfig';
 import {
-  LEGACY_OWNED_HAIRS,
-  LEGACY_OWNED_HATS,
-  LEGACY_OWNED_PANTS,
-  LEGACY_OWNED_SHIRTS,
+  REVOKED_COMPLIMENTARY,
+  STARTER_OWNED_HAIRS,
+  STARTER_OWNED_HATS,
+  STARTER_OWNED_PANTS,
+  STARTER_OWNED_SHIRTS,
   cosmeticPrice,
   type CosmeticSlot,
 } from '@/domain/cosmetics/catalog';
@@ -106,10 +107,10 @@ export function defaultProfile(displayName = ''): PlayerProfile {
     pantsId: 'none',
     hairId: 'none',
     gems: 0,
-    ownedHats: [...LEGACY_OWNED_HATS],
-    ownedShirts: [...LEGACY_OWNED_SHIRTS],
-    ownedPants: [...LEGACY_OWNED_PANTS],
-    ownedHairs: [...LEGACY_OWNED_HAIRS],
+    ownedHats: [...STARTER_OWNED_HATS],
+    ownedShirts: [...STARTER_OWNED_SHIRTS],
+    ownedPants: [...STARTER_OWNED_PANTS],
+    ownedHairs: [...STARTER_OWNED_HAIRS],
   };
 }
 
@@ -123,11 +124,12 @@ function normalizeColor(c: string): string {
 
 function ownedList<T extends string>(
   raw: unknown,
-  legacy: readonly T[],
+  starter: readonly T[],
   normalize: (raw: unknown) => T,
 ): T[] {
-  if (!Array.isArray(raw)) return uniqueOwned(legacy, normalize);
-  return uniqueOwned([...legacy, ...(raw as T[])], normalize);
+  const source = Array.isArray(raw) ? (raw as T[]) : [...starter];
+  const scrubbed = source.filter((id) => !REVOKED_COMPLIMENTARY.has(String(id)));
+  return uniqueOwned(scrubbed.length ? scrubbed : starter, normalize);
 }
 
 export function normalizeProfile(p: Partial<PlayerProfile> & {
@@ -139,10 +141,10 @@ export function normalizeProfile(p: Partial<PlayerProfile> & {
   };
 }): PlayerProfile {
   const inv = p.cosmetic_inventory;
-  const ownedHats = ownedList(p.ownedHats ?? inv?.hats, LEGACY_OWNED_HATS, normalizeHatId);
-  const ownedShirts = ownedList(p.ownedShirts ?? inv?.shirts, LEGACY_OWNED_SHIRTS, normalizeShirtId);
-  const ownedPants = ownedList(p.ownedPants ?? inv?.pants, LEGACY_OWNED_PANTS, normalizePantsId);
-  const ownedHairs = ownedList(p.ownedHairs ?? inv?.hairs, LEGACY_OWNED_HAIRS, normalizeHairId);
+  const ownedHats = ownedList(p.ownedHats ?? inv?.hats, STARTER_OWNED_HATS, normalizeHatId);
+  const ownedShirts = ownedList(p.ownedShirts ?? inv?.shirts, STARTER_OWNED_SHIRTS, normalizeShirtId);
+  const ownedPants = ownedList(p.ownedPants ?? inv?.pants, STARTER_OWNED_PANTS, normalizePantsId);
+  const ownedHairs = ownedList(p.ownedHairs ?? inv?.hairs, STARTER_OWNED_HAIRS, normalizeHairId);
 
   let hatId = normalizeHatId(p.hatId);
   let shirtId = normalizeShirtId(p.shirtId);

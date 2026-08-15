@@ -1,5 +1,6 @@
 export type CosmeticSlot = 'hat' | 'shirt' | 'pants' | 'hair';
 
+/** All equippable cosmetics cost gems; only `none` is free / starter. */
 export const COSMETIC_PRICES: Record<string, number> = {
   cap: 10,
   beanie: 10,
@@ -11,10 +12,28 @@ export const COSMETIC_PRICES: Record<string, number> = {
   hair_spiky: 10,
 };
 
-export const LEGACY_OWNED_HATS = ['none', 'cap'] as const;
-export const LEGACY_OWNED_SHIRTS = ['none', 'jersey', 'armor'] as const;
-export const LEGACY_OWNED_PANTS = ['none', 'shinguards'] as const;
-export const LEGACY_OWNED_HAIRS = ['none'] as const;
+/** Starter inventory — nothing pre-owned except empty slot. */
+export const STARTER_OWNED_HATS = ['none'] as const;
+export const STARTER_OWNED_SHIRTS = ['none'] as const;
+export const STARTER_OWNED_PANTS = ['none'] as const;
+export const STARTER_OWNED_HAIRS = ['none'] as const;
+
+/** @deprecated use STARTER_OWNED_* */
+export const LEGACY_OWNED_HATS = STARTER_OWNED_HATS;
+export const LEGACY_OWNED_SHIRTS = STARTER_OWNED_SHIRTS;
+export const LEGACY_OWNED_PANTS = STARTER_OWNED_PANTS;
+export const LEGACY_OWNED_HAIRS = STARTER_OWNED_HAIRS;
+
+/**
+ * Items previously granted free; stripped on load so players must buy them.
+ * Paid-only cosmetics (beanie, jersey_argentina, …) are kept if already owned.
+ */
+export const REVOKED_COMPLIMENTARY = new Set([
+  'cap',
+  'jersey',
+  'armor',
+  'shinguards',
+]);
 
 export const COSMETIC_LABELS: Record<string, string> = {
   none: 'Ninguno',
