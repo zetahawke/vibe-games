@@ -40,11 +40,13 @@ describe('weapons', () => {
   it('adds kunai and shuriken with upgraded variants', () => {
     expect(WEAPONS.kunai.price).toBe(25);
     expect(WEAPONS.kunai.damage).toBe(WEAPONS.knife.damage * 2);
-    expect(WEAPONS.kunai.isMelee).toBe(true);
+    expect(WEAPONS.kunai.isMelee).toBe(false);
+    expect(WEAPONS.kunai.range).toBe(28);
     expect(WEAPONS.kunai.kind).toBe('kunai');
     expect(WEAPONS.kunai_upgraded.price).toBe(50);
     expect(WEAPONS.kunai_upgraded.damage).toBe(WEAPONS.knife.damage * 6);
-    expect(WEAPONS.kunai_upgraded.isMelee).toBe(true);
+    expect(WEAPONS.kunai_upgraded.isMelee).toBe(false);
+    expect(WEAPONS.kunai_upgraded.range).toBe(30);
 
     expect(WEAPONS.shuriken.price).toBe(WEAPONS.pistol.price);
     expect(WEAPONS.shuriken.damage).toBe(WEAPONS.pistol.damage);

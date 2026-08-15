@@ -13,6 +13,8 @@ export interface Projectile {
 
 export const BOW_ARROW_LENGTH = 1.1;
 export const SHURIKEN_PROJ_SIZE = { x: 0.22, y: 0.05, z: 0.22 } as const;
+export const KUNAI_PROJ_SIZE = { x: 0.06, y: 0.06, z: 0.45 } as const;
+export const KUNAI_PROJ_SPEED = 36;
 
 const randomizeWeaponDamage = (damage: number) => {
   return Math.floor(Math.random() * (Math.floor(damage * 1.4) - Math.floor(damage * 0.6) + 1) + Math.floor(damage * 0.6));
@@ -28,7 +30,12 @@ export function spawnProjectiles(
   const kind = equipped.kind;
   const count = kind === 'shotgun' ? 10 : 1;
   const spread = (kind === 'shotgun' ? 0.12 : 0.01) * (opts?.spreadScale ?? 1);
-  const speed = kind === 'rifle' ? 55 : kind === 'bow' ? 40 : kind === 'shotgun' ? 42 : 48;
+  const speed =
+    kind === 'rifle' ? 55
+    : kind === 'bow' ? 40
+    : kind === 'kunai' ? KUNAI_PROJ_SPEED
+    : kind === 'shotgun' ? 42
+    : 48;
   const damage = randomizeWeaponDamage(equipped.damage);
   const pelletDamage = kind === 'shotgun' ? Math.ceil(damage / count) : damage;
   const created: Projectile[] = [];
@@ -49,6 +56,18 @@ export function spawnProjectiles(
         roughness: 0.4,
       });
       mesh = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, BOW_ARROW_LENGTH), mat);
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), dir);
+    } else if (kind === 'kunai') {
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x888888,
+        emissive: 0x222222,
+        metalness: 0.75,
+        roughness: 0.35,
+      });
+      mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(KUNAI_PROJ_SIZE.x, KUNAI_PROJ_SIZE.y, KUNAI_PROJ_SIZE.z),
+        mat,
+      );
       mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), dir);
     } else if (kind === 'shuriken') {
       const mat = new THREE.MeshStandardMaterial({

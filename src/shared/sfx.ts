@@ -95,11 +95,11 @@ function playNoise(durationMs: number, volume: number, bandHz: number): void {
 }
 
 export function playGunshot(kind: WeaponKind): void {
-  if (kind === 'knife' || kind === 'kunai' || kind === 'sword_shield' || kind === 'longsword') {
+  if (kind === 'knife' || kind === 'sword_shield' || kind === 'longsword') {
     playTone(240, 70, 'triangle');
     return;
   }
-  if (kind === 'shuriken') {
+  if (kind === 'kunai' || kind === 'shuriken') {
     playTone(520, 40, 'sine');
     playTone(280, 70, 'triangle');
     return;
