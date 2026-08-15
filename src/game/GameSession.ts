@@ -25,9 +25,8 @@ import { scoreForKill } from '@/domain/score';
 import { Hud } from '@/game/ui/hud';
 import { renderGameOverOverlay } from '@/game/ui/overlays/gameOverOverlay';
 import { renderPauseOverlay } from '@/game/ui/overlays/pauseOverlay';
-import { renderQuizOverlay } from '@/game/ui/overlays/quizOverlay';
+import { renderContentQuizOverlay } from '@/game/ui/overlays/contentQuizOverlay';
 import { renderShopOverlay } from '@/game/ui/overlays/shopOverlay';
-import { renderEnglishQuizOverlay } from '@/game/ui/overlays/englishQuizOverlay';
 import { clear, el } from '@/shared/dom';
 import { onFortBreached, tickWave, WaveState } from '@/domain/waves/waveLogic';
 import { getWeapon } from '@/domain/weapons/weapons';
@@ -238,65 +237,32 @@ export class GameSession {
     this.shopOverlay?.remove();
     this.shopOverlay = null;
 
-    if (this.save.subject === 'english') {
-      this.quizOverlay = renderEnglishQuizOverlay(
-        this.wrap,
-        this.save.englishGrade,
-        (coins, score) => {
-          const scaledCoins = quizCoinsForWave(coins, this.waves.wave);
-          this.save.coins = addCoins(this.save.coins, scaledCoins);
-          this.save.quizStreak += 1;
-          const bonus = streakBonusCoins(this.save.coins, this.save.quizStreak);
-          if (bonus > 0) {
-            this.save.coins = addCoins(this.save.coins, bonus);
-            this.showBanner(`🎉 ¡Racha! +${bonus} monedas`);
-          }
-          this.save.score += score;
-          this.persist();
-          this.quizOverlay?.remove();
-          this.quizOverlay = null;
-          this.requestShop();
-        },
-        () => {
-          this.save.quizStreak = 0;
-          this.persist();
-          this.quizOverlay?.remove();
-          this.quizOverlay = null;
-          this.requestShop();
-        },
-        (correct) => {
-          if (correct) this.awardGemFromStreak('quiz');
-          else this.quizGemStreak = resetStreak();
-        },
-      );
-    } else {
-      this.quizOverlay = renderQuizOverlay(
-        this.wrap,
-        this.save.mathTopic,
-        this.save.quizDifficulty,
-        (coins, score, finalDifficulty) => {
-          const scaledCoins = quizCoinsForWave(coins, this.waves.wave);
-          this.save.coins = addCoins(this.save.coins, scaledCoins);
-          this.save.quizStreak += 1;
-          const bonus = streakBonusCoins(this.save.coins, this.save.quizStreak);
-          if (bonus > 0) {
-            this.save.coins = addCoins(this.save.coins, bonus);
-            this.showBanner(`🎉 ¡Racha! +${bonus} monedas`);
-          }
-          this.save.score += score;
-          this.save.quizDifficulty = finalDifficulty;
-          this.persist();
-          this.quizOverlay?.remove();
-          this.quizOverlay = null;
-          this.requestShop();
-        },
-        this.save.grade,
-        (correct) => {
-          if (correct) this.awardGemFromStreak('quiz');
-          else this.quizGemStreak = resetStreak();
-        },
-      );
-    }
+    this.quizOverlay = renderContentQuizOverlay(
+      this.wrap,
+      'Chile',
+      this.save.grade,
+      this.save.quizDifficulty,
+      (coins, score, finalDifficulty) => {
+        const scaledCoins = quizCoinsForWave(coins, this.waves.wave);
+        this.save.coins = addCoins(this.save.coins, scaledCoins);
+        this.save.quizStreak += 1;
+        const bonus = streakBonusCoins(this.save.coins, this.save.quizStreak);
+        if (bonus > 0) {
+          this.save.coins = addCoins(this.save.coins, bonus);
+          this.showBanner(`🎉 ¡Racha! +${bonus} monedas`);
+        }
+        this.save.score += score;
+        this.save.quizDifficulty = finalDifficulty;
+        this.persist();
+        this.quizOverlay?.remove();
+        this.quizOverlay = null;
+        this.requestShop();
+      },
+      (correct) => {
+        if (correct) this.awardGemFromStreak('quiz');
+        else this.quizGemStreak = resetStreak();
+      },
+    );
   }
 
   /** Skip the rest phase immediately (no cost). Returns false if ignored. */
