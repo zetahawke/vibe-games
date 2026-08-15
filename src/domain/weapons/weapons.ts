@@ -2,15 +2,19 @@ import type { Grip } from '@/assets/boxing/schema';
 
 export type WeaponKind =
   | 'knife'
+  | 'kunai'
   | 'pistol'
   | 'shotgun'
   | 'rifle'
   | 'bow'
   | 'sword_shield'
-  | 'longsword';
+  | 'longsword'
+  | 'shuriken';
 
 export type WeaponId =
   | 'knife'
+  | 'kunai'
+  | 'kunai_upgraded'
   | 'pistol'
   | 'pistol_upgraded'
   | 'shotgun'
@@ -22,7 +26,9 @@ export type WeaponId =
   | 'longsword'
   | 'longsword_upgraded'
   | 'bow'
-  | 'bow_upgraded';
+  | 'bow_upgraded'
+  | 'shuriken'
+  | 'shuriken_upgraded';
 
 export interface WeaponDef {
   id: WeaponId;
@@ -39,12 +45,16 @@ export interface WeaponDef {
 /** Shop / inventory display order. */
 export const WEAPON_IDS: WeaponId[] = [
   'knife',
+  'kunai',
+  'kunai_upgraded',
   'sword_shield',
   'sword_shield_upgraded',
   'longsword',
   'longsword_upgraded',
   'pistol',
   'pistol_upgraded',
+  'shuriken',
+  'shuriken_upgraded',
   'bow',
   'bow_upgraded',
   'shotgun',
@@ -63,6 +73,28 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     damage: 10,
     cooldownMs: 500,
     range: 2.5,
+    isMelee: true,
+  },
+  kunai: {
+    id: 'kunai',
+    kind: 'kunai',
+    grip: 'right',
+    name: 'Kunai',
+    price: 25,
+    damage: 20,
+    cooldownMs: 500,
+    range: 2.5,
+    isMelee: true,
+  },
+  kunai_upgraded: {
+    id: 'kunai_upgraded',
+    kind: 'kunai',
+    grip: 'right',
+    name: 'Kunai +',
+    price: 50,
+    damage: 60,
+    cooldownMs: 450,
+    range: 2.7,
     isMelee: true,
   },
   sword_shield: {
@@ -125,6 +157,28 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     kind: 'pistol',
     grip: 'right',
     name: 'Pistola mejorada',
+    price: 45,
+    damage: 55,
+    cooldownMs: 320,
+    range: 42,
+    isMelee: false,
+  },
+  shuriken: {
+    id: 'shuriken',
+    kind: 'shuriken',
+    grip: 'right',
+    name: 'Shuriken',
+    price: 15,
+    damage: 30,
+    cooldownMs: 350,
+    range: 40,
+    isMelee: false,
+  },
+  shuriken_upgraded: {
+    id: 'shuriken_upgraded',
+    kind: 'shuriken',
+    grip: 'right',
+    name: 'Shuriken +',
     price: 45,
     damage: 55,
     cooldownMs: 320,
@@ -220,6 +274,10 @@ const UPGRADE_SFX_ORDER: WeaponId[] = [
   'longsword_upgraded',
   'bow',
   'bow_upgraded',
+  'kunai',
+  'kunai_upgraded',
+  'shuriken',
+  'shuriken_upgraded',
 ];
 
 /** Four short jingles recycled across shop weapons. */

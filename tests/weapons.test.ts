@@ -31,6 +31,32 @@ describe('weapons', () => {
     expect(WEAPONS.shotgun_upgraded.damage).toBeGreaterThan(WEAPONS.shotgun.damage);
     expect(WEAPONS.rifle_upgraded.price).toBeGreaterThan(WEAPONS.rifle.price);
     expect(WEAPONS.rifle_upgraded.damage).toBeGreaterThan(WEAPONS.rifle.damage);
+    expect(WEAPONS.kunai_upgraded.price).toBeGreaterThan(WEAPONS.kunai.price);
+    expect(WEAPONS.kunai_upgraded.damage).toBeGreaterThan(WEAPONS.kunai.damage);
+    expect(WEAPONS.shuriken_upgraded.price).toBeGreaterThan(WEAPONS.shuriken.price);
+    expect(WEAPONS.shuriken_upgraded.damage).toBeGreaterThan(WEAPONS.shuriken.damage);
+  });
+
+  it('adds kunai and shuriken with upgraded variants', () => {
+    expect(WEAPONS.kunai.price).toBe(25);
+    expect(WEAPONS.kunai.damage).toBe(WEAPONS.knife.damage * 2);
+    expect(WEAPONS.kunai.isMelee).toBe(true);
+    expect(WEAPONS.kunai.kind).toBe('kunai');
+    expect(WEAPONS.kunai_upgraded.price).toBe(50);
+    expect(WEAPONS.kunai_upgraded.damage).toBe(WEAPONS.knife.damage * 6);
+    expect(WEAPONS.kunai_upgraded.isMelee).toBe(true);
+
+    expect(WEAPONS.shuriken.price).toBe(WEAPONS.pistol.price);
+    expect(WEAPONS.shuriken.damage).toBe(WEAPONS.pistol.damage);
+    expect(WEAPONS.shuriken.isMelee).toBe(false);
+    expect(WEAPONS.shuriken.kind).toBe('shuriken');
+    expect(WEAPONS.shuriken_upgraded.price).toBe(WEAPONS.pistol_upgraded.price);
+    expect(WEAPONS.shuriken_upgraded.damage).toBe(WEAPONS.pistol_upgraded.damage);
+
+    expect(WEAPON_IDS).toContain('kunai');
+    expect(WEAPON_IDS).toContain('kunai_upgraded');
+    expect(WEAPON_IDS).toContain('shuriken');
+    expect(WEAPON_IDS).toContain('shuriken_upgraded');
   });
 
   it('maps shop weapons onto four recycled upgrade jingles', () => {
