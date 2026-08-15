@@ -1,0 +1,855 @@
+{
+  "course": "2do Básico - Sistema Educativo Chileno",
+  "subjects": [
+    {
+      "id": "language",
+      "name": "Lenguaje y Comunicación",
+      "units": [
+        {
+          "name": "Gramática y Ortografía",
+          "description": "Uso de sustantivos, adjetivos, mayúsculas y signos de puntuación.",
+          "questions": [
+            {
+              "prompt": "¿Cuál de estas palabras es un sustantivo propio?",
+              "options": [
+                "Perro",
+                "Santiago",
+                "Mesa"
+              ],
+              "correctAnswer": "Santiago",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Qué letra debe ir al comienzo de una oración?",
+              "options": [
+                "Letra minúscula",
+                "Letra cursiva",
+                "Letra mayúscula"
+              ],
+              "correctAnswer": "Letra mayúscula",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Cuál es el adjetivo en la oración: 'El perro grande ladra'?",
+              "options": [
+                "Perro",
+                "grande",
+                "ladra"
+              ],
+              "correctAnswer": "grande",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Qué signo se usa para hacer una pregunta?",
+              "options": [
+                "Signo de interrogación (¿?)",
+                "Signo de exclamación (¡!)",
+                "Punto final (.)"
+              ],
+              "correctAnswer": "Signo de interrogación (¿?)",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Cuál de las siguientes combinaciones está escrita correctamente?",
+              "options": [
+                "Queso",
+                "Cueso",
+                "Kueso"
+              ],
+              "correctAnswer": "Queso",
+              "difficulty": 3
+            },
+            {
+              "prompt": "Identifica el artículo definido en: 'La gata duerme'.",
+              "options": [
+                "gata",
+                "La",
+                "duerme"
+              ],
+              "correctAnswer": "La",
+              "difficulty": 3
+            }
+          ]
+        },
+        {
+          "name": "Comprensión Lectora",
+          "description": "Extracción de información explícita e implícita en textos simples.",
+          "questions": [
+            {
+              "prompt": "¿Qué texto tiene como propósito enseñarnos a preparar una comida?",
+              "options": [
+                "Un poema",
+                "Una receta",
+                "Un cuento"
+              ],
+              "correctAnswer": "Una receta",
+              "difficulty": 1
+            },
+            {
+              "prompt": "En el cuento de la Caperucita, ¿quién se hace pasar por la abuelita?",
+              "options": [
+                "El cazador",
+                "El lobo",
+                "La mamá"
+              ],
+              "correctAnswer": "El lobo",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Qué tipo de texto está escrito en versos y estrofas?",
+              "options": [
+                "El poema",
+                "La carta",
+                "El artículo informativo"
+              ],
+              "correctAnswer": "El poema",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Para qué sirve el título de un texto?",
+              "options": [
+                "Para saber el final",
+                "Para darnos una idea de qué trata el texto",
+                "Para esconder el nombre del autor"
+              ],
+              "correctAnswer": "Para darnos una idea de qué trata el texto",
+              "difficulty": 2
+            },
+            {
+              "prompt": "Si el texto dice: 'Juan tiritaba y se puso un gran abrigo', ¿qué podemos inferir?",
+              "options": [
+                "Que Juan tenía calor",
+                "Que Juan tenía frío",
+                "Que Juan estaba enojado"
+              ],
+              "correctAnswer": "Que Juan tenía frío",
+              "difficulty": 3
+            },
+            {
+              "prompt": "¿Dónde encontramos la fecha en una carta?",
+              "options": [
+                "Al final",
+                "En el medio",
+                "Arriba al principio"
+              ],
+              "correctAnswer": "Arriba al principio",
+              "difficulty": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "math",
+      "name": "Matemática",
+      "units": [
+        {
+          "name": "Números y Operaciones",
+          "description": "Números del 0 al 100, adición y sustracción sin reserva.",
+          "questions": [
+            {
+              "prompt": "¿Qué número va después del 49?",
+              "options": [
+                "48",
+                "50",
+                "51"
+              ],
+              "correctAnswer": "50",
+              "difficulty": 1
+            },
+            {
+              "prompt": "Si tengo 12 manzanas y me como 2, ¿cuántas me quedan?",
+              "options": [
+                "14",
+                "10",
+                "12"
+              ],
+              "correctAnswer": "10",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Cuál es el resultado de 20 + 15?",
+              "options": [
+                "35",
+                "45",
+                "25"
+              ],
+              "correctAnswer": "35",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Qué símbolo representa 'mayor que'?",
+              "options": [
+                "<",
+                "=",
+                ">"
+              ],
+              "correctAnswer": ">",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Cómo se lee el número 75?",
+              "options": [
+                "Sesenta y cinco",
+                "Setenta y cinco",
+                "Cincuenta y siete"
+              ],
+              "correctAnswer": "Setenta y cinco",
+              "difficulty": 3
+            },
+            {
+              "prompt": "En la suma 40 + 10 = 50, ¿qué operación hicimos?",
+              "options": [
+                "Multiplicación",
+                "Sustracción (Resta)",
+                "Adición (Suma)"
+              ],
+              "correctAnswer": "Adición (Suma)",
+              "difficulty": 3
+            },
+            {
+              "prompt": "¿Cuánto es 8 + 7?",
+              "options": [
+                "14",
+                "15",
+                "16"
+              ],
+              "correctAnswer": "15",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Cuánto es 30 - 12?",
+              "options": [
+                "18",
+                "22",
+                "12"
+              ],
+              "correctAnswer": "18",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Qué número está entre 20 y 22?",
+              "options": [
+                "19",
+                "21",
+                "23"
+              ],
+              "correctAnswer": "21",
+              "difficulty": 1
+            },
+            {
+              "prompt": "Si tengo 9 y gano 6, ¿cuántos tengo?",
+              "options": [
+                "15",
+                "3",
+                "16"
+              ],
+              "correctAnswer": "15",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Cuánto es 25 + 25?",
+              "options": [
+                "40",
+                "50",
+                "55"
+              ],
+              "correctAnswer": "50",
+              "difficulty": 2
+            },
+            {
+              "prompt": "Completa: 100 - 40 = ?",
+              "options": [
+                "50",
+                "60",
+                "70"
+              ],
+              "correctAnswer": "60",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Cuál es el doble de 6?",
+              "options": [
+                "10",
+                "12",
+                "14"
+              ],
+              "correctAnswer": "12",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Cuánto es 45 + 5?",
+              "options": [
+                "40",
+                "50",
+                "55"
+              ],
+              "correctAnswer": "50",
+              "difficulty": 1
+            }
+          ]
+        },
+        {
+          "name": "Datos y Geometría",
+          "description": "Figuras 2D y 3D, y lectura de pictogramas.",
+          "questions": [
+            {
+              "prompt": "¿Cuántos lados tiene un triángulo?",
+              "options": [
+                "4",
+                "3",
+                "5"
+              ],
+              "correctAnswer": "3",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Qué figura plana no tiene líneas rectas?",
+              "options": [
+                "El cuadrado",
+                "El rectángulo",
+                "El círculo"
+              ],
+              "correctAnswer": "El círculo",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Qué cuerpo geométrico se parece a una caja de zapatos?",
+              "options": [
+                "Un cubo",
+                "Una esfera",
+                "Un paralelepípedo"
+              ],
+              "correctAnswer": "Un paralelepípedo",
+              "difficulty": 2
+            },
+            {
+              "prompt": "En un pictograma, si una estrella representa 2 puntos y tengo 3 estrellas, ¿cuántos puntos son?",
+              "options": [
+                "3 puntos",
+                "6 puntos",
+                "5 puntos"
+              ],
+              "correctAnswer": "6 puntos",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Qué figura tiene 4 lados de igual tamaño?",
+              "options": [
+                "Triángulo",
+                "Rectángulo",
+                "Cuadrado"
+              ],
+              "correctAnswer": "Cuadrado",
+              "difficulty": 3
+            },
+            {
+              "prompt": "¿Qué usamos para recolectar datos fácilmente?",
+              "options": [
+                "Una tabla de conteo",
+                "Una regla",
+                "Una suma"
+              ],
+              "correctAnswer": "Una tabla de conteo",
+              "difficulty": 3
+            },
+            {
+              "prompt": "¿Cuántos lados tiene un cuadrado?",
+              "options": [
+                "3",
+                "4",
+                "5"
+              ],
+              "correctAnswer": "4",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Cuántos vértices tiene un triángulo?",
+              "options": [
+                "2",
+                "3",
+                "4"
+              ],
+              "correctAnswer": "3",
+              "difficulty": 1
+            },
+            {
+              "prompt": "Una pelota se parece a una…",
+              "options": [
+                "cubo",
+                "esfera",
+                "pirámide"
+              ],
+              "correctAnswer": "esfera",
+              "difficulty": 1
+            },
+            {
+              "prompt": "Si cada carita vale 5 y hay 2 caritas, ¿cuántos puntos?",
+              "options": [
+                "7",
+                "10",
+                "5"
+              ],
+              "correctAnswer": "10",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Qué figura tiene 3 lados?",
+              "options": [
+                "cuadrado",
+                "triángulo",
+                "círculo"
+              ],
+              "correctAnswer": "triángulo",
+              "difficulty": 1
+            },
+            {
+              "prompt": "Un dado se parece a un…",
+              "options": [
+                "cilindro",
+                "cubo",
+                "cono"
+              ],
+              "correctAnswer": "cubo",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Cuántos lados tiene un rectángulo?",
+              "options": [
+                "3",
+                "4",
+                "6"
+              ],
+              "correctAnswer": "4",
+              "difficulty": 1
+            },
+            {
+              "prompt": "Si una estrella vale 10 y hay 3 estrellas, ¿cuántos puntos?",
+              "options": [
+                "13",
+                "30",
+                "20"
+              ],
+              "correctAnswer": "30",
+              "difficulty": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "science",
+      "name": "Ciencias Naturales",
+      "units": [
+        {
+          "name": "El Cuerpo Humano",
+          "description": "Órganos principales y sus funciones.",
+          "questions": [
+            {
+              "prompt": "¿Qué órgano bombea la sangre a todo el cuerpo?",
+              "options": [
+                "Los pulmones",
+                "El corazón",
+                "El estómago"
+              ],
+              "correctAnswer": "El corazón",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Qué órganos nos permiten respirar?",
+              "options": [
+                "Los riñones",
+                "Los pulmones",
+                "Los huesos"
+              ],
+              "correctAnswer": "Los pulmones",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Para qué sirve el estómago?",
+              "options": [
+                "Para pensar",
+                "Para procesar los alimentos",
+                "Para mover los brazos"
+              ],
+              "correctAnswer": "Para procesar los alimentos",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Qué estructura sostiene nuestro cuerpo y lo mantiene erguido?",
+              "options": [
+                "El esqueleto",
+                "El corazón",
+                "La piel"
+              ],
+              "correctAnswer": "El esqueleto",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Qué cubren y protegen los músculos?",
+              "options": [
+                "El cabello",
+                "El esqueleto",
+                "Las uñas"
+              ],
+              "correctAnswer": "El esqueleto",
+              "difficulty": 3
+            },
+            {
+              "prompt": "¿Qué debemos hacer para cuidar nuestros pulmones?",
+              "options": [
+                "Respirar aire limpio",
+                "Comer dulces",
+                "Dormir poco"
+              ],
+              "correctAnswer": "Respirar aire limpio",
+              "difficulty": 3
+            }
+          ]
+        },
+        {
+          "name": "Diversidad Animal",
+          "description": "Vertebrados, invertebrados y ciclos de vida.",
+          "questions": [
+            {
+              "prompt": "¿Qué caracteriza a los animales vertebrados?",
+              "options": [
+                "Tienen columna vertebral y esqueleto",
+                "No tienen huesos",
+                "Tienen antenas"
+              ],
+              "correctAnswer": "Tienen columna vertebral y esqueleto",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Cuál de estos animales es un invertebrado?",
+              "options": [
+                "El perro",
+                "La mariposa",
+                "El gato"
+              ],
+              "correctAnswer": "La mariposa",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Cómo nacen los mamíferos?",
+              "options": [
+                "Por huevos (ovíparos)",
+                "Del vientre de su madre (vivíparos)",
+                "Por semillas"
+              ],
+              "correctAnswer": "Del vientre de su madre (vivíparos)",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Qué animal sufre una metamorfosis en su ciclo de vida?",
+              "options": [
+                "La vaca",
+                "La rana",
+                "El pez"
+              ],
+              "correctAnswer": "La rana",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Cuál de estos animales está cubierto de escamas?",
+              "options": [
+                "El lagarto",
+                "El lobo",
+                "El pato"
+              ],
+              "correctAnswer": "El lagarto",
+              "difficulty": 3
+            },
+            {
+              "prompt": "¿Por dónde respiran los peces?",
+              "options": [
+                "Por pulmones",
+                "Por la piel",
+                "Por branquias"
+              ],
+              "correctAnswer": "Por branquias",
+              "difficulty": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "history",
+      "name": "Historia, Geografía y Ciencias Sociales",
+      "units": [
+        {
+          "name": "Ubicación Espacial y Geografía de Chile",
+          "description": "Puntos cardinales, planos y zonas de Chile.",
+          "questions": [
+            {
+              "prompt": "¿Cuál es un punto cardinal?",
+              "options": [
+                "Arriba",
+                "Norte",
+                "Izquierda"
+              ],
+              "correctAnswer": "Norte",
+              "difficulty": 1
+            },
+            {
+              "prompt": "En Chile, ¿por dónde 'sale' (vemos aparecer) el sol generalmente?",
+              "options": [
+                "Por el Este (Cordillera)",
+                "Por el Oeste (Mar)",
+                "Por el Norte"
+              ],
+              "correctAnswer": "Por el Este (Cordillera)",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Cuál es la capital de Chile?",
+              "options": [
+                "Valparaíso",
+                "Concepción",
+                "Santiago"
+              ],
+              "correctAnswer": "Santiago",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Qué océano baña las costas de Chile?",
+              "options": [
+                "Atlántico",
+                "Pacífico",
+                "Índico"
+              ],
+              "correctAnswer": "Pacífico",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Cómo es el clima en la zona norte de Chile?",
+              "options": [
+                "Muy frío y lluvioso",
+                "Muy seco y desértico",
+                "Lleno de bosques"
+              ],
+              "correctAnswer": "Muy seco y desértico",
+              "difficulty": 3
+            },
+            {
+              "prompt": "¿Qué usamos para orientarnos en la ciudad o ver una habitación desde arriba?",
+              "options": [
+                "Un plano",
+                "Un cuento",
+                "Una lupa"
+              ],
+              "correctAnswer": "Un plano",
+              "difficulty": 3
+            }
+          ]
+        },
+        {
+          "name": "Pueblos Originarios de Chile",
+          "description": "Modos de vida nómade y sedentario, y legados.",
+          "questions": [
+            {
+              "prompt": "¿Qué significa que un pueblo sea nómade?",
+              "options": [
+                "Que viven siempre en el mismo lugar",
+                "Que se trasladan de un lugar a otro buscando alimento",
+                "Que solo comen vegetales"
+              ],
+              "correctAnswer": "Que se trasladan de un lugar a otro buscando alimento",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Qué significa que un pueblo sea sedentario?",
+              "options": [
+                "Que se establecen en un solo lugar",
+                "Que viajan en botes todo el año",
+                "Que viven en carpas"
+              ],
+              "correctAnswer": "Que se establecen en un solo lugar",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Qué pueblo originario habita principalmente la Isla de Pascua?",
+              "options": [
+                "Mapuche",
+                "Aymara",
+                "Rapa Nui"
+              ],
+              "correctAnswer": "Rapa Nui",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Qué pueblo de la zona centro-sur de Chile se destaca por hablar el mapudungun?",
+              "options": [
+                "Aymara",
+                "Mapuche",
+                "Chonos"
+              ],
+              "correctAnswer": "Mapuche",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Qué cultivaban los pueblos sedentarios del norte de Chile en terrazas?",
+              "options": [
+                "Manzanas y peras",
+                "Maíz y papas",
+                "Trigo"
+              ],
+              "correctAnswer": "Maíz y papas",
+              "difficulty": 3
+            },
+            {
+              "prompt": "¿Cuál es una embarcación típica del pueblo Chono (nómades del mar)?",
+              "options": [
+                "La dalca",
+                "El bote a motor",
+                "El velero"
+              ],
+              "correctAnswer": "La dalca",
+              "difficulty": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "english",
+      "name": "Inglés",
+      "units": [
+        {
+          "name": "Vocabulario Básico",
+          "description": "Colores, números del 1 al 20 y animales.",
+          "questions": [
+            {
+              "prompt": "¿Qué color es 'Red'?",
+              "options": [
+                "Verde",
+                "Rojo",
+                "Azul"
+              ],
+              "correctAnswer": "Rojo",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Cómo se dice el número 5 en inglés?",
+              "options": [
+                "Four",
+                "Five",
+                "Six"
+              ],
+              "correctAnswer": "Five",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Cuál es el color del sol en inglés?",
+              "options": [
+                "Yellow",
+                "Green",
+                "Pink"
+              ],
+              "correctAnswer": "Yellow",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Cómo se dice 'perro' en inglés?",
+              "options": [
+                "Cat",
+                "Bird",
+                "Dog"
+              ],
+              "correctAnswer": "Dog",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Qué número es 'Ten'?",
+              "options": [
+                "2",
+                "10",
+                "20"
+              ],
+              "correctAnswer": "10",
+              "difficulty": 3
+            },
+            {
+              "prompt": "¿Qué animal es 'Cat'?",
+              "options": [
+                "Gato",
+                "Pez",
+                "Caballo"
+              ],
+              "correctAnswer": "Gato",
+              "difficulty": 3
+            }
+          ]
+        },
+        {
+          "name": "Saludos e Instrucciones de Clase",
+          "description": "Greetings, farewells y comandos de aula.",
+          "questions": [
+            {
+              "prompt": "¿Qué significa 'Hello'?",
+              "options": [
+                "Adiós",
+                "Hola",
+                "Por favor"
+              ],
+              "correctAnswer": "Hola",
+              "difficulty": 1
+            },
+            {
+              "prompt": "¿Cómo te despides diciendo adiós en inglés?",
+              "options": [
+                "Good morning",
+                "Goodbye",
+                "Please"
+              ],
+              "correctAnswer": "Goodbye",
+              "difficulty": 1
+            },
+            {
+              "prompt": "Si la profesora dice 'Sit down', ¿qué debes hacer?",
+              "options": [
+                "Saltar",
+                "Pararte",
+                "Sentarte"
+              ],
+              "correctAnswer": "Sentarte",
+              "difficulty": 2
+            },
+            {
+              "prompt": "Si la profesora dice 'Stand up', ¿qué debes hacer?",
+              "options": [
+                "Ponerme de pie",
+                "Cerrar los ojos",
+                "Sentarme"
+              ],
+              "correctAnswer": "Ponerme de pie",
+              "difficulty": 2
+            },
+            {
+              "prompt": "¿Qué saludo usamos en la mañana?",
+              "options": [
+                "Good night",
+                "Good afternoon",
+                "Good morning"
+              ],
+              "correctAnswer": "Good morning",
+              "difficulty": 3
+            },
+            {
+              "prompt": "¿Qué significa 'Listen'?",
+              "options": [
+                "Escuchar",
+                "Hablar",
+                "Escribir"
+              ],
+              "correctAnswer": "Escuchar",
+              "difficulty": 3
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
