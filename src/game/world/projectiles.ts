@@ -11,6 +11,9 @@ export interface Projectile {
   visualOnly?: boolean;
 }
 
+export const BOW_ARROW_LENGTH = 1.1;
+export const SHURIKEN_PROJ_SIZE = { x: 0.22, y: 0.05, z: 0.22 } as const;
+
 const randomizeWeaponDamage = (damage: number) => {
   return Math.floor(Math.random() * (Math.floor(damage * 1.4) - Math.floor(damage * 0.6) + 1) + Math.floor(damage * 0.6));
 };
@@ -36,18 +39,39 @@ export function spawnProjectiles(
     dir.y += (Math.random() - 0.5) * spread * 0.5;
     dir.z += (Math.random() - 0.5) * spread;
     dir.normalize();
-    const mat = new THREE.MeshStandardMaterial({
-      color: kind === 'bow' ? 0xc8a050 : kind === 'rifle' ? 0xffe066 : 0xffcc33,
-      emissive: kind === 'bow' ? 0x664400 : 0xaa7700,
-      metalness: 0.2,
-      roughness: 0.4,
-    });
-    const mesh = kind === 'bow'
-      ? new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.55), mat)
-      : new THREE.Mesh(new THREE.SphereGeometry(kind === 'shotgun' ? 0.08 : 0.07, 6, 6), mat);
+
+    let mesh: THREE.Mesh;
     if (kind === 'bow') {
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xc8a050,
+        emissive: 0x664400,
+        metalness: 0.2,
+        roughness: 0.4,
+      });
+      mesh = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, BOW_ARROW_LENGTH), mat);
       mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), dir);
+    } else if (kind === 'shuriken') {
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x111111,
+        emissive: 0x000000,
+        metalness: 0.85,
+        roughness: 0.3,
+      });
+      mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(SHURIKEN_PROJ_SIZE.x, SHURIKEN_PROJ_SIZE.y, SHURIKEN_PROJ_SIZE.z),
+        mat,
+      );
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), dir);
+    } else {
+      const mat = new THREE.MeshStandardMaterial({
+        color: kind === 'rifle' ? 0xffe066 : 0xffcc33,
+        emissive: 0xaa7700,
+        metalness: 0.2,
+        roughness: 0.4,
+      });
+      mesh = new THREE.Mesh(new THREE.SphereGeometry(kind === 'shotgun' ? 0.08 : 0.07, 6, 6), mat);
     }
+
     mesh.position.copy(origin).addScaledVector(dir, 0.25);
     scene.add(mesh);
     created.push({
