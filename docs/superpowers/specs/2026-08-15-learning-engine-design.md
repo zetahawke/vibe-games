@@ -99,11 +99,11 @@ Keys **English**; display strings **Spanish**.
 | `science` | Ciencias Naturales | 10 | 5 |
 | `history` | Historia, Geografía y Ciencias Sociales | 10 | 5 |
 
-Constants live in one clear module under `learning/` (e.g. `weights.ts` / `rewards.ts`) so they can be edited later without hunting call sites.
+Constants live in `learning/weights.ts` (weights + reward bases + score points) so they can be edited later without hunting call sites.
 
 ### File path
 
-- v1 loads: `Chile/2do_basic.json` (or renamed consistently with loader convention, e.g. `Chile/2do.json` — prefer keeping filename stable and mapping grade `2do` → `2do_basic` in the loader).
+- Keep filename `Chile/2do_basic.json`. Loader maps grade id `2do` → file stem `2do_basic`.
 - Country from profile/config default `"Chile"`; grade from profile (`2do`).
 
 ### Content work in this feature
@@ -134,7 +134,7 @@ Constants live in one clear module under `learning/` (e.g. `weights.ts` / `rewar
 
 ### Score (stars)
 
-- Per correct answer: modest points by subject (e.g. math slightly higher than others). Exact table can mirror reward bases (e.g. math 6, others 5) or a small random band around that — pick one concrete table in the plan and test it; do not call old `scoreForQuiz(MathTopic)`.
+- Per correct answer: flat points equal to the subject reward base (math **6**, others **5**). No random band. Do not call old `scoreForQuiz(MathTopic)`.
 
 ### Online
 
