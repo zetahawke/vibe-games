@@ -1,4 +1,4 @@
-import { loadProfile, profileFromApi, saveProfile } from '@/domain/profile/profile';
+import { loadProfile, profileFromApi, saveProfile, type PlayerProfile } from '@/domain/profile/profile';
 
 const KEY_ID    = 'game_player_id';
 const KEY_TOKEN = 'game_session_token';
@@ -134,6 +134,44 @@ type ProfileApi = {
 function maybeSaveRemoteProfile(username: string, json: ProfileApi): void {
   if (loadProfile(username) || !json.grade) return;
   saveProfile(username, profileFromApi(json, username));
+}
+
+/** Pull profile from API and merge into localStorage (server gems win). */
+export async function pullRemoteProfile(username: string): Promise<PlayerProfile | null> {
+  const sessionToken = getStoredSessionToken();
+  if (!sessionToken) return null;
+  try {
+    const res = await fetch(
+      `/api/players/profile?sessionToken=${encodeURIComponent(sessionToken)}`,
+    );
+    if (!res.ok) return null;
+    const json = await res.json() as ProfileApi;
+    const remote = profileFromApi(json, username);
+    const local = loadProfile(username);
+    if (!local) {
+      saveProfile(username, remote);
+      return loadProfile(username);
+    }
+    const ownedHats = [...new Set([...local.ownedHats, ...remote.ownedHats])];
+    const ownedShirts = [...new Set([...local.ownedShirts, ...remote.ownedShirts])];
+    const ownedPants = [...new Set([...local.ownedPants, ...remote.ownedPants])];
+    const ownedHairs = [...new Set([...local.ownedHairs, ...remote.ownedHairs])];
+    saveProfile(username, {
+      ...local,
+      gems: remote.gems,
+      ownedHats: ownedHats as PlayerProfile['ownedHats'],
+      ownedShirts: ownedShirts as PlayerProfile['ownedShirts'],
+      ownedPants: ownedPants as PlayerProfile['ownedPants'],
+      ownedHairs: ownedHairs as PlayerProfile['ownedHairs'],
+      hatId: ownedHats.includes(local.hatId) ? local.hatId : remote.hatId,
+      shirtId: ownedShirts.includes(local.shirtId) ? local.shirtId : remote.shirtId,
+      pantsId: ownedPants.includes(local.pantsId) ? local.pantsId : remote.pantsId,
+      hairId: ownedHairs.includes(local.hairId) ? local.hairId : remote.hairId,
+    });
+    return loadProfile(username);
+  } catch {
+    return null;
+  }
 }
 
 function saveStored(playerId: string, sessionToken: string, username: string, pin: string): void {

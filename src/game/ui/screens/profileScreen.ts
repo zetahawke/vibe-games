@@ -19,7 +19,7 @@ import {
 } from '@/domain/profile/profile';
 import { cosmeticLabel, cosmeticPrice, type CosmeticSlot } from '@/domain/cosmetics/catalog';
 import { HAIR_IDS, HAT_IDS, PANTS_IDS, SHIRT_IDS } from '@/assets/boxing/manifest';
-import { getStoredSessionToken } from '@/domain/online/playerService';
+import { getStoredSessionToken, pullRemoteProfile } from '@/domain/online/playerService';
 import { buildPlayer, type PlayerLook, type PlayerRig } from '@/game/world/player';
 import { playSoftFail } from '@/shared/sfx';
 import { clear, el } from '@/shared/dom';
@@ -182,9 +182,17 @@ export function renderProfileScreen(
   }
 
   const gemsEl = el('p', { className: 'profile-gems' }, [`💎 ${draft.gems}`]);
+  const rebuildCosmetics: Array<() => void> = [];
 
   function refreshGems(): void {
     gemsEl.textContent = `💎 ${draft.gems}`;
+  }
+
+  function applyPulledProfile(remote: PlayerProfile): void {
+    Object.assign(draft, remote);
+    refreshGems();
+    for (const rebuild of rebuildCosmetics) rebuild();
+    preview.setLook(lookFromDraft(draft));
   }
 
   function overlayRow(
@@ -231,6 +239,7 @@ export function renderProfileScreen(
         row.append(btn);
       }
     };
+    rebuildCosmetics.push(rebuild);
     rebuild();
     return el('div', {}, [
       el('p', { className: 'muted' }, [title]),
@@ -277,6 +286,13 @@ export function renderProfileScreen(
       actions,
     ]),
   );
+
+  void pullRemoteProfile(username).then((remote) => {
+    if (!remote) return;
+    // Screen may have been left already.
+    if (!root.querySelector('.profile-screen')) return;
+    applyPulledProfile(remote);
+  });
 }
 
 function disposeObject3D(root: THREE.Object3D): void {
