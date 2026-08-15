@@ -1136,7 +1136,14 @@ input {
 }
 
 .profile-screen {
-  max-width: 480px;
+  max-width: 560px;
+}
+
+.profile-gems {
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0.25rem 0 0.5rem;
 }
 
 .profile-preview {
@@ -1191,6 +1198,88 @@ input {
 .profile-swatch.selected {
   outline: 2px solid #f5d060;
   outline-offset: 2px;
+}
+
+.cosmetic-section {
+  margin: 0.5rem 0 1rem;
+}
+
+.cosmetic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+}
+
+.cosmetic-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.45rem 0.35rem 0.5rem;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.35);
+  color: #f3f6f2;
+  cursor: pointer;
+  min-height: 118px;
+}
+
+.cosmetic-card.selected {
+  border-color: #f5d060;
+  box-shadow: 0 0 0 1px rgba(245, 208, 96, 0.35);
+}
+
+.cosmetic-card.locked {
+  border-style: dashed;
+  opacity: 0.92;
+}
+
+.cosmetic-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cosmetic-thumb svg {
+  width: 56px;
+  height: 56px;
+  display: block;
+}
+
+.cosmetic-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.cosmetic-meta {
+  font-size: 0.68rem;
+  color: #b8c8bc;
+}
+
+.cosmetic-confirm-thumb {
+  width: 72px;
+  height: 72px;
+  margin: 0.5rem auto;
+}
+
+.cosmetic-confirm-thumb svg {
+  width: 72px;
+  height: 72px;
+}
+
+.cosmetic-buy-card .btn-row {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 0.75rem;
 }
 
 /* Hub header actions row */

@@ -18,10 +18,12 @@ import {
   type ShirtId,
 } from '@/domain/profile/profile';
 import { cosmeticLabel, cosmeticPrice, type CosmeticSlot } from '@/domain/cosmetics/catalog';
+import { cosmeticThumbSvg } from '@/domain/cosmetics/cosmeticThumbs';
 import { HAIR_IDS, HAT_IDS, PANTS_IDS, SHIRT_IDS } from '@/assets/boxing/manifest';
 import { getStoredSessionToken, pullRemoteProfile } from '@/domain/online/playerService';
 import { buildPlayer, type PlayerLook, type PlayerRig } from '@/game/world/player';
 import { playSoftFail } from '@/shared/sfx';
+import { makeOverlayCard } from '@/shared/overlay';
 import { clear, el } from '@/shared/dom';
 
 function lookFromDraft(d: PlayerProfile): PlayerLook {
@@ -195,6 +197,34 @@ export function renderProfileScreen(
     preview.setLook(lookFromDraft(draft));
   }
 
+  function confirmBuy(
+    id: string,
+    slot: CosmeticSlot,
+    onConfirm: () => void,
+  ): void {
+    const price = cosmeticPrice(id);
+    const { overlay, card } = makeOverlayCard('cosmetic-buy-card');
+    const thumb = el('div', { className: 'cosmetic-confirm-thumb' });
+    thumb.innerHTML = cosmeticThumbSvg(id);
+    card.append(
+      el('h2', {}, ['¿Comprar?']),
+      thumb,
+      el('p', {}, [`${cosmeticLabel(id)} por ${price} 💎`]),
+      el('p', { className: 'muted' }, [`Tenés ${draft.gems} gemas.`]),
+    );
+    const row = el('div', { className: 'btn-row' });
+    const cancel = el('button', { type: 'button', className: 'btn ghost' }, ['Cancelar']) as HTMLButtonElement;
+    const ok = el('button', { type: 'button', className: 'btn primary' }, ['Comprar']) as HTMLButtonElement;
+    cancel.addEventListener('click', () => overlay.remove());
+    ok.addEventListener('click', () => {
+      overlay.remove();
+      onConfirm();
+    });
+    row.append(cancel, ok);
+    card.append(row);
+    root.append(overlay);
+  }
+
   function overlayRow(
     title: string,
     slot: CosmeticSlot,
@@ -202,48 +232,57 @@ export function renderProfileScreen(
     getCurrent: () => string,
     onEquip: (id: string) => void,
   ): HTMLElement {
-    const row = el('div', { className: 'profile-sex' });
+    const grid = el('div', { className: 'cosmetic-grid' });
     const rebuild = () => {
-      row.replaceChildren();
+      grid.replaceChildren();
       const current = getCurrent();
       for (const id of ids) {
         const owned = ownsCosmetic(draft, slot, id);
         const price = cosmeticPrice(id);
-        const label = id === 'none' || owned
-          ? cosmeticLabel(id)
-          : `${cosmeticLabel(id)} · ${price}💎`;
-        const btn = el('button', {
+        const selected = current === id;
+        const card = el('button', {
           type: 'button',
-          className: `btn ${current === id ? 'primary' : 'ghost'}`,
-        }, [label]) as HTMLButtonElement;
-        btn.addEventListener('click', () => {
+          className: `cosmetic-card${selected ? ' selected' : ''}${owned || id === 'none' ? '' : ' locked'}`,
+        }) as HTMLButtonElement;
+        const thumb = el('div', { className: 'cosmetic-thumb' });
+        thumb.innerHTML = cosmeticThumbSvg(id);
+        const name = el('span', { className: 'cosmetic-name' }, [cosmeticLabel(id)]);
+        const meta = el('span', { className: 'cosmetic-meta' }, [
+          id === 'none' || owned ? (selected ? 'Equipado' : 'Tuyo') : `${price} 💎`,
+        ]);
+        card.append(thumb, name, meta);
+        card.addEventListener('click', () => {
           if (owned || id === 'none') {
             onEquip(id);
             rebuild();
             preview.setLook(lookFromDraft(draft));
             return;
           }
-          const result = tryBuyCosmetic(draft, slot, id);
-          if (!result.ok) {
-            playSoftFail();
-            err.textContent = result.reason === 'funds' ? 'No tenés suficientes gemas.' : 'No se pudo comprar.';
-            return;
-          }
-          Object.assign(draft, result.profile);
-          err.textContent = '';
-          refreshGems();
-          onEquip(id);
-          rebuild();
-          preview.setLook(lookFromDraft(draft));
+          confirmBuy(id, slot, () => {
+            const result = tryBuyCosmetic(draft, slot, id);
+            if (!result.ok) {
+              playSoftFail();
+              err.textContent = result.reason === 'funds'
+                ? 'No tenés suficientes gemas.'
+                : 'No se pudo comprar.';
+              return;
+            }
+            Object.assign(draft, result.profile);
+            err.textContent = '';
+            refreshGems();
+            onEquip(id);
+            rebuild();
+            preview.setLook(lookFromDraft(draft));
+          });
         });
-        row.append(btn);
+        grid.append(card);
       }
     };
     rebuildCosmetics.push(rebuild);
     rebuild();
-    return el('div', {}, [
+    return el('div', { className: 'cosmetic-section' }, [
       el('p', { className: 'muted' }, [title]),
-      row,
+      grid,
     ]);
   }
 
