@@ -18,13 +18,15 @@ export function weaponPieceIds(weaponId: string): { right: string; left?: string
   }
 }
 
-export const HAT_IDS = ['none', 'cap'] as const;
-export const SHIRT_IDS = ['none', 'jersey', 'armor'] as const;
-export const PANTS_IDS = ['none', 'shinguards'] as const;
+export const HAT_IDS = ['none', 'cap', 'beanie'] as const;
+export const SHIRT_IDS = ['none', 'jersey', 'armor', 'jersey_argentina'] as const;
+export const PANTS_IDS = ['none', 'shinguards', 'shorts_football'] as const;
+export const HAIR_IDS = ['none', 'hair_spiky'] as const;
 
 export type HatId = (typeof HAT_IDS)[number];
 export type ShirtId = (typeof SHIRT_IDS)[number];
 export type PantsId = (typeof PANTS_IDS)[number];
+export type HairId = (typeof HAIR_IDS)[number];
 
 export function normalizeHatId(raw: unknown): HatId {
   return (HAT_IDS as readonly string[]).includes(String(raw)) ? (raw as HatId) : 'none';
@@ -36,4 +38,8 @@ export function normalizeShirtId(raw: unknown): ShirtId {
 
 export function normalizePantsId(raw: unknown): PantsId {
   return (PANTS_IDS as readonly string[]).includes(String(raw)) ? (raw as PantsId) : 'none';
+}
+
+export function normalizeHairId(raw: unknown): HairId {
+  return (HAIR_IDS as readonly string[]).includes(String(raw)) ? (raw as HairId) : 'none';
 }
