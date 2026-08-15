@@ -34,11 +34,13 @@ function fakeRig(): PlayerRig {
   leftLeg.add(leftPantsSlot);
   const rightPantsSlot = new THREE.Group();
   rightLeg.add(rightPantsSlot);
-  root.add(leftArm, rightArm, leftLeg, rightLeg, hatSlot, shirtSlot, pantsSlot);
+  const hairSlot = new THREE.Group();
+  root.add(leftArm, rightArm, leftLeg, rightLeg, hatSlot, shirtSlot, pantsSlot, hairSlot);
   return {
     root, leftArm, rightArm, leftLeg, rightLeg,
     rightHand, leftHand, weaponSlot: rightHand,
     hatSlot, shirtSlot, pantsSlot, leftPantsSlot, rightPantsSlot,
+    hairSlot, defaultHair: [],
   };
 }
 

@@ -16,6 +16,7 @@ export interface PeerState {
   hatId: string;
   shirtId: string;
   pantsId: string;
+  hairId: string;
   score: number;
   lives: number;
   coins: number;
@@ -56,6 +57,7 @@ export function parsePeer(raw: unknown, fallbackId = ''): PeerState | null {
     hatId: typeof r.hatId === 'string' ? r.hatId : 'none',
     shirtId: typeof r.shirtId === 'string' ? r.shirtId : 'none',
     pantsId: typeof r.pantsId === 'string' ? r.pantsId : 'none',
+    hairId: typeof r.hairId === 'string' ? r.hairId : 'none',
     score: Number(r.score) || 0,
     lives: Number(r.lives) || 0,
     coins: Number(r.coins) || 0,

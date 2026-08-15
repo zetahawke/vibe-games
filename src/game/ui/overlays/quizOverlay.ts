@@ -22,6 +22,7 @@ export function renderQuizOverlay(
   difficulty: number,
   onExit: (coins: number, score: number, finalDifficulty: number) => void,
   grade?: ChileGrade,
+  onAnswerResult?: (correct: boolean) => void,
 ): HTMLElement {
   const { overlay, card } = makeOverlayCard('quiz-card');
 
@@ -58,6 +59,7 @@ export function renderQuizOverlay(
           if (state.status === 'won') {
             totalCoins += coinsEarned(state);
             totalScore += scoreForQuiz(state.question.topic);
+            onAnswerResult?.(true);
             render();
             // Auto-advance to next question after a short pause
             setTimeout(() => {
@@ -67,6 +69,7 @@ export function renderQuizOverlay(
             }, 900);
             return;
           } else if (state.status === 'failed') {
+            onAnswerResult?.(false);
             render();
             // Auto-advance after failure too
             setTimeout(() => {

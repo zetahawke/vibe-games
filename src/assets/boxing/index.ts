@@ -8,8 +8,12 @@ import './boxes/weapons/bow';
 import './boxes/weapons/kunai';
 import './boxes/weapons/shuriken';
 import './boxes/player/overlays/hat/cap';
+import './boxes/player/overlays/hat/beanie';
 import './boxes/player/overlays/shirt/shirt';
+import './boxes/player/overlays/shirt/jersey_argentina';
 import './boxes/player/overlays/pants/shinguards';
+import './boxes/player/overlays/pants/shorts_football';
+import './boxes/player/overlays/hair/hair_spiky';
 
 export * from './schema';
 export * from './registry';

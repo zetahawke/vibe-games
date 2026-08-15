@@ -6,6 +6,7 @@ import {
 } from './textures';
 import { createBoxingModel } from '@/assets/boxing';
 import {
+  normalizeHairId,
   normalizeHatId,
   normalizePantsId,
   normalizeShirtId,
@@ -19,6 +20,7 @@ export interface PlayerLook {
   hatId?: string;
   shirtId?: string;
   pantsId?: string;
+  hairId?: string;
 }
 
 function darkenHex(hex: string, amount = 0.22): string {
@@ -44,6 +46,9 @@ export interface PlayerRig {
   pantsSlot: THREE.Group;
   leftPantsSlot: THREE.Group;
   rightPantsSlot: THREE.Group;
+  hairSlot: THREE.Group;
+  /** Sex-default hair meshes; hidden when a hair overlay is equipped. */
+  defaultHair: THREE.Object3D[];
 }
 
 export const PLAYER_SPEED = 10;
@@ -135,8 +140,11 @@ export function buildPlayer(
   shirtSlot.position.set(0, girl ? 1.52 : 1.35, 0);
   const pantsSlot = new THREE.Group();
   pantsSlot.position.set(0, 0.45, 0);
-  root.add(hatSlot, shirtSlot, pantsSlot);
+  const hairSlot = new THREE.Group();
+  hairSlot.position.set(0, 2.42, 0);
+  root.add(hatSlot, shirtSlot, pantsSlot, hairSlot);
 
+  const defaultHair: THREE.Object3D[] = [];
   if (girl) {
     const hairTop = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.2, 0.76), hairMat);
     hairTop.position.set(0, 2.46, -0.06);
@@ -156,10 +164,12 @@ export function buildPlayer(
     skirtHem.position.y = 0.78;
     skirtWaist.castShadow = true;
     skirtHem.castShadow = true;
+    defaultHair.push(hairTop, hairBack, hairLeft, hairRight);
     root.add(hairTop, hairBack, hairLeft, hairRight, skirtWaist, skirtHem);
   } else {
     const hair = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.18, 0.58), hairMat);
     hair.position.y = 2.42;
+    defaultHair.push(hair);
     root.add(hair);
   }
 
@@ -177,6 +187,8 @@ export function buildPlayer(
     pantsSlot,
     leftPantsSlot,
     rightPantsSlot,
+    hairSlot,
+    defaultHair,
   };
   applyOverlays(rig, look);
   return rig;
@@ -186,16 +198,18 @@ function clearSlot(slot: THREE.Group): void {
   while (slot.children.length) slot.remove(slot.children[0]!);
 }
 
-/** Attach free cosmetic overlays (invalid ids → none). */
+/** Attach cosmetic overlays (invalid ids → none). */
 export function applyOverlays(rig: PlayerRig, look: PlayerLook): void {
   clearSlot(rig.hatSlot);
   clearSlot(rig.shirtSlot);
   clearSlot(rig.pantsSlot);
   clearSlot(rig.leftPantsSlot);
   clearSlot(rig.rightPantsSlot);
+  clearSlot(rig.hairSlot);
   const hatId = normalizeHatId(look.hatId);
   const shirtId = normalizeShirtId(look.shirtId);
   const pantsId = normalizePantsId(look.pantsId);
+  const hairId = normalizeHairId(look.hairId);
   if (hatId !== 'none') {
     rig.hatSlot.add(createBoxingModel({ type: 'boxes', id: hatId }));
   }
@@ -207,6 +221,11 @@ export function applyOverlays(rig: PlayerRig, look: PlayerLook): void {
     rig.rightPantsSlot.add(createBoxingModel({ type: 'boxes', id: 'shinguard' }));
   } else if (pantsId !== 'none') {
     rig.pantsSlot.add(createBoxingModel({ type: 'boxes', id: pantsId }));
+  }
+  const useOverlayHair = hairId !== 'none';
+  for (const mesh of rig.defaultHair) mesh.visible = !useOverlayHair;
+  if (useOverlayHair) {
+    rig.hairSlot.add(createBoxingModel({ type: 'boxes', id: hairId }));
   }
 }
 

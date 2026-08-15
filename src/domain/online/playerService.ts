@@ -117,6 +117,18 @@ type ProfileApi = {
   avatar_hat?: string;
   avatar_shirt?: string;
   avatar_pants?: string;
+  avatar_hair?: string;
+  gems?: number;
+  cosmetic_inventory?: {
+    hats?: unknown;
+    shirts?: unknown;
+    pants?: unknown;
+    hairs?: unknown;
+  };
+  ownedHats?: unknown;
+  ownedShirts?: unknown;
+  ownedPants?: unknown;
+  ownedHairs?: unknown;
 };
 
 function maybeSaveRemoteProfile(username: string, json: ProfileApi): void {

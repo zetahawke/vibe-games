@@ -8,6 +8,7 @@ export function renderEnglishQuizOverlay(
   grade: EnglishGrade,
   onWin: (coins: number, score: number) => void,
   onClose: () => void,
+  onAnswerResult?: (correct: boolean) => void,
 ): HTMLElement {
   const { overlay, card } = makeOverlayCard('quiz-card');
 
@@ -35,10 +36,12 @@ export function renderEnglishQuizOverlay(
           if (i === question.answer) {
             answered = true;
             message = '¡Correcto! 🎉';
+            onAnswerResult?.(true);
             render();
             setTimeout(() => onWin(ENGLISH_REWARD, ENGLISH_QUIZ_SCORE), 900);
           } else {
             message = `Incorrecto. La respuesta era: ${question.options[question.answer]}`;
+            onAnswerResult?.(false);
             question = pickEnglishQuestion(grade);
             answered = false;
             render();

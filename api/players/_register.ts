@@ -36,7 +36,7 @@ export default async function handler(req: Req, res: Res): Promise<void> {
       avatar_color: '#2f6fed',
       display_name: username.trim(),
     })
-    .select('id, grade, avatar_sex, avatar_color, display_name, avatar_hat, avatar_shirt, avatar_pants')
+    .select('id, grade, avatar_sex, avatar_color, display_name, avatar_hat, avatar_shirt, avatar_pants, avatar_hair, gems, cosmetic_inventory')
     .single();
 
   if (error) {

@@ -1,6 +1,7 @@
 import { REST_DURATION_MS, WAVE_DURATION_MS } from '@/config/gameConfig';
 import { addCoins, coinsForKill } from '@/domain/economy/economy';
-import { requireProfile } from '@/domain/profile/profile';
+import { requireProfile, saveProfile, addGems, loadProfile } from '@/domain/profile/profile';
+import { registerStreakSuccess, resetStreak } from '@/domain/rewards/gemLogic';
 import { shouldAwardSkipCoin, canSkipWave, SKIP_COINS_MAX } from '@/domain/rewards/skipLogic';
 import {
   quizCoinsForWave,
@@ -49,6 +50,8 @@ export class GameSession {
   private shopOverlay: HTMLElement | null = null;
   private quizOverlay: HTMLElement | null = null;
   private touchControls: TouchControlsHandle | null = null;
+  private waveGemStreak = 0;
+  private quizGemStreak = 0;
   private banner = '';
   private bannerUntil = 0;
   private onExitToHub: () => void;
@@ -134,7 +137,10 @@ export class GameSession {
       hatId: look.hatId,
       shirtId: look.shirtId,
       pantsId: look.pantsId,
+      hairId: look.hairId,
     });
+    this.waveGemStreak = 0;
+    this.quizGemStreak = 0;
     this.input = new InputManager(this.world.canvas);
     this.hud = new Hud(this.wrap);
     this.wireHud();
@@ -204,6 +210,30 @@ export class GameSession {
     this.persist();
   }
 
+  private awardGemFromStreak(kind: 'wave' | 'quiz'): void {
+    if (kind === 'wave') {
+      const r = registerStreakSuccess(this.waveGemStreak);
+      this.waveGemStreak = r.streak;
+      if (r.gemsAwarded > 0) this.addProfileGems(r.gemsAwarded);
+    } else {
+      const r = registerStreakSuccess(this.quizGemStreak);
+      this.quizGemStreak = r.streak;
+      if (r.gemsAwarded > 0) this.addProfileGems(r.gemsAwarded);
+    }
+  }
+
+  private addProfileGems(amount: number): void {
+    const profile = loadProfile(this.username) ?? requireProfile(this.username);
+    const next = addGems(profile, amount);
+    saveProfile(this.username, next);
+    this.showBanner(`+${amount} 💎`);
+  }
+
+  private resetGemStreaks(): void {
+    this.waveGemStreak = resetStreak();
+    this.quizGemStreak = resetStreak();
+  }
+
   private openQuiz(): void {
     this.shopOverlay?.remove();
     this.shopOverlay = null;
@@ -234,6 +264,10 @@ export class GameSession {
           this.quizOverlay = null;
           this.requestShop();
         },
+        (correct) => {
+          if (correct) this.awardGemFromStreak('quiz');
+          else this.quizGemStreak = resetStreak();
+        },
       );
     } else {
       this.quizOverlay = renderQuizOverlay(
@@ -257,6 +291,10 @@ export class GameSession {
           this.requestShop();
         },
         this.save.grade,
+        (correct) => {
+          if (correct) this.awardGemFromStreak('quiz');
+          else this.quizGemStreak = resetStreak();
+        },
       );
     }
   }
@@ -282,6 +320,7 @@ export class GameSession {
     if (!canSkipWave(this.save.skipCoins)) return false;
     this.save.skipCoins -= 1;
     this.save.wavesCleared += 1;
+    this.awardGemFromStreak('wave');
     // Note: skip-coin award for multiples of 10 only fires on *natural* wave
     // completion (wave→rest transition), not here — prevents the coin from
     // being immediately refunded.
@@ -386,6 +425,7 @@ export class GameSession {
           if (prevPhase === 'wave') {
             // Wave naturally completed (not fort breach)
             this.save.wavesCleared += 1;
+            this.awardGemFromStreak('wave');
             const healed = shouldHealOnWave(this.save.wavesCleared) && this.waves.lives < MAX_LIVES;
             if (healed) {
               this.waves = { ...this.waves, lives: this.waves.lives + 1 };
@@ -457,6 +497,7 @@ export class GameSession {
   };
 
   protected handleGameOver(): void {
+    this.resetGemStreaks();
     cancelAnimationFrame(this.raf);
     this.stopBackgroundTicker();
     const best = updateHighScore(this.username, this.save.score);

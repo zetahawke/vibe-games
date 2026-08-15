@@ -6,17 +6,22 @@ import {
   defaultProfile,
   isPlayableGrade,
   loadProfile,
+  ownsCosmetic,
   saveProfile,
+  tryBuyCosmetic,
   type AvatarSex,
   type ChileGrade,
+  type HairId,
   type HatId,
   type PantsId,
   type PlayerProfile,
   type ShirtId,
 } from '@/domain/profile/profile';
-import { HAT_IDS, PANTS_IDS, SHIRT_IDS } from '@/assets/boxing/manifest';
+import { cosmeticLabel, cosmeticPrice, type CosmeticSlot } from '@/domain/cosmetics/catalog';
+import { HAIR_IDS, HAT_IDS, PANTS_IDS, SHIRT_IDS } from '@/assets/boxing/manifest';
 import { getStoredSessionToken } from '@/domain/online/playerService';
 import { buildPlayer, type PlayerLook, type PlayerRig } from '@/game/world/player';
+import { playSoftFail } from '@/shared/sfx';
 import { clear, el } from '@/shared/dom';
 
 function lookFromDraft(d: PlayerProfile): PlayerLook {
@@ -26,6 +31,7 @@ function lookFromDraft(d: PlayerProfile): PlayerLook {
     hatId: d.hatId,
     shirtId: d.shirtId,
     pantsId: d.pantsId,
+    hairId: d.hairId,
   };
 }
 
@@ -118,6 +124,7 @@ export function renderProfileScreen(
       return;
     }
     const profile: PlayerProfile = {
+      ...draft,
       grade,
       sex: draft.sex,
       color: /^#[0-9a-fA-F]{6}$/.test(draft.color) ? draft.color : DEFAULT_AVATAR_COLOR,
@@ -125,6 +132,12 @@ export function renderProfileScreen(
       hatId: draft.hatId,
       shirtId: draft.shirtId,
       pantsId: draft.pantsId,
+      hairId: draft.hairId,
+      gems: draft.gems,
+      ownedHats: draft.ownedHats,
+      ownedShirts: draft.ownedShirts,
+      ownedPants: draft.ownedPants,
+      ownedHairs: draft.ownedHairs,
     };
     saveProfile(username, profile);
     const token = getStoredSessionToken();
@@ -142,6 +155,12 @@ export function renderProfileScreen(
             hatId: profile.hatId,
             shirtId: profile.shirtId,
             pantsId: profile.pantsId,
+            hairId: profile.hairId,
+            gems: profile.gems,
+            ownedHats: profile.ownedHats,
+            ownedShirts: profile.ownedShirts,
+            ownedPants: profile.ownedPants,
+            ownedHairs: profile.ownedHairs,
           }),
         });
       } catch {
@@ -162,50 +181,74 @@ export function renderProfileScreen(
     actions.append(back);
   }
 
-  const overlayLabels: Record<string, string> = {
-    none: 'Ninguno',
-    cap: 'Gorra',
-    jersey: 'Camiseta',
-    armor: 'Armadura',
-    shinguards: 'Canilleras',
-  };
+  const gemsEl = el('p', { className: 'profile-gems' }, [`💎 ${draft.gems}`]);
+
+  function refreshGems(): void {
+    gemsEl.textContent = `💎 ${draft.gems}`;
+  }
 
   function overlayRow(
     title: string,
+    slot: CosmeticSlot,
     ids: readonly string[],
-    current: string,
-    onPick: (id: string) => void,
+    getCurrent: () => string,
+    onEquip: (id: string) => void,
   ): HTMLElement {
     const row = el('div', { className: 'profile-sex' });
-    for (const id of ids) {
-      const btn = el('button', {
-        type: 'button',
-        className: `btn ${current === id ? 'primary' : 'ghost'}`,
-      }, [overlayLabels[id] ?? id]) as HTMLButtonElement;
-      btn.addEventListener('click', () => {
-        onPick(id);
-        for (const child of row.children) {
-          child.classList.toggle('primary', child === btn);
-          child.classList.toggle('ghost', child !== btn);
-        }
-        preview.setLook(lookFromDraft(draft));
-      });
-      row.append(btn);
-    }
+    const rebuild = () => {
+      row.replaceChildren();
+      const current = getCurrent();
+      for (const id of ids) {
+        const owned = ownsCosmetic(draft, slot, id);
+        const price = cosmeticPrice(id);
+        const label = id === 'none' || owned
+          ? cosmeticLabel(id)
+          : `${cosmeticLabel(id)} · ${price}💎`;
+        const btn = el('button', {
+          type: 'button',
+          className: `btn ${current === id ? 'primary' : 'ghost'}`,
+        }, [label]) as HTMLButtonElement;
+        btn.addEventListener('click', () => {
+          if (owned || id === 'none') {
+            onEquip(id);
+            rebuild();
+            preview.setLook(lookFromDraft(draft));
+            return;
+          }
+          const result = tryBuyCosmetic(draft, slot, id);
+          if (!result.ok) {
+            playSoftFail();
+            err.textContent = result.reason === 'funds' ? 'No tenés suficientes gemas.' : 'No se pudo comprar.';
+            return;
+          }
+          Object.assign(draft, result.profile);
+          err.textContent = '';
+          refreshGems();
+          onEquip(id);
+          rebuild();
+          preview.setLook(lookFromDraft(draft));
+        });
+        row.append(btn);
+      }
+    };
+    rebuild();
     return el('div', {}, [
       el('p', { className: 'muted' }, [title]),
       row,
     ]);
   }
 
-  const hatRow = overlayRow('Sombrero', HAT_IDS, draft.hatId, (id) => {
+  const hatRow = overlayRow('Sombrero', 'hat', HAT_IDS, () => draft.hatId, (id) => {
     draft.hatId = id as HatId;
   });
-  const shirtRow = overlayRow('Camiseta', SHIRT_IDS, draft.shirtId, (id) => {
+  const shirtRow = overlayRow('Camiseta', 'shirt', SHIRT_IDS, () => draft.shirtId, (id) => {
     draft.shirtId = id as ShirtId;
   });
-  const pantsRow = overlayRow('Pantalón', PANTS_IDS, draft.pantsId, (id) => {
+  const pantsRow = overlayRow('Pantalón', 'pants', PANTS_IDS, () => draft.pantsId, (id) => {
     draft.pantsId = id as PantsId;
+  });
+  const hairRow = overlayRow('Peinado', 'hair', HAIR_IDS, () => draft.hairId, (id) => {
+    draft.hairId = id as HairId;
   });
 
   root.append(
@@ -216,6 +259,7 @@ export function renderProfileScreen(
           ? 'Elige tu grado y cómo te ves antes de jugar.'
           : 'Grado, color de ropa y aspecto.',
       ]),
+      gemsEl,
       previewHost,
       el('label', {}, ['Nombre']),
       nameInput,
@@ -228,6 +272,7 @@ export function renderProfileScreen(
       hatRow,
       shirtRow,
       pantsRow,
+      hairRow,
       err,
       actions,
     ]),

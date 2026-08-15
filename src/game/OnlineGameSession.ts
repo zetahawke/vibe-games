@@ -124,6 +124,7 @@ export class OnlineGameSession extends GameSession {
         hatId: look.hatId,
         shirtId: look.shirtId,
         pantsId: look.pantsId,
+        hairId: look.hairId,
         score: 0, lives: 3, coins: 0,
       };
       this.store.applyPeer(hello);
@@ -308,6 +309,7 @@ export class OnlineGameSession extends GameSession {
           hatId: p.hatId,
           shirtId: p.shirtId,
           pantsId: p.pantsId,
+          hairId: p.hairId,
         },
       );
     }
@@ -402,6 +404,7 @@ export class OnlineGameSession extends GameSession {
         hatId:    look.hatId,
         shirtId:  look.shirtId,
         pantsId:  look.pantsId,
+        hairId:   look.hairId,
         score:    this.save?.score ?? 0,
         lives:    this.waves?.lives ?? 3,
         coins:    this.save?.coins ?? 0,

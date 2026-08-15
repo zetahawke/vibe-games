@@ -5,7 +5,7 @@ function peer(over: Partial<PeerState> & Pick<PeerState, 'playerId' | 'name'>): 
   return {
     is_host: false, started: false, x: 0, y: 0, z: 8, rotY: 0,
     weapon: 'knife', grounded: true, sex: 'boy', color: '#2f6fed',
-    hatId: 'none', shirtId: 'none', pantsId: 'none',
+    hatId: 'none', shirtId: 'none', pantsId: 'none', hairId: 'none',
     score: 0, lives: 3, coins: 0, ...over,
   };
 }
