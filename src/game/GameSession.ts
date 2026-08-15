@@ -9,6 +9,7 @@ import {
   MAX_LIVES,
 } from '@/domain/rewards/rewardLogic';
 import { InputManager } from '@/game/input/InputManager';
+import { bindTouchControls, type TouchControlsHandle } from '@/game/input/touchControls';
 import {
   clearSave,
   defaultSave,
@@ -47,6 +48,7 @@ export class GameSession {
   private overlay: HTMLElement | null = null;
   private shopOverlay: HTMLElement | null = null;
   private quizOverlay: HTMLElement | null = null;
+  private touchControls: TouchControlsHandle | null = null;
   private banner = '';
   private bannerUntil = 0;
   private onExitToHub: () => void;
@@ -165,68 +167,14 @@ export class GameSession {
       input.pressJump();
     });
 
-    this.bindDynamicStick(hud.stickZone);
-    this.bindLook(hud.lookZone);
-  }
-
-  private bindDynamicStick(zone: HTMLElement): void {
-    const base = zone.querySelector('#stick-base') as HTMLElement;
-    const knob = zone.querySelector('#stick-knob') as HTMLElement;
-    let active = false;
-    let originX = 0;
-    let originY = 0;
-    const RADIUS = 52;
-
-    zone.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      active = true;
-      zone.setPointerCapture(e.pointerId);
-      const rect = zone.getBoundingClientRect();
-      originX = e.clientX - rect.left;
-      originY = e.clientY - rect.top;
-      base.style.left = `${originX}px`;
-      base.style.top = `${originY}px`;
-      base.style.display = 'block';
-      knob.style.transform = 'translate(-50%, -50%)';
+    this.touchControls?.dispose();
+    this.touchControls = bindTouchControls({
+      pad: hud.touchPad,
+      stickBase: hud.stickBase,
+      stickKnob: hud.stickKnob,
+      input,
+      isBlocked: () => this.uiBlocking || this.paused,
     });
-
-    zone.addEventListener('pointermove', (e) => {
-      if (!active) return;
-      const rect = zone.getBoundingClientRect();
-      let dx = (e.clientX - rect.left) - originX;
-      let dy = (e.clientY - rect.top) - originY;
-      const len = Math.hypot(dx, dy) || 1;
-      if (len > RADIUS) {
-        dx = (dx / len) * RADIUS;
-        dy = (dy / len) * RADIUS;
-      }
-      knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-      this.input?.setTouchMove(dx / RADIUS, dy / RADIUS);
-    });
-
-    const end = () => {
-      active = false;
-      base.style.display = 'none';
-      this.input?.setTouchMove(0, 0);
-    };
-    zone.addEventListener('pointerup', end);
-    zone.addEventListener('pointercancel', end);
-  }
-
-  private bindLook(zone: HTMLElement): void {
-    let last: { x: number; y: number } | null = null;
-    zone.addEventListener('pointerdown', (e) => {
-      last = { x: e.clientX, y: e.clientY };
-      zone.setPointerCapture(e.pointerId);
-    });
-    zone.addEventListener('pointermove', (e) => {
-      if (!last) return;
-      this.input?.setTouchLook(e.clientX - last.x, e.clientY - last.y);
-      last = { x: e.clientX, y: e.clientY };
-    });
-    const clearLast = () => { last = null; };
-    zone.addEventListener('pointerup', clearLast);
-    zone.addEventListener('pointercancel', clearLast);
   }
 
   private requestShop(): void {
@@ -541,6 +489,8 @@ export class GameSession {
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
     cancelAnimationFrame(this.raf);
     this.stopBackgroundTicker();
+    this.touchControls?.dispose();
+    this.touchControls = null;
     this.input?.dispose();
     this.world?.dispose();
     this.hud?.dispose();

@@ -426,7 +426,7 @@ input {
 }
 
 .hud-touch .hud-skip-btn {
-  /* Sit above the stick/look hit areas and the fire button cluster. */
+  /* Sit above the touch pad and the fire button cluster. */
   bottom: 8.5rem;
 }
 
@@ -438,6 +438,7 @@ input {
   display: flex;
   gap: 0.4rem;
   pointer-events: auto;
+  z-index: 4;
 }
 
 .hud-icon-btn {
@@ -479,15 +480,13 @@ input {
 
 /* ── Mobile touch controls ─────────────────────────────────────────────────── */
 
-/* Left half: movement stick zone */
-.hud-stick-zone {
+/* Fullscreen touch pad (under buttons) */
+.hud-touch-pad {
   position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 50%;
-  height: 52%;
+  inset: 0;
   touch-action: none;
   pointer-events: auto;
+  z-index: 1;
 }
 
 /* Stick base circle (appears at touch origin) */
@@ -501,6 +500,7 @@ input {
   transform: translate(-50%, -50%);
   display: none;
   pointer-events: none;
+  z-index: 2;
 }
 
 .stick-knob {
@@ -514,24 +514,13 @@ input {
   transform: translate(-50%, -50%);
 }
 
-/* Right half: look / camera zone */
-.hud-look-zone {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 50%;
-  height: 52%;
-  touch-action: none;
-  pointer-events: auto;
-}
-
-/* Fire button — 40% smaller than stick (110px → ~66px) */
+/* Fire button — ~20% larger than prior 66px */
 .hud-fire-btn {
   position: absolute;
   bottom: 2.2rem;
   right: 1.1rem;
-  width: 66px;
-  height: 66px;
+  width: 79px;
+  height: 79px;
   border-radius: 50%;
   background: rgba(180, 30, 30, 0.85);
   border: 3px solid #f66;
@@ -551,13 +540,13 @@ input {
   transform: scale(0.94);
 }
 
-/* Jump button — small, above fire */
+/* Jump button — above fire, ~20% larger than prior 48px */
 .hud-jump-btn {
   position: absolute;
-  bottom: 7rem;
+  bottom: 7.6rem;
   right: 1.1rem;
-  width: 48px;
-  height: 48px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
   background: rgba(30, 100, 180, 0.82);
   border: 2px solid #5ad;

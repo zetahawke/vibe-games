@@ -41,8 +41,9 @@ export class Hud {
   readonly pauseBtn: HTMLButtonElement;
   readonly fireBtn: HTMLButtonElement;
   readonly jumpBtn: HTMLButtonElement;
-  readonly stickZone: HTMLElement;
-  readonly lookZone: HTMLElement;
+  readonly touchPad: HTMLElement;
+  readonly stickBase: HTMLElement;
+  readonly stickKnob: HTMLElement;
   readonly skipRestBtn: HTMLButtonElement;
   readonly skipWaveBtn: HTMLButtonElement;
   private readonly _hiscoreEl: HTMLElement;
@@ -90,12 +91,9 @@ export class Hud {
       '⬆',
     ]) as HTMLButtonElement;
 
-    this.stickZone = el('div', { className: 'hud-stick-zone', id: 'stick-zone' }, [
-      el('div', { className: 'stick-base', id: 'stick-base' }, [
-        el('div', { className: 'stick-knob', id: 'stick-knob' }),
-      ]),
-    ]);
-    this.lookZone = el('div', { className: 'hud-look-zone', id: 'look-zone' });
+    this.stickKnob = el('div', { className: 'stick-knob', id: 'stick-knob' });
+    this.stickBase = el('div', { className: 'stick-base', id: 'stick-base' }, [this.stickKnob]);
+    this.touchPad = el('div', { className: 'hud-touch-pad', id: 'touch-pad' }, [this.stickBase]);
 
     this.skipRestBtn = el('button', {
       type: 'button',
@@ -126,12 +124,7 @@ export class Hud {
     );
 
     if (this.touchMode) {
-      this.root.append(
-        this.stickZone,
-        this.lookZone,
-        this.fireBtn,
-        this.jumpBtn,
-      );
+      this.root.append(this.touchPad, this.fireBtn, this.jumpBtn);
     } else {
       const hint = el('div', { className: 'hud-hint' }, [
         'WASD mover · Espacio saltar · Mouse mirar · Clic disparar · E tienda · Esc pausa',
@@ -139,9 +132,8 @@ export class Hud {
       this.root.append(hint);
       this.fireBtn.hidden = true;
       this.jumpBtn.hidden = true;
-      this.stickZone.hidden = true;
-      this.lookZone.hidden = true;
-      this.root.append(this.fireBtn, this.jumpBtn, this.stickZone, this.lookZone);
+      this.touchPad.hidden = true;
+      this.root.append(this.fireBtn, this.jumpBtn, this.touchPad);
     }
 
     parent.append(this.root);
