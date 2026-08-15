@@ -3,7 +3,7 @@ import type { EnemyDef, EnemyType } from '@/domain/waves/enemyConfig';
 import { ENEMY_DEFS } from '@/domain/waves/enemyConfig';
 import { makeZombieTexture } from './textures';
 
-export const BASE_ZOMBIE_SPEED = 1.85;
+export const BASE_ZOMBIE_SPEED = 2.22;
 
 export interface Enemy {
   root: THREE.Group;
