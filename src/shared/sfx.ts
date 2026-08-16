@@ -4,6 +4,19 @@ type Note = { freq: number; ms: number; type?: OscillatorType };
 
 let ctx: AudioContext | null = null;
 
+/** Clean public URLs under `/guns/` — kunai reuses shuriken throw. */
+export const WEAPON_SHOT_URL: Record<WeaponKind, string> = {
+  knife: '/guns/sword.mp3',
+  sword_shield: '/guns/sword.mp3',
+  longsword: '/guns/sword.mp3',
+  pistol: '/guns/pistol.mp3',
+  shotgun: '/guns/shotgun.mp3',
+  rifle: '/guns/rifle.mp3',
+  bow: '/guns/bow.mp3',
+  shuriken: '/guns/shuriken.mp3',
+  kunai: '/guns/shuriken.mp3',
+};
+
 function audio(): AudioContext | null {
   try {
     const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -94,7 +107,8 @@ function playNoise(durationMs: number, volume: number, bandHz: number): void {
   }
 }
 
-export function playGunshot(kind: WeaponKind): void {
+/** Fallback synth if the sample fails to load/play. */
+function playGunshotSynth(kind: WeaponKind): void {
   if (kind === 'knife' || kind === 'sword_shield' || kind === 'longsword') {
     playTone(240, 70, 'triangle');
     return;
@@ -121,6 +135,28 @@ export function playGunshot(kind: WeaponKind): void {
   }
   playNoise(40, 0.18, 3200);
   playTone(210, 35, 'square');
+}
+
+function playSample(url: string, onFail: () => void): void {
+  try {
+    const a = new Audio(url);
+    a.volume = 0.55;
+    const play = a.play();
+    if (play && typeof play.catch === 'function') {
+      void play.catch(onFail);
+    }
+  } catch {
+    onFail();
+  }
+}
+
+export function playGunshot(kind: WeaponKind): void {
+  const url = WEAPON_SHOT_URL[kind];
+  if (!url) {
+    playGunshotSynth(kind);
+    return;
+  }
+  playSample(url, () => playGunshotSynth(kind));
 }
 
 export function playSoftFail(): void {
